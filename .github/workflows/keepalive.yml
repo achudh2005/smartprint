@@ -1,0 +1,21 @@
+name: Render Service Keep-Alive 24/7
+
+on:
+  schedule:
+    # Ping every 10 minutes (Render sleeps after 15 minutes of inactivity)
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping SmartPrint Health Endpoint
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://smartprint-ziq4.onrender.com/health)
+          echo "Render Health Ping Status: $response"
+          if [ "$response" -eq 200 ]; then
+            echo "SmartPrint cloud service is alive and healthy."
+          else
+            echo "Health check returned status: $response"
+          fi
