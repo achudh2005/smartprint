@@ -45,7 +45,40 @@ async function createShop({ name, address, phone, email, logoUrl }, userId) {
 
     // Create default shop settings
     await tx.shopSettings.create({
-      data: { shopId: newShop.id },
+      data: {
+        shopId: newShop.id,
+        paymentEnabled: true,
+        directPrintEnabled: true,
+        manualPrintEnabled: true,
+        defaultExpiryHours: 1,
+        defaultExpiryOption: '1h',
+        allowedExpiryOptions: '15m,1h,3h,8h',
+        maxUploadSizeMb: 50,
+        acceptedFormats: '.pdf,.png,.jpg,.jpeg,.docx',
+        currency: 'INR',
+        timezone: 'Asia/Kolkata',
+      },
+    });
+
+    // Create default standard pricing rules so customer uploads and price calculation work immediately
+    const defaultPricingRules = [
+      { name: 'B&W A4 Simplex', colorMode: 'BLACK_WHITE', paperSize: 'A4', duplexMode: 'SIMPLEX', pricePerPage: 1.50 },
+      { name: 'B&W A4 Duplex', colorMode: 'BLACK_WHITE', paperSize: 'A4', duplexMode: 'DUPLEX_LONG_EDGE', pricePerPage: 2.00 },
+      { name: 'Color A4 Simplex', colorMode: 'COLOR', paperSize: 'A4', duplexMode: 'SIMPLEX', pricePerPage: 5.00 },
+      { name: 'Color A4 Duplex', colorMode: 'COLOR', paperSize: 'A4', duplexMode: 'DUPLEX_LONG_EDGE', pricePerPage: 8.00 },
+    ];
+    for (const rule of defaultPricingRules) {
+      await tx.pricingRule.create({
+        data: { shopId: newShop.id, ...rule, isActive: true },
+      });
+    }
+
+    // Create standard optional finishing services
+    await tx.additionalService.create({
+      data: { shopId: newShop.id, name: 'Soft Spiral Binding', description: 'Plastic coil spiral binding', price: 30.00, isActive: true },
+    });
+    await tx.additionalService.create({
+      data: { shopId: newShop.id, name: 'Gloss Sheet Lamination', description: 'Thermal waterproof lamination', price: 20.00, isActive: true },
     });
 
     return newShop;
