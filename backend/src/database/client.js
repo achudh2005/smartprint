@@ -32,10 +32,14 @@ async function seedInMemory(db) {
 
 async function testConnection() {
   try {
-    await activePrisma.$queryRaw`SELECT 1`;
+    const probe = activePrisma.$queryRaw`SELECT 1`;
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Prisma probe timed out (2000ms)')), 2000)
+    );
+    await Promise.race([probe, timeout]);
   } catch (err) {
     logger.warn(`[Database] MySQL server unreachable (${err.message}).`);
-    logger.info(`[Database] Initializing in-memory zero-config persistence with pre-seeded demo accounts & shops.`);
+    logger.info(`[Database] Initializing zero-config persistence store.`);
     const mock = new InMemoryPrisma();
     await seedInMemory(mock);
     activePrisma = mock;

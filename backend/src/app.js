@@ -121,7 +121,7 @@ const rootDist = path.resolve(process.cwd(), 'frontend', 'dist');
 const parentDist = path.resolve(process.cwd(), '..', 'frontend', 'dist');
 const activeDist = fs.existsSync(rootDist) ? rootDist : (fs.existsSync(parentDist) ? parentDist : null);
 
-if (activeDist && process.env.NODE_ENV === 'production') {
+if (activeDist) {
   app.use(express.static(activeDist));
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api') || req.path === '/health') return next();
