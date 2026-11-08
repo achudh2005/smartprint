@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: smartprint_app
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - DATABASE_URL=mysql://smartprint_user:smartprint_pass@db:3306/smartprint
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_NAME=smartprint
+      - DB_USER=smartprint_user
+      - DB_PASSWORD=smartprint_pass
+      - JWT_SECRET=${JWT_SECRET:-smartprint_super_secret_jwt_key_production_64_characters_min}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-smartprint_refresh_secret_key_production_64_characters_min}
+      - STORAGE_PROVIDER=local
+      - STORAGE_LOCAL_PATH=./uploads
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:5000,http://localhost:5173}
+    volumes:
+      - smartprint_uploads:/app/uploads
+      - smartprint_data:/app/data
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: mysql:8.0
+    container_name: smartprint_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: smartprint
+      MYSQL_USER: smartprint_user
+      MYSQL_PASSWORD: smartprint_pass
+    volumes:
+      - smartprint_mysql:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "smartprint_user", "-psmartprint_pass"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  smartprint_uploads:
+  smartprint_data:
+  smartprint_mysql:

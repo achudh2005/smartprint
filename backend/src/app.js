@@ -97,6 +97,21 @@ app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/v1/agent',    agentRoutes);
 app.use('/api/v1/admin',    adminRoutes);
 
+// ── Serve Production Frontend (if built) ─────────────────
+const path = require('path');
+const fs = require('fs');
+const rootDist = path.resolve(process.cwd(), 'frontend', 'dist');
+const parentDist = path.resolve(process.cwd(), '..', 'frontend', 'dist');
+const activeDist = fs.existsSync(rootDist) ? rootDist : (fs.existsSync(parentDist) ? parentDist : null);
+
+if (activeDist && process.env.NODE_ENV === 'production') {
+  app.use(express.static(activeDist));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path === '/health') return next();
+    res.sendFile(path.join(activeDist, 'index.html'));
+  });
+}
+
 // ── 404 / Error Handlers ─────────────────────────────────
 app.use(notFound);
 app.use(errorHandler);

@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: smartprint
+    env: node
+    plan: free
+    region: singapore
+    buildCommand: npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: STORAGE_PROVIDER
+        value: local
+      - key: STORAGE_LOCAL_PATH
+        value: ./uploads
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: 10000
+      - key: AUTH_RATE_LIMIT_MAX
+        value: 100

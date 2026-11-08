@@ -1,0 +1,26 @@
+{
+  "name": "smartprint",
+  "version": "1.0.0",
+  "description": "SmartPrint – QR-Based Multi-Tenant Cloud Printing & Document Management System",
+  "private": true,
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "build": "npm --prefix frontend install && npm --prefix frontend run build && npm --prefix backend install",
+    "start": "node backend/src/index.js",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev"
+  },
+  "keywords": [
+    "cloud-printing",
+    "qr-code",
+    "multi-tenant",
+    "express",
+    "react",
+    "socket-io",
+    "prisma"
+  ],
+  "author": "Achudh Shaji",
+  "license": "MIT"
+}
