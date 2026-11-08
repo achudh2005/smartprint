@@ -71,10 +71,10 @@ export function showBrowserNotification(title, options) {
  */
 export function getSocket() {
   if (!socket) {
-    const token = localStorage.getItem('smartprint_token')
+    const token = localStorage.getItem('accessToken') || localStorage.getItem('smartprint_token')
     const socketUrl = import.meta.env.VITE_API_URL
       ? import.meta.env.VITE_API_URL.replace('/api/v1', '')
-      : 'http://localhost:5000'
+      : (typeof window !== 'undefined' && window.location.origin ? window.location.origin : 'http://localhost:5000')
 
     socket = io(socketUrl, {
       auth: { token },

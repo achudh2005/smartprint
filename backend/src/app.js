@@ -27,9 +27,26 @@ app.set('trust proxy', 1);
 app.use(helmet());
 
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS
-    ? process.env.ALLOWED_ORIGINS.split(',')
-    : ['http://localhost:5173'],
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps, curl, same-origin)
+    if (!origin) return callback(null, true);
+    if (process.env.ALLOWED_ORIGINS) {
+      const allowed = process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim());
+      if (allowed.includes(origin)) return callback(null, true);
+    }
+    // Always allow onrender.com, vercel.app, railway.app, localhost or same origin
+    if (
+      origin.includes('localhost') ||
+      origin.includes('127.0.0.1') ||
+      origin.includes('onrender.com') ||
+      origin.includes('vercel.app') ||
+      origin.includes('railway.app') ||
+      process.env.NODE_ENV === 'production'
+    ) {
+      return callback(null, true);
+    }
+    return callback(null, true);
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],

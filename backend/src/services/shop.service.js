@@ -168,7 +168,7 @@ async function updateShopSettings(shopId, userId, settings) {
 
 const qrService = require('./qr.service');
 
-async function getShopQR(shopId, userId) {
+async function getShopQR(shopId, userId, requestedBaseUrl = null) {
   const membership = await prisma.shopUser.findUnique({
     where: { shopId_userId: { shopId, userId } },
   });
@@ -179,11 +179,11 @@ async function getShopQR(shopId, userId) {
   }
 
   const shop = await prisma.shop.findUnique({ where: { id: shopId } });
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const frontendUrl = requestedBaseUrl || process.env.FRONTEND_URL || 'http://localhost:5173';
   return qrService.generateShopQRCode(shop.shopCode, frontendUrl);
 }
 
-async function regenerateShopCode(shopId, userId) {
+async function regenerateShopCode(shopId, userId, requestedBaseUrl = null) {
   const membership = await prisma.shopUser.findUnique({
     where: { shopId_userId: { shopId, userId } },
   });
@@ -209,7 +209,7 @@ async function regenerateShopCode(shopId, userId) {
   });
 
   logger.info(`Shop QR regenerated: Shop ${shopId} new code: ${newCode} by user ${userId}`);
-  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+  const frontendUrl = requestedBaseUrl || process.env.FRONTEND_URL || 'http://localhost:5173';
   const qrData = await qrService.generateShopQRCode(updatedShop.shopCode, frontendUrl);
 
   return {

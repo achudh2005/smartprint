@@ -8,9 +8,14 @@ let io = null;
 function initSocket(httpServer) {
   io = new Server(httpServer, {
     cors: {
-      origin: process.env.ALLOWED_ORIGINS
-        ? process.env.ALLOWED_ORIGINS.split(',')
-        : ['http://localhost:5173'],
+      origin: (origin, callback) => {
+        if (!origin) return callback(null, true);
+        if (process.env.ALLOWED_ORIGINS) {
+          const allowed = process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim());
+          if (allowed.includes(origin)) return callback(null, true);
+        }
+        return callback(null, true);
+      },
       methods: ['GET', 'POST'],
       credentials: true,
     },

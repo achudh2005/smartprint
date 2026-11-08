@@ -111,10 +111,42 @@ const updateSettings = async (req, res, next) => {
   }
 };
 
+function resolveBaseUrl(req) {
+  // 1. Explicit query or origin from frontend
+  if (req.query?.origin && /^https?:\/\//i.test(req.query.origin)) {
+    return req.query.origin.replace(/\/$/, '');
+  }
+  if (req.headers?.origin && /^https?:\/\//i.test(req.headers.origin)) {
+    return req.headers.origin.replace(/\/$/, '');
+  }
+  // 2. Referer header (e.g. https://smartprint-ziq4.onrender.com/shops/20/qr)
+  if (req.headers?.referer) {
+    try {
+      const parsed = new URL(req.headers.referer);
+      if (parsed.origin && !parsed.origin.includes('localhost') && !parsed.origin.includes('127.0.0.1')) {
+        return parsed.origin;
+      }
+    } catch (_) {}
+  }
+  // 3. Environment variable if set and not localhost
+  if (process.env.FRONTEND_URL && !process.env.FRONTEND_URL.includes('localhost') && !process.env.FRONTEND_URL.includes('127.0.0.1')) {
+    return process.env.FRONTEND_URL.replace(/\/$/, '');
+  }
+  // 4. Host header from reverse proxy (e.g. Render, Railway, Nginx)
+  const host = req.get('x-forwarded-host') || req.get('host');
+  const proto = req.get('x-forwarded-proto') || req.protocol || 'https';
+  if (host && !host.includes('localhost') && !host.includes('127.0.0.1')) {
+    return `${proto}://${host}`;
+  }
+  // 5. Fallback to process.env.FRONTEND_URL or local dev
+  return process.env.FRONTEND_URL || 'http://localhost:5173';
+}
+
 const getShopQR = async (req, res, next) => {
   try {
     const shopId = parseInt(req.params.shopId, 10);
-    const qrData = await shopService.getShopQR(shopId, req.user.id);
+    const baseUrl = resolveBaseUrl(req);
+    const qrData = await shopService.getShopQR(shopId, req.user.id, baseUrl);
     return sendSuccess(res, qrData);
   } catch (error) {
     next(error);
@@ -124,7 +156,8 @@ const getShopQR = async (req, res, next) => {
 const regenerateShopQR = async (req, res, next) => {
   try {
     const shopId = parseInt(req.params.shopId, 10);
-    const result = await shopService.regenerateShopCode(shopId, req.user.id);
+    const baseUrl = resolveBaseUrl(req);
+    const result = await shopService.regenerateShopCode(shopId, req.user.id, baseUrl);
     return sendSuccess(res, result, 'Shop code and QR regenerated successfully.');
   } catch (error) {
     next(error);

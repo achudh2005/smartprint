@@ -22,7 +22,9 @@ export default function ShopQRPage() {
     try {
       setLoading(true)
       const [qrRes, shopRes] = await Promise.all([
-        api.get(`/shops/${shopId}/qr`),
+        api.get(`/shops/${shopId}/qr`, {
+          params: { origin: window.location.origin }
+        }),
         api.get(`/shops/${shopId}`),
       ])
       setQrData(qrRes.data.data)
@@ -38,10 +40,16 @@ export default function ShopQRPage() {
     fetchQR()
   }, [shopId])
 
+  // Get effective public URL for customer portal
+  const effectiveUrl = qrData?.url && !qrData.url.includes('localhost')
+    ? qrData.url
+    : (shop?.shopCode ? `${window.location.origin}/s/${shop.shopCode}` : (qrData?.url || ''))
+
   // Copy link
   const copyLink = () => {
-    if (!qrData?.url) return
-    navigator.clipboard.writeText(qrData.url)
+    const urlToCopy = effectiveUrl || qrData?.url
+    if (!urlToCopy) return
+    navigator.clipboard.writeText(urlToCopy)
     setCopied(true)
     toast.success('Customer print portal URL copied!')
     setTimeout(() => setCopied(false), 2000)
@@ -74,7 +82,9 @@ export default function ShopQRPage() {
   const handleRegenerate = async () => {
     try {
       setRegenerating(true)
-      const { data } = await api.post(`/shops/${shopId}/qr/regenerate`)
+      const { data } = await api.post(`/shops/${shopId}/qr/regenerate`, {}, {
+        params: { origin: window.location.origin }
+      })
       setQrData(data.data)
       setShop(data.data.shop)
       setShowConfirm(false)
@@ -151,7 +161,7 @@ export default function ShopQRPage() {
                   <input
                     type="text"
                     readOnly
-                    value={qrData?.url || ''}
+                    value={effectiveUrl}
                     className="input text-xs font-mono bg-surface-50 text-slate-700 select-all"
                   />
                   <Button variant="secondary" size="sm" onClick={copyLink} className="shrink-0">
