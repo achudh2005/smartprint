@@ -1,0 +1,76 @@
+# ============================================================
+# SmartPrint – Production Git Ignore
+# ============================================================
+
+# Environment variables & secrets (NEVER commit secrets!)
+.env
+.env.*
+*.env
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+
+# Node dependencies
+node_modules/
+**/node_modules/
+.pnp
+.pnp.js
+
+# Production builds & dist
+dist/
+build/
+out/
+.next/
+.vite/
+.cache/
+
+# Local data & uploads (customer files & transient runtime store)
+uploads/
+**/uploads/
+data/
+**/data/*.json
+!data/.gitkeep
+mysql-data/
+
+# Print agent local configuration (contains shop secret agent token)
+print-agent/agent_config.json
+**/agent_config.json
+!print-agent/agent_config.example.json
+print-agent/__pycache__/
+**/__pycache__/
+*.pyc
+
+# Logs & PIDs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pids/
+*.pid
+*.seed
+
+# Test coverage & reports
+coverage/
+.nyc_output/
+
+# OS metadata
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE & Editor folders
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# AI tool artifacts & caches
+.gemini/
+.system_generated/
+tmp/
+temp/

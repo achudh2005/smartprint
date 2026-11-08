@@ -1,0 +1,592 @@
+// ============================================================
+// SmartPrint – Prisma Schema
+// Database: MySQL
+// Generated for Phase 1
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// USERS
+// ============================================================
+model User {
+  id           Int      @id @default(autoincrement())
+  publicId     String   @unique @default(uuid()) @map("public_id") @db.VarChar(36)
+  name         String   @db.VarChar(255)
+  email        String   @unique @db.VarChar(255)
+  passwordHash String   @map("password_hash") @db.VarChar(512)
+  role         UserRole @default(OWNER)
+  status       UserStatus @default(ACTIVE)
+  emailVerified Boolean  @default(false) @map("email_verified")
+  lastLoginAt  DateTime? @map("last_login_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  shopUsers       ShopUser[]
+  auditLogs       AuditLog[]
+  notifications   Notification[]
+  refreshTokens   RefreshToken[]
+
+  @@map("users")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  OWNER
+  MANAGER
+  STAFF
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+}
+
+// ============================================================
+// REFRESH TOKENS
+// ============================================================
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  token     String   @unique @db.VarChar(512)
+  expiresAt DateTime @map("expires_at")
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@map("refresh_tokens")
+}
+
+// ============================================================
+// SHOPS
+// ============================================================
+model Shop {
+  id          Int        @id @default(autoincrement())
+  publicId    String     @unique @default(uuid()) @map("public_id") @db.VarChar(36)
+  shopCode    String     @unique @map("shop_code") @db.VarChar(16)
+  name        String     @db.VarChar(255)
+  address     String?    @db.Text
+  phone       String?    @db.VarChar(32)
+  email       String?    @db.VarChar(255)
+  logoUrl     String?    @map("logo_url") @db.VarChar(512)
+  status      ShopStatus @default(ACTIVE)
+  createdAt   DateTime   @default(now()) @map("created_at")
+  updatedAt   DateTime   @updatedAt @map("updated_at")
+
+  // Relations
+  shopUsers         ShopUser[]
+  shopSettings      ShopSettings?
+  customerSessions  CustomerSession[]
+  orders            Order[]
+  pricingRules      PricingRule[]
+  additionalServices AdditionalService[]
+  printers          Printer[]
+  notifications     Notification[]
+  auditLogs         AuditLog[]
+
+  @@map("shops")
+}
+
+enum ShopStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+// ============================================================
+// SHOP USERS (Many-to-Many: Users ↔ Shops)
+// ============================================================
+model ShopUser {
+  id        Int          @id @default(autoincrement())
+  shopId    Int          @map("shop_id")
+  userId    Int          @map("user_id")
+  role      ShopUserRole @default(OWNER)
+  status    ShopUserStatus @default(ACTIVE)
+  joinedAt  DateTime     @default(now()) @map("joined_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([shopId, userId])
+  @@index([shopId])
+  @@index([userId])
+  @@map("shop_users")
+}
+
+enum ShopUserRole {
+  OWNER
+  MANAGER
+  STAFF
+}
+
+enum ShopUserStatus {
+  ACTIVE
+  INACTIVE
+}
+
+// ============================================================
+// SHOP SETTINGS
+// ============================================================
+model ShopSettings {
+  id                  Int      @id @default(autoincrement())
+  shopId              Int      @unique @map("shop_id")
+  paymentEnabled      Boolean  @default(false) @map("payment_enabled")
+  manualPrintEnabled  Boolean  @default(true) @map("manual_print_enabled")
+  directPrintEnabled  Boolean  @default(false) @map("direct_print_enabled")
+  defaultExpiryHours  Int      @default(24) @map("default_expiry_hours")
+  maxUploadSizeMb     Int      @default(50) @map("max_upload_size_mb")
+  acceptedFormats     String   @default("pdf,doc,docx,xls,xlsx,ppt,pptx,jpg,jpeg,png") @map("accepted_formats") @db.VarChar(512)
+  currency            String   @default("INR") @db.VarChar(8)
+  timezone            String   @default("Asia/Kolkata") @db.VarChar(64)
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@map("shop_settings")
+}
+
+// ============================================================
+// CUSTOMER SESSIONS
+// ============================================================
+model CustomerSession {
+  id            Int                   @id @default(autoincrement())
+  publicId      String                @unique @default(uuid()) @map("public_id") @db.VarChar(36)
+  shopId        Int                   @map("shop_id")
+  sessionToken  String                @unique @map("session_token") @db.VarChar(512)
+  customerName  String?               @map("customer_name") @db.VarChar(255)
+  customerPhone String?               @map("customer_phone") @db.VarChar(32)
+  status        CustomerSessionStatus @default(ACTIVE)
+  expiresAt     DateTime              @map("expires_at")
+  createdAt     DateTime              @default(now()) @map("created_at")
+  updatedAt     DateTime              @updatedAt @map("updated_at")
+
+  shop       Shop       @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  orders     Order[]
+  expiryLogs ExpiryLog[]
+
+  @@index([shopId])
+  @@index([sessionToken])
+  @@map("customer_sessions")
+}
+
+enum CustomerSessionStatus {
+  ACTIVE
+  EXPIRED
+  COMPLETED
+}
+
+// ============================================================
+// ORDERS
+// ============================================================
+model Order {
+  id              Int         @id @default(autoincrement())
+  publicId        String      @unique @default(uuid()) @map("public_id") @db.VarChar(36)
+  orderNumber     String      @unique @map("order_number") @db.VarChar(32)
+  shopId          Int         @map("shop_id")
+  sessionId       Int?        @map("session_id")
+  status          OrderStatus @default(PENDING)
+  totalAmount     Decimal     @default(0) @map("total_amount") @db.Decimal(10, 2)
+  notes           String?     @db.Text
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  shop            Shop             @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  session         CustomerSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  orderFiles      OrderFile[]
+  payments        Payment[]
+  statusLogs      OrderStatusLog[]
+
+  @@index([shopId])
+  @@index([sessionId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PAYMENT_PENDING
+  ACCEPTED
+  PROCESSING
+  PRINTING
+  PRINTED
+  READY
+  COLLECTED
+  COMPLETED
+  REJECTED
+  CANCELLED
+  EXPIRED
+}
+
+// ============================================================
+// ORDER FILES
+// ============================================================
+model OrderFile {
+  id              Int             @id @default(autoincrement())
+  publicId        String          @unique @default(uuid()) @map("public_id") @db.VarChar(36)
+  orderId         Int             @map("order_id")
+  originalName    String          @map("original_name") @db.VarChar(512)
+  storagePath     String          @map("storage_path") @db.VarChar(1024)
+  mimeType        String          @map("mime_type") @db.VarChar(128)
+  fileSizeBytes   BigInt          @map("file_size_bytes")
+  pageCount       Int?            @map("page_count")
+  status          OrderFileStatus @default(UPLOADED)
+  uploadedAt      DateTime        @default(now()) @map("uploaded_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  order               Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  printConfiguration  PrintConfiguration?
+  printJobs           PrintJob[]
+  orderFileServices   OrderFileService[]
+
+  @@index([orderId])
+  @@map("order_files")
+}
+
+enum OrderFileStatus {
+  UPLOADED
+  PROCESSING
+  READY
+  PRINTING
+  PRINTED
+  FAILED
+  CANCELLED
+}
+
+// ============================================================
+// PRINT CONFIGURATIONS
+// ============================================================
+model PrintConfiguration {
+  id              Int           @id @default(autoincrement())
+  fileId          Int           @unique @map("file_id")
+  copies          Int           @default(1)
+  colorMode       ColorMode     @default(BLACK_WHITE) @map("color_mode")
+  paperSize       PaperSize     @default(A4) @map("paper_size")
+  paperType       PaperType     @default(NORMAL) @map("paper_type")
+  orientation     Orientation   @default(PORTRAIT)
+  duplexMode      DuplexMode    @default(SIMPLEX) @map("duplex_mode")
+  pagesPerSheet   Int           @default(1) @map("pages_per_sheet")
+  pageRange       String?       @map("page_range") @db.VarChar(255)
+  bindingType     BindingType   @default(NONE) @map("binding_type")
+  laminationType  LaminationType @default(NONE) @map("lamination_type")
+  unitPrice       Decimal       @map("unit_price") @db.Decimal(10, 2)
+  calculatedTotal Decimal       @map("calculated_total") @db.Decimal(10, 2)
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  file OrderFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@map("print_configurations")
+}
+
+enum ColorMode {
+  COLOR
+  BLACK_WHITE
+  GRAYSCALE
+}
+
+enum PaperSize {
+  A4
+  A3
+  A5
+  LETTER
+  LEGAL
+  CUSTOM
+}
+
+enum PaperType {
+  NORMAL
+  PREMIUM
+  PHOTO
+  BOND
+  GLOSSY
+  CUSTOM
+}
+
+enum Orientation {
+  PORTRAIT
+  LANDSCAPE
+}
+
+enum DuplexMode {
+  SIMPLEX
+  DUPLEX_LONG_EDGE
+  DUPLEX_SHORT_EDGE
+}
+
+enum BindingType {
+  NONE
+  SPIRAL
+  STAPLE
+  PERFECT
+}
+
+enum LaminationType {
+  NONE
+  GLOSS
+  MATTE
+}
+
+// ============================================================
+// PRICING RULES
+// ============================================================
+model PricingRule {
+  id            Int       @id @default(autoincrement())
+  shopId        Int       @map("shop_id")
+  name          String    @db.VarChar(255)
+  colorMode     ColorMode @map("color_mode")
+  paperSize     PaperSize @map("paper_size")
+  duplexMode    DuplexMode @map("duplex_mode")
+  pricePerPage  Decimal   @map("price_per_page") @db.Decimal(10, 2)
+  minPages      Int       @default(1) @map("min_pages")
+  maxPages      Int?      @map("max_pages")
+  isActive      Boolean   @default(true) @map("is_active")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@index([shopId])
+  @@map("pricing_rules")
+}
+
+// ============================================================
+// ADDITIONAL SERVICES
+// ============================================================
+model AdditionalService {
+  id          Int     @id @default(autoincrement())
+  shopId      Int     @map("shop_id")
+  name        String  @db.VarChar(255)
+  description String? @db.Text
+  price       Decimal @db.Decimal(10, 2)
+  isActive    Boolean @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  shop              Shop               @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  orderFileServices OrderFileService[]
+
+  @@index([shopId])
+  @@map("additional_services")
+}
+
+// ============================================================
+// ORDER FILE SERVICES (Many-to-Many: OrderFiles ↔ AdditionalServices)
+// ============================================================
+model OrderFileService {
+  id                  Int     @id @default(autoincrement())
+  fileId              Int     @map("file_id")
+  additionalServiceId Int     @map("additional_service_id")
+  quantity            Int     @default(1)
+  unitPrice           Decimal @map("unit_price") @db.Decimal(10, 2)
+  total               Decimal @db.Decimal(10, 2)
+
+  file              OrderFile         @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  additionalService AdditionalService @relation(fields: [additionalServiceId], references: [id], onDelete: Restrict)
+
+  @@unique([fileId, additionalServiceId])
+  @@index([fileId])
+  @@map("order_file_services")
+}
+
+// ============================================================
+// PAYMENTS
+// ============================================================
+model Payment {
+  id              Int           @id @default(autoincrement())
+  publicId        String        @unique @default(uuid()) @map("public_id") @db.VarChar(36)
+  orderId         Int           @map("order_id")
+  amount          Decimal       @db.Decimal(10, 2)
+  method          PaymentMethod @default(CASH)
+  status          PaymentStatus @default(PENDING)
+  referenceId     String?       @map("reference_id") @db.VarChar(255)
+  gatewayResponse Json?         @map("gateway_response")
+  paidAt          DateTime?     @map("paid_at")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@index([orderId])
+  @@map("payments")
+}
+
+enum PaymentMethod {
+  CASH
+  UPI
+  CARD
+  NETBANKING
+  WALLET
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+// ============================================================
+// PRINTERS
+// ============================================================
+model Printer {
+  id          Int           @id @default(autoincrement())
+  publicId    String        @unique @default(uuid()) @map("public_id") @db.VarChar(36)
+  shopId      Int           @map("shop_id")
+  name        String        @db.VarChar(255)
+  model       String?       @db.VarChar(255)
+  ipAddress   String?       @map("ip_address") @db.VarChar(45)
+  status      PrinterStatus @default(OFFLINE)
+  capabilities Json?
+  isDefault   Boolean       @default(false) @map("is_default")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  shop      Shop       @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  printJobs PrintJob[]
+
+  @@index([shopId])
+  @@map("printers")
+}
+
+enum PrinterStatus {
+  ONLINE
+  OFFLINE
+  BUSY
+  ERROR
+}
+
+// ============================================================
+// PRINT JOBS
+// ============================================================
+model PrintJob {
+  id          Int          @id @default(autoincrement())
+  publicId    String       @unique @default(uuid()) @map("public_id") @db.VarChar(36)
+  fileId      Int          @map("file_id")
+  printerId   Int?         @map("printer_id")
+  status      PrintJobStatus @default(QUEUED)
+  attemptNumber Int        @default(1) @map("attempt_number")
+  startedAt   DateTime?    @map("started_at")
+  completedAt DateTime?    @map("completed_at")
+  errorMessage String?     @map("error_message") @db.Text
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  file    OrderFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
+  printer Printer?  @relation(fields: [printerId], references: [id], onDelete: SetNull)
+
+  @@index([fileId])
+  @@index([printerId])
+  @@map("print_jobs")
+}
+
+enum PrintJobStatus {
+  QUEUED
+  SENDING
+  PRINTING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+// ============================================================
+// ORDER STATUS LOGS
+// ============================================================
+model OrderStatusLog {
+  id         Int         @id @default(autoincrement())
+  orderId    Int         @map("order_id")
+  fromStatus OrderStatus? @map("from_status")
+  toStatus   OrderStatus  @map("to_status")
+  note       String?     @db.Text
+  changedBy  Int?        @map("changed_by")
+  createdAt  DateTime    @default(now()) @map("created_at")
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("order_status_logs")
+}
+
+// ============================================================
+// EXPIRY LOGS
+// ============================================================
+model ExpiryLog {
+  id          Int       @id @default(autoincrement())
+  sessionId   Int       @map("session_id")
+  expiredAt   DateTime  @map("expired_at")
+  filesCount  Int       @default(0) @map("files_count")
+  reason      String?   @db.VarChar(255)
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  session CustomerSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@map("expiry_logs")
+}
+
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
+model Notification {
+  id         Int                  @id @default(autoincrement())
+  userId     Int?                 @map("user_id")
+  shopId     Int?                 @map("shop_id")
+  type       String               @db.VarChar(64)
+  title      String               @db.VarChar(255)
+  message    String               @db.Text
+  data       Json?
+  isRead     Boolean              @default(false) @map("is_read")
+  readAt     DateTime?            @map("read_at")
+  createdAt  DateTime             @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shop Shop? @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([shopId])
+  @@index([isRead])
+  @@map("notifications")
+}
+
+// ============================================================
+// AUDIT LOGS
+// ============================================================
+model AuditLog {
+  id         Int      @id @default(autoincrement())
+  userId     Int?     @map("user_id")
+  shopId     Int?     @map("shop_id")
+  action     String   @db.VarChar(128)
+  resource   String   @db.VarChar(128)
+  resourceId String?  @map("resource_id") @db.VarChar(64)
+  oldData    Json?    @map("old_data")
+  newData    Json?    @map("new_data")
+  ipAddress  String?  @map("ip_address") @db.VarChar(45)
+  userAgent  String?  @map("user_agent") @db.VarChar(512)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  shop Shop? @relation(fields: [shopId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([shopId])
+  @@index([action])
+  @@index([createdAt])
+  @@map("audit_logs")
+}

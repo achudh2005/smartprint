@@ -1,0 +1,10 @@
+{
+  "server_url": "http://localhost:5000",
+  "shop_code": "SP-DEMO-001",
+  "agent_token": "spa_replace_with_your_shop_agent_token",
+  "poll_interval_seconds": 5,
+  "download_dir": "./temp_spool",
+  "auto_discover_printers": true,
+  "enable_physical_spooling": false,
+  "log_level": "INFO"
+}

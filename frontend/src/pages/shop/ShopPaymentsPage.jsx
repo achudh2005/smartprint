@@ -1,0 +1,344 @@
+import { useState, useEffect, useCallback } from 'react'
+import { useParams, Link } from 'react-router-dom'
+import {
+  CreditCard, DollarSign, ArrowUpRight, AlertCircle, CheckCircle2,
+  Clock, RefreshCw, Search, Filter, ShieldCheck, Wallet, ArrowDownRight
+} from 'lucide-react'
+import { PageHeader, Card, CardHeader, CardBody, Button, Spinner, Badge } from '../../components/ui'
+import ShopNavTabs from '../../components/shop/ShopNavTabs'
+import api from '../../lib/api'
+import toast from 'react-hot-toast'
+
+export default function ShopPaymentsPage() {
+  const { shopId } = useParams()
+  const [payments, setPayments] = useState([])
+  const [stats, setStats] = useState({
+    totalRevenue: 0,
+    onlineRevenue: 0,
+    counterRevenue: 0,
+    failedCount: 0,
+  })
+  const [loading, setLoading] = useState(true)
+  const [statusFilter, setStatusFilter] = useState('ALL')
+  const [methodFilter, setMethodFilter] = useState('ALL')
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+
+  const fetchPayments = useCallback(async () => {
+    try {
+      setLoading(true)
+      const params = {
+        page,
+        limit: 15,
+        status: statusFilter !== 'ALL' ? statusFilter : undefined,
+        method: methodFilter !== 'ALL' ? methodFilter : undefined,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+      }
+
+      const { data } = await api.get(`/shops/${shopId}/payments`, { params })
+      if (data.success) {
+        setPayments(data.data.payments)
+        setStats(data.data.stats || {})
+        setTotalPages(data.data.pagination.totalPages)
+        setTotalCount(data.data.pagination.total)
+      }
+    } catch (err) {
+      toast.error('Failed to load payments.')
+    } finally {
+      setLoading(false)
+    }
+  }, [shopId, page, statusFilter, methodFilter, startDate, endDate])
+
+  useEffect(() => {
+    fetchPayments()
+  }, [fetchPayments])
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'SUCCESS':
+      case 'COMPLETED':
+        return <Badge variant="green">Online Success</Badge>
+      case 'COUNTER_PAYMENT_COLLECTED':
+        return <Badge variant="green">Counter Collected</Badge>
+      case 'COUNTER_PAYMENT_DUE':
+        return <Badge variant="yellow">Counter Due</Badge>
+      case 'PENDING':
+        return <Badge variant="yellow">Pending</Badge>
+      case 'FAILED':
+        return <Badge variant="red">Failed Attempt</Badge>
+      case 'REFUNDED':
+        return <Badge variant="purple">Refunded</Badge>
+      default:
+        return <Badge variant="gray">{status}</Badge>
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Payments & Revenue</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Supervise online gateway transactions, counter collections, and audit logs.
+          </p>
+        </div>
+        <Button variant="secondary" size="sm" onClick={fetchPayments} className="self-start sm:self-auto">
+          <RefreshCw size={14} /> Refresh
+        </Button>
+      </div>
+
+      <ShopNavTabs shopId={shopId} />
+
+      {/* ── Summary Cards ── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="bg-white">
+          <CardBody className="p-5 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Collected</p>
+              <p className="text-2xl font-black text-slate-900 mt-1">
+                ₹ {stats.totalRevenue?.toFixed(2) || '0.00'}
+              </p>
+            </div>
+            <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+              <DollarSign size={22} />
+            </div>
+          </CardBody>
+        </Card>
+
+        <Card className="bg-white">
+          <CardBody className="p-5 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Online (Razorpay)</p>
+              <p className="text-2xl font-black text-indigo-600 mt-1">
+                ₹ {stats.onlineRevenue?.toFixed(2) || '0.00'}
+              </p>
+            </div>
+            <div className="w-11 h-11 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
+              <CreditCard size={22} />
+            </div>
+          </CardBody>
+        </Card>
+
+        <Card className="bg-white">
+          <CardBody className="p-5 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Counter Cash/UPI</p>
+              <p className="text-2xl font-black text-teal-600 mt-1">
+                ₹ {stats.counterRevenue?.toFixed(2) || '0.00'}
+              </p>
+            </div>
+            <div className="w-11 h-11 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center">
+              <Wallet size={22} />
+            </div>
+          </CardBody>
+        </Card>
+
+        <Card className="bg-white">
+          <CardBody className="p-5 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Failed Attempts</p>
+              <p className="text-2xl font-black text-rose-600 mt-1">
+                {stats.failedCount || 0}
+              </p>
+            </div>
+            <div className="w-11 h-11 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center">
+              <AlertCircle size={22} />
+            </div>
+          </CardBody>
+        </Card>
+      </div>
+
+      {/* ── Filters Bar ── */}
+      <div className="bg-white p-4 rounded-xl border border-surface-200 shadow-xs flex flex-wrap items-center gap-3 text-xs">
+        <div>
+          <label className="text-[11px] font-semibold text-slate-500 block mb-1">Status</label>
+          <select
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value)
+              setPage(1)
+            }}
+            className="input py-1.5 px-3 text-xs font-medium bg-white"
+          >
+            <option value="ALL">All Statuses</option>
+            <option value="SUCCESS">Online Success</option>
+            <option value="COUNTER_PAYMENT_COLLECTED">Counter Collected</option>
+            <option value="COUNTER_PAYMENT_DUE">Counter Due</option>
+            <option value="PENDING">Pending</option>
+            <option value="FAILED">Failed</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="text-[11px] font-semibold text-slate-500 block mb-1">Method</label>
+          <select
+            value={methodFilter}
+            onChange={(e) => {
+              setMethodFilter(e.target.value)
+              setPage(1)
+            }}
+            className="input py-1.5 px-3 text-xs font-medium bg-white"
+          >
+            <option value="ALL">All Methods</option>
+            <option value="RAZORPAY">Razorpay</option>
+            <option value="CASH">Cash</option>
+            <option value="UPI">UPI</option>
+            <option value="COUNTER">Counter</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="text-[11px] font-semibold text-slate-500 block mb-1">From Date</label>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => {
+              setStartDate(e.target.value)
+              setPage(1)
+            }}
+            className="input py-1.5 px-2 text-xs"
+          />
+        </div>
+
+        <div>
+          <label className="text-[11px] font-semibold text-slate-500 block mb-1">To Date</label>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => {
+              setEndDate(e.target.value)
+              setPage(1)
+            }}
+            className="input py-1.5 px-2 text-xs"
+          />
+        </div>
+
+        {(statusFilter !== 'ALL' || methodFilter !== 'ALL' || startDate || endDate) && (
+          <div className="self-end pb-0.5">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => {
+                setStatusFilter('ALL')
+                setMethodFilter('ALL')
+                setStartDate('')
+                setEndDate('')
+                setPage(1)
+              }}
+            >
+              Reset Filters
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* ── Payments Table ── */}
+      <Card className="overflow-hidden">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-slate-800 text-sm">
+              Transactions & Records ({totalCount})
+            </h3>
+            <span className="text-xs text-slate-400 font-mono">Real-time DB Ledger</span>
+          </div>
+        </CardHeader>
+
+        {loading ? (
+          <div className="py-20 flex justify-center">
+            <Spinner size="lg" />
+          </div>
+        ) : payments.length === 0 ? (
+          <div className="py-20 text-center">
+            <CreditCard size={36} className="text-slate-300 mx-auto mb-2" />
+            <p className="text-sm font-semibold text-slate-700">No payment records found</p>
+            <p className="text-xs text-slate-400 mt-1">There are no transactions matching your active filter criteria.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-surface-50 text-slate-500 font-semibold uppercase tracking-wider border-b border-surface-200">
+                <tr>
+                  <th className="py-3 px-4">Order</th>
+                  <th className="py-3 px-4">Amount</th>
+                  <th className="py-3 px-4">Method</th>
+                  <th className="py-3 px-4">Reference / Txn ID</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4">Date & Time</th>
+                  <th className="py-3 px-4 text-right">Details</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-surface-100">
+                {payments.map((p) => (
+                  <tr key={p.id} className="hover:bg-surface-50/60 transition-colors">
+                    <td className="py-3.5 px-4 font-mono font-semibold text-primary-600">
+                      <Link to={`/shops/${shopId}/orders/${p.order?.id}`}>
+                        {p.order?.orderNumber || `Order #${p.orderId}`}
+                      </Link>
+                    </td>
+                    <td className="py-3.5 px-4 font-bold text-slate-900">
+                      ₹ {Number(p.amount).toFixed(2)}
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <span className="font-medium text-slate-700">{p.method}</span>
+                    </td>
+                    <td className="py-3.5 px-4 font-mono text-[11px] text-slate-500 max-w-[180px] truncate">
+                      {p.razorpayPaymentId || p.referenceId || p.razorpayOrderId || '—'}
+                    </td>
+                    <td className="py-3.5 px-4">
+                      {getStatusBadge(p.status)}
+                    </td>
+                    <td className="py-3.5 px-4 text-slate-500">
+                      <div>{new Date(p.createdAt).toLocaleDateString()}</div>
+                      <div className="text-[10px] text-slate-400">
+                        {new Date(p.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <Link
+                        to={`/shops/${shopId}/orders/${p.order?.id}`}
+                        className="text-primary-600 font-semibold hover:underline"
+                      >
+                        Inspect Order
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="p-4 border-t border-surface-200 flex items-center justify-between text-xs">
+            <span className="text-slate-500">
+              Page <span className="font-semibold text-slate-700">{page}</span> of {totalPages}
+            </span>
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={page >= totalPages}
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
+      </Card>
+    </div>
+  )
+}

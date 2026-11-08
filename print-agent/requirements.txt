@@ -1,0 +1,5 @@
+# SmartPrint Windows Print Agent Dependencies
+requests>=2.31.0
+python-dotenv>=1.0.0
+# pywin32 provides native access to Windows Print Spooler APIs (win32print, win32api)
+pywin32>=306; sys_platform == "win32"

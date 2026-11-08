@@ -1,0 +1,219 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-surface-200 dark:border-slate-800;
+  }
+  body {
+    @apply bg-surface-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans antialiased transition-colors duration-200;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-primary-600 text-white hover:bg-primary-700 focus-visible:ring-primary-500 active:bg-primary-800;
+  }
+  .btn-secondary {
+    @apply btn bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border border-surface-200 dark:border-slate-700 hover:bg-surface-50 dark:hover:bg-slate-800 focus-visible:ring-primary-500 shadow-sm;
+  }
+  .btn-ghost {
+    @apply btn text-slate-600 dark:text-slate-300 hover:bg-surface-100 dark:hover:bg-slate-800 focus-visible:ring-primary-500;
+  }
+  .btn-danger {
+    @apply btn bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500;
+  }
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+  .btn-lg {
+    @apply px-6 py-3 text-base;
+  }
+
+  .input {
+    @apply block w-full rounded-lg border border-surface-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3.5 py-2.5 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 shadow-sm transition-colors focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:bg-surface-100 dark:disabled:bg-slate-800 disabled:cursor-not-allowed;
+  }
+  .input-error {
+    @apply border-red-400 focus:border-red-500 focus:ring-red-500;
+  }
+
+  .label {
+    @apply block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5;
+  }
+
+  .card {
+    @apply bg-white dark:bg-slate-900 rounded-xl border border-surface-200 dark:border-slate-800 shadow-card transition-colors duration-150;
+  }
+  .card-header {
+    @apply px-6 py-4 border-b border-surface-100 dark:border-slate-800;
+  }
+  .card-body {
+    @apply px-6 py-5;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+  .badge-green  { @apply badge bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-300; }
+  .badge-blue   { @apply badge bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300; }
+  .badge-yellow { @apply badge bg-yellow-100 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300; }
+  .badge-red    { @apply badge bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300; }
+  .badge-gray   { @apply badge bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400; }
+
+  .sidebar-link {
+    @apply flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 transition-colors hover:bg-surface-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100;
+  }
+  .sidebar-link-active {
+    @apply bg-primary-50 dark:bg-slate-800 text-primary-700 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-slate-700 hover:text-primary-800 dark:hover:text-primary-300;
+  }
+
+  .form-error {
+    @apply mt-1.5 text-xs text-red-600 dark:text-red-400;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   GLOBAL DARK MODE AUTOMATIC OVERRIDES
+   Ensures every card, table, header, input, and container transforms
+   into dark mode even if using utility classes like bg-white
+   ═══════════════════════════════════════════════════════════════ */
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark body {
+  background-color: #0b0f19 !important;
+  color: #f1f5f9 !important;
+}
+
+/* Backgrounds */
+html.dark .bg-white {
+  background-color: #111827 !important;
+}
+
+html.dark .bg-surface-50 {
+  background-color: #0b0f19 !important;
+}
+
+html.dark .bg-surface-100 {
+  background-color: #1e293b !important;
+}
+
+html.dark .bg-surface-200 {
+  background-color: #334155 !important;
+}
+
+/* Borders */
+html.dark .border-surface-100,
+html.dark .border-surface-200,
+html.dark .border-slate-100,
+html.dark .border-slate-200 {
+  border-color: #1e293b !important;
+}
+
+/* Typography */
+html.dark .text-slate-900 {
+  color: #f8fafc !important;
+}
+
+html.dark .text-slate-800 {
+  color: #f1f5f9 !important;
+}
+
+html.dark .text-slate-700 {
+  color: #e2e8f0 !important;
+}
+
+html.dark .text-slate-600 {
+  color: #cbd5e1 !important;
+}
+
+html.dark .text-slate-500,
+html.dark .text-slate-400 {
+  color: #94a3b8 !important;
+}
+
+/* Form Inputs */
+html.dark input,
+html.dark select,
+html.dark textarea {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #64748b !important;
+}
+
+/* Structural Components */
+html.dark header {
+  background-color: #111827 !important;
+  border-color: #1e293b !important;
+}
+
+html.dark aside {
+  background-color: #0f172a !important;
+  border-color: #1e293b !important;
+}
+
+html.dark .card {
+  background-color: #111827 !important;
+  border-color: #1e293b !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4) !important;
+}
+
+html.dark .btn-secondary {
+  background-color: #1e293b !important;
+  color: #f1f5f9 !important;
+  border-color: #334155 !important;
+}
+
+html.dark .btn-secondary:hover {
+  background-color: #334155 !important;
+}
+
+html.dark .btn-ghost {
+  color: #cbd5e1 !important;
+}
+
+html.dark .btn-ghost:hover {
+  background-color: #1e293b !important;
+}
+
+/* Tables & Lists */
+html.dark table thead tr {
+  background-color: #1e293b !important;
+}
+
+html.dark table tbody tr {
+  border-color: #1e293b !important;
+}
+
+html.dark table tbody tr:hover {
+  background-color: rgba(30, 41, 59, 0.5) !important;
+}
+
+html.dark .divide-surface-100 > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-surface-200 > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+html.dark .divide-slate-200 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #1e293b !important;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+html.dark ::-webkit-scrollbar-thumb { background: #334155; }
+html.dark ::-webkit-scrollbar-thumb:hover { background: #475569; }
