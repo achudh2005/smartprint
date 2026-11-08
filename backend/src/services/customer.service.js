@@ -54,7 +54,10 @@ async function getShopByCode(shopCode) {
       manualPrintEnabled: shop.shopSettings?.manualPrintEnabled ?? true,
       directPrintEnabled: shop.shopSettings?.directPrintEnabled ?? false,
       maxUploadSizeMb: shop.shopSettings?.maxUploadSizeMb ?? 50,
-      acceptedFormats: (shop.shopSettings?.acceptedFormats || 'pdf,doc,docx,jpg,jpeg,png,txt').split(',').map((f) => f.trim().toLowerCase()),
+      acceptedFormats: (shop.shopSettings?.acceptedFormats || 'pdf,doc,docx,jpg,jpeg,png,txt')
+        .split(',')
+        .map((f) => f.trim().toLowerCase().replace(/^\./, ''))
+        .filter(Boolean),
       currency: shop.shopSettings?.currency || 'INR',
       defaultExpiryHours: shop.shopSettings?.defaultExpiryHours || 24,
       enabledExpiryOptions: (shop.shopSettings?.enabledExpiryOptions || '15m,1h,3h,8h').split(',').map((o) => o.trim()),
@@ -246,7 +249,8 @@ async function uploadFiles(sessionToken, rawFiles) {
   const maxUploadBytes = (shop.shopSettings?.maxUploadSizeMb || 50) * 1024 * 1024;
   const acceptedFormats = (shop.shopSettings?.acceptedFormats || 'pdf,doc,docx,jpg,jpeg,png,txt')
     .split(',')
-    .map((f) => f.trim().toLowerCase().replace('.', ''));
+    .map((f) => f.trim().toLowerCase().replace(/^\./, ''))
+    .filter(Boolean);
 
   const processedFiles = [];
 

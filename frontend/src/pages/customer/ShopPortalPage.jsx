@@ -79,23 +79,28 @@ export default function ShopPortalPage() {
     }
   }, [shopCode])
 
+  // Normalized accepted formats (clean, lowercase, without leading dot)
+  const acceptedFormatsList = (shop?.settings?.acceptedFormats || ['pdf', 'png', 'jpg', 'jpeg', 'docx', 'txt'])
+    .map((f) => f.trim().toLowerCase().replace(/^\./, ''))
+    .filter(Boolean)
+
   // 2. Handle File Uploads
   const handleFiles = async (fileList) => {
     if (!fileList || fileList.length === 0 || !sessionToken) return
 
     const filesArray = Array.from(fileList)
-    const acceptedFormats = shop.settings.acceptedFormats
-    const maxBytes = shop.settings.maxUploadSizeMb * 1024 * 1024
+    const acceptedFormats = acceptedFormatsList
+    const maxBytes = (shop?.settings?.maxUploadSizeMb || 50) * 1024 * 1024
 
     // Pre-flight client checks
     for (const f of filesArray) {
-      const ext = f.name.split('.').pop().toLowerCase()
+      const ext = f.name.includes('.') ? f.name.split('.').pop().toLowerCase() : ''
       if (!acceptedFormats.includes(ext)) {
-        toast.error(`"${f.name}" is not accepted. Allowed: ${acceptedFormats.join(', ')}`)
+        toast.error(`"${f.name}" is not accepted. Allowed: ${acceptedFormats.map(e => `.${e}`).join(', ')}`)
         return
       }
       if (f.size > maxBytes) {
-        toast.error(`"${f.name}" exceeds the ${shop.settings.maxUploadSizeMb} MB limit.`)
+        toast.error(`"${f.name}" exceeds the ${shop?.settings?.maxUploadSizeMb || 50} MB limit.`)
         return
       }
     }
@@ -437,7 +442,7 @@ export default function ShopPortalPage() {
               Max: <strong className="text-slate-800">{shop.settings.maxUploadSizeMb} MB</strong>
             </span>
             <span className="bg-surface-100 text-slate-600 px-2.5 py-1 rounded-lg">
-              Formats: <strong className="text-slate-800">{shop.settings.acceptedFormats.slice(0, 4).join(', ').toUpperCase()}</strong>
+              Formats: <strong className="text-slate-800">{acceptedFormatsList.slice(0, 4).map((e) => e.toUpperCase()).join(', ')}</strong>
             </span>
           </div>
         </div>
@@ -459,7 +464,7 @@ export default function ShopPortalPage() {
             ref={fileInputRef}
             type="file"
             multiple
-            accept={shop.settings.acceptedFormats.map((ext) => `.${ext}`).join(',')}
+            accept={acceptedFormatsList.map((ext) => `.${ext}`).join(',')}
             className="hidden"
             onChange={(e) => handleFiles(e.target.files)}
           />
@@ -467,7 +472,7 @@ export default function ShopPortalPage() {
           <input
             ref={replaceInputRef}
             type="file"
-            accept={shop.settings.acceptedFormats.map((ext) => `.${ext}`).join(',')}
+            accept={acceptedFormatsList.map((ext) => `.${ext}`).join(',')}
             className="hidden"
             onChange={handleFileReplacement}
           />

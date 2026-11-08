@@ -54,7 +54,7 @@ async function createShop({ name, address, phone, email, logoUrl }, userId) {
         defaultExpiryOption: '1h',
         allowedExpiryOptions: '15m,1h,3h,8h',
         maxUploadSizeMb: 50,
-        acceptedFormats: '.pdf,.png,.jpg,.jpeg,.docx',
+        acceptedFormats: 'pdf,png,jpg,jpeg,docx,txt',
         currency: 'INR',
         timezone: 'Asia/Kolkata',
       },
