@@ -556,7 +556,7 @@ async function deleteFile(sessionToken, filePublicId) {
 /**
  * Confirm and seal customer order
  */
-async function confirmOrder(sessionToken, { notes = '', expiryOption, paymentMethod = 'COUNTER' } = {}) {
+async function confirmOrder(sessionToken, { notes = '', expiryOption, paymentMethod = 'COUNTER', customerName = '', customerPhone = '' } = {}) {
   const { session, draftOrder, shop } = await validateSession(sessionToken);
   const { calculateExpiresAt } = require('./expiry.service');
   const { scheduleOrderExpiry } = require('../queues/expiry.queue');
@@ -717,13 +717,21 @@ async function confirmOrder(sessionToken, { notes = '', expiryOption, paymentMet
     },
   });
 
-  // Mark session COMPLETED
+  const finalCustomerName = customerName && customerName.trim() ? customerName.trim() : (session.customerName || null);
+  const finalCustomerPhone = customerPhone && customerPhone.trim() ? customerPhone.trim() : (session.customerPhone || null);
+
+  // Mark session COMPLETED and record customer details
   await prisma.customerSession.update({
     where: { id: session.id },
-    data: { status: 'COMPLETED' },
+    data: {
+      status: 'COMPLETED',
+      customerName: finalCustomerName,
+      customerPhone: finalCustomerPhone,
+    },
   });
 
   const filesList = updatedOrder.orderFiles || fullOrder.orderFiles || [];
+  const customerBadge = finalCustomerName ? ` (${finalCustomerName})` : '';
 
   // Create In-App Notification record for Shop
   try {
@@ -731,7 +739,7 @@ async function confirmOrder(sessionToken, { notes = '', expiryOption, paymentMet
       data: {
         shopId: shop.id,
         title: 'New Print Order Received',
-        message: `Order #${updatedOrder.orderNumber} received (${filesList.length} document(s)). Total: ₹${Number(updatedOrder.totalAmount).toFixed(2)} [${paymentMethodLabel} - ${wantsOnlinePayment ? 'Pending' : 'Due'}]`,
+        message: `Order #${updatedOrder.orderNumber}${customerBadge} received (${filesList.length} document(s)). Total: ₹${Number(updatedOrder.totalAmount).toFixed(2)} [${paymentMethodLabel} - ${wantsOnlinePayment ? 'Pending' : 'Due'}]`,
         type: 'ORDER_NEW',
       },
     });
@@ -747,6 +755,8 @@ async function confirmOrder(sessionToken, { notes = '', expiryOption, paymentMet
       orderNumber: updatedOrder.orderNumber,
       publicId: updatedOrder.publicId,
       status: updatedOrder.status,
+      customerName: finalCustomerName,
+      customerPhone: finalCustomerPhone,
       totalAmount: Number(updatedOrder.totalAmount),
       createdAt: updatedOrder.createdAt,
       expiresAt: updatedOrder.expiresAt,
@@ -766,6 +776,8 @@ async function confirmOrder(sessionToken, { notes = '', expiryOption, paymentMet
     orderNumber: updatedOrder.orderNumber,
     publicId: updatedOrder.publicId,
     status: updatedOrder.status,
+    customerName: finalCustomerName,
+    customerPhone: finalCustomerPhone,
     totalAmount: Number(updatedOrder.totalAmount),
     notes: updatedOrder.notes,
     expiresAt: updatedOrder.expiresAt,

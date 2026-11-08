@@ -478,14 +478,30 @@ export default function OrderDetailPage() {
               </Badge>
             </div>
 
+            {/* Prominent Customer Identification Tag */}
+            <div className="inline-flex items-center gap-2.5 px-3 py-1.5 bg-primary-50/80 border border-primary-200/90 rounded-xl">
+              <div className="w-6 h-6 rounded-lg bg-primary-600 text-white flex items-center justify-center font-bold text-xs shrink-0">
+                <User size={13} />
+              </div>
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="text-slate-500 font-medium">Customer:</span>
+                <span className="font-bold text-slate-900 text-sm">
+                  {order.session?.customerName || order.customerName || 'Anonymous Visitor'}
+                </span>
+                {(order.session?.customerPhone || order.customerPhone) && (
+                  <span className="font-mono text-primary-700 font-semibold bg-white px-2 py-0.5 rounded-md border border-primary-200">
+                    📞 {order.session?.customerPhone || order.customerPhone}
+                  </span>
+                )}
+              </div>
+            </div>
+
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
               <span>Submitted: {new Date(order.createdAt).toLocaleString()}</span>
               <span>•</span>
               <span>Total Documents: {order.orderFiles?.length || 0}</span>
               <span>•</span>
               <span className="font-semibold text-slate-700">Total Pages: {order.totalPages}</span>
-              <span>•</span>
-              <span>Customer: {order.session?.customerName || 'Anonymous Visitor'}</span>
             </div>
           </div>
 

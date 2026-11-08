@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { User } from 'lucide-react';
 import api from '../../lib/api';
 import ShopNavTabs from '../../components/shop/ShopNavTabs';
 import { subscribeToShopEvents } from '../../lib/socket';
@@ -324,10 +325,16 @@ export default function ShopOrdersPage() {
                       <td className="px-6 py-4">
                         <Link
                           to={`/shops/${shopId}/orders/${o.id}`}
-                          className="font-mono font-semibold text-brand-600 hover:text-brand-700 hover:underline"
+                          className="font-mono font-bold text-brand-600 hover:text-brand-700 hover:underline block"
                         >
                           {o.orderNumber}
                         </Link>
+                        <div className="text-xs text-slate-700 font-medium flex items-center gap-1 mt-0.5">
+                          <User size={12} className="text-slate-400 shrink-0" />
+                          <span className="truncate max-w-[140px] font-semibold text-slate-800">
+                            {o.session?.customerName || o.customerName || 'Anonymous'}
+                          </span>
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-500">
                         <div>{new Date(o.createdAt).toLocaleDateString()}</div>

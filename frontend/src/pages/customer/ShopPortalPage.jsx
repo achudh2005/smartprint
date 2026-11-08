@@ -4,7 +4,7 @@ import {
   UploadCloud, FileText, CheckCircle2, AlertCircle, X, Eye,
   Plus, Minus, Settings2, Sparkles, Store, Clock, MapPin,
   Phone, ArrowRight, RefreshCw, Layers, ShieldCheck, File,
-  Repeat, Ban, Info, CreditCard, Banknote
+  Repeat, Ban, Info, CreditCard, Banknote, User
 } from 'lucide-react'
 import { Card, CardHeader, CardBody, Button, Badge, Spinner, Alert, ThemeToggle } from '../../components/ui'
 import api from '../../lib/api'
@@ -23,6 +23,8 @@ export default function ShopPortalPage() {
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [error, setError] = useState('')
+  const [customerName, setCustomerName] = useState('')
+  const [customerPhone, setCustomerPhone] = useState('')
   const [customerNotes, setCustomerNotes] = useState('')
   const [expiryOption, setExpiryOption] = useState('1h')
   const [paymentMethod, setPaymentMethod] = useState('COUNTER')
@@ -281,9 +283,16 @@ export default function ShopPortalPage() {
       return
     }
 
+    if (!customerName || !customerName.trim()) {
+      toast.error('Please enter your name so the shop knows whose order this is.')
+      return
+    }
+
     try {
       setSubmitting(true)
       const { data } = await api.post(`/customer/sessions/${sessionToken}/confirm`, {
+        customerName: customerName.trim(),
+        customerPhone: customerPhone.trim(),
         notes: customerNotes,
         expiryOption,
         paymentMethod,
@@ -819,6 +828,46 @@ export default function ShopPortalPage() {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {/* ── Customer Information ── */}
+              <div className="space-y-3 pt-2 border-t border-surface-100">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 block mb-1">
+                      Your Name <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        required
+                        value={customerName}
+                        onChange={(e) => setCustomerName(e.target.value)}
+                        placeholder="e.g. Rahul Sharma / Sarah"
+                        className="input text-xs font-medium pl-8"
+                      />
+                      <User size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    </div>
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">Printed on your order tag so shop staff can identify you</span>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-semibold text-slate-700 block mb-1">
+                      Phone Number <span className="text-slate-400 font-normal">(Optional)</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="tel"
+                        value={customerPhone}
+                        onChange={(e) => setCustomerPhone(e.target.value)}
+                        placeholder="e.g. 9876543210"
+                        className="input text-xs font-medium pl-8"
+                      />
+                      <Phone size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    </div>
+                    <span className="text-[10px] text-slate-400 mt-0.5 block">Used only to notify you when your prints are ready</span>
+                  </div>
+                </div>
               </div>
 
               <div>

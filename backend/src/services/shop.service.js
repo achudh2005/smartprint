@@ -421,7 +421,7 @@ async function getShopOrders(shopId, userId, { status, search, startDate, endDat
             printJobs: { select: { id: true, status: true, attemptNumber: true } },
           },
         },
-        session: { select: { publicId: true, customerName: true, expiresAt: true, status: true } },
+        session: { select: { publicId: true, customerName: true, customerPhone: true, expiresAt: true, status: true } },
         payments: { select: { id: true, amount: true, status: true, method: true, paidAt: true, referenceId: true } },
       },
       orderBy: { createdAt: 'desc' },
@@ -445,6 +445,8 @@ async function getShopOrders(shopId, userId, { status, search, startDate, endDat
         ...o,
         totalAmount: Number(o.totalAmount),
         totalPages,
+        customerName: o.session?.customerName || null,
+        customerPhone: o.session?.customerPhone || null,
         paymentStatus: latestPayment?.status || 'PENDING',
         paymentMethod: latestPayment?.method || 'COUNTER',
         orderFiles: (o.orderFiles || []).map((f) => ({
@@ -516,6 +518,8 @@ async function getOrderDetails(shopId, userId, orderId) {
 
   return {
     ...order,
+    customerName: order.session?.customerName || null,
+    customerPhone: order.session?.customerPhone || null,
     totalAmount: Number(order.totalAmount),
     totalPages,
     orderFiles: (order.orderFiles || []).map((f) => ({
