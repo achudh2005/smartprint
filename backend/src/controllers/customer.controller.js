@@ -266,6 +266,9 @@ async function previewFile(req, res, next) {
 
     res.setHeader('Content-Type', file.mimeType || 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.originalName)}"`);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; sandbox");
+    res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
 
     const stream = storageService.getFileStream(file.storagePath);
     stream.pipe(res);

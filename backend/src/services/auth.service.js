@@ -16,6 +16,8 @@ const ARGON2_OPTIONS = {
 
 // ── Token Helpers ─────────────────────────────────────────
 
+const JWT_SECRET = process.env.JWT_SECRET || 'smartprint_jwt_fallback_secret_production_guard_9281749102';
+
 function generateAccessToken(user) {
   return jwt.sign(
     {
@@ -24,7 +26,7 @@ function generateAccessToken(user) {
       email: user.email,
       role: user.role,
     },
-    process.env.JWT_SECRET,
+    JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
   );
 }

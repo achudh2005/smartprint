@@ -24,14 +24,14 @@ const isLocalOrLanIp = (ip = '') => {
   );
 };
 
-// Strict rate limit for auth endpoints
+// Strict rate limit for auth endpoints (brute-force & credential stuffing defense)
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: parseInt(process.env.AUTH_RATE_LIMIT_MAX) || 100,
+  max: parseInt(process.env.AUTH_RATE_LIMIT_MAX) || 20, // max 20 attempts per 15 mins
   standardHeaders: true,
   legacyHeaders: false,
   skip: (req) => process.env.NODE_ENV !== 'production' || isLocalOrLanIp(req.ip),
-  message: { success: false, message: 'Too many login attempts. Please wait a few minutes before trying again.' },
+  message: { success: false, message: 'Too many login attempts from this network. Please wait a few minutes before trying again.' },
 });
 
 // POST /api/v1/auth/register

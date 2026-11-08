@@ -298,6 +298,8 @@ const downloadFile = async (req, res, next) => {
 
     res.setHeader('Content-Type', file.mimeType || 'application/octet-stream');
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.originalName)}"`);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
 
     const storageService = require('../services/storage.service');
     const stream = storageService.getFileStream(file.storagePath);
@@ -331,6 +333,9 @@ const previewFile = async (req, res, next) => {
 
     res.setHeader('Content-Type', file.mimeType || 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(file.originalName)}"`);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; sandbox");
+    res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
 
     const storageService = require('../services/storage.service');
     const stream = storageService.getFileStream(file.storagePath);

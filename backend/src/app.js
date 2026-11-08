@@ -22,9 +22,22 @@ const adminRoutes = require('./routes/admin.routes');
 
 const app = express();
 app.set('trust proxy', 1);
+app.disable('x-powered-by');
 
-// ── Security ──────────────────────────────────────────────
-app.use(helmet());
+// ── Security Headers (Helmet Hardening) ───────────────────
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' },
+  crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+  frameguard: { action: 'sameorigin' },
+  noSniff: true,
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true,
+  },
+  contentSecurityPolicy: false, // Allows React SPA, Google Fonts, and payment scripts to load without inline breakage
+}));
 
 app.use(cors({
   origin: (origin, callback) => {

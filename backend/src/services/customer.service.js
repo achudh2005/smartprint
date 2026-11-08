@@ -254,8 +254,27 @@ async function uploadFiles(sessionToken, rawFiles) {
 
   const processedFiles = [];
 
+  const BANNED_EXTENSIONS = new Set([
+    'exe', 'bat', 'cmd', 'sh', 'php', 'phtml', 'js', 'vbs', 'scr', 'jar',
+    'py', 'pl', 'cgi', 'html', 'htm', 'svg', 'msi', 'dll', 'com', 'app',
+    'apk', 'bin', 'deb', 'rpm', 'elf', 'ps1', 'wsf',
+  ]);
+
   for (const rawFile of rawFiles) {
-    const ext = rawFile.originalname.split('.').pop().toLowerCase();
+    // Sanitize filename against path traversal & control characters
+    rawFile.originalname = (rawFile.originalname || 'document')
+      .replace(/[\0\r\n\t]/g, '')
+      .replace(/[/\\]+/g, '_')
+      .trim()
+      .slice(0, 255);
+
+    const parts = rawFile.originalname.split('.');
+    const ext = parts.pop().toLowerCase();
+
+    // 0. Dangerous executable & script blacklist check
+    if (BANNED_EXTENSIONS.has(ext)) {
+      throw new Error(`File format ".${ext}" is blocked for security reasons.`);
+    }
 
     // 1. Extension check
     if (!acceptedFormats.includes(ext)) {
@@ -717,8 +736,23 @@ async function confirmOrder(sessionToken, { notes = '', expiryOption, paymentMet
     },
   });
 
-  const finalCustomerName = customerName && customerName.trim() ? customerName.trim() : (session.customerName || null);
-  const finalCustomerPhone = customerPhone && customerPhone.trim() ? customerPhone.trim() : (session.customerPhone || null);
+  // Sanitize customer inputs against XSS and control characters
+  const rawCustomerName = customerName && customerName.trim() ? customerName.trim() : (session.customerName || '');
+  const sanitizedCustomerName = rawCustomerName
+    .toString()
+    .replace(/[<>'"&]/g, '')
+    .slice(0, 100)
+    .trim();
+
+  const rawCustomerPhone = customerPhone && customerPhone.trim() ? customerPhone.trim() : (session.customerPhone || '');
+  const sanitizedCustomerPhone = rawCustomerPhone
+    .toString()
+    .replace(/[^0-9+\-()\s]/g, '')
+    .slice(0, 25)
+    .trim();
+
+  const finalCustomerName = sanitizedCustomerName || null;
+  const finalCustomerPhone = sanitizedCustomerPhone || null;
 
   // Mark session COMPLETED and record customer details
   await prisma.customerSession.update({

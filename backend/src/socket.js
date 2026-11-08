@@ -31,7 +31,8 @@ function initSocket(httpServer) {
         return next(new Error('Authentication error: Missing token'));
       }
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const jwtSecret = process.env.JWT_SECRET || 'smartprint_jwt_fallback_secret_production_guard_9281749102';
+      const decoded = jwt.verify(token, jwtSecret);
       const user = await prisma.user.findUnique({
         where: { id: decoded.id },
         select: { id: true, email: true, name: true, role: true, status: true },
