@@ -51,7 +51,7 @@ async function createShop({ name, address, phone, email, logoUrl }, userId) {
         manualPrintEnabled: true,
         defaultExpiryHours: 1,
         defaultExpiryOption: '1h',
-        allowedExpiryOptions: '15m,1h,3h,8h',
+        enabledExpiryOptions: '15m,1h,3h,8h',
         maxUploadSizeMb: 50,
         acceptedFormats: 'pdf,png,jpg,jpeg,docx,txt',
         currency: 'INR',
