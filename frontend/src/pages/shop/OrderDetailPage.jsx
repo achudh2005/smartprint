@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, FileText, Printer, CheckCircle2, XCircle, AlertTriangle,
   Download, Eye, Clock, ShieldCheck, User, Copy, Check, X,
-  Layers, ChevronRight, RefreshCw, AlertCircle, Trash2, CreditCard,
+  Layers, ChevronRight, RefreshCw, AlertCircle, Trash2, CreditCard, Banknote,
   PlusCircle, Flame, History
 } from 'lucide-react'
 import { PageHeader, Card, CardHeader, CardBody, Button, Spinner, Badge, Alert } from '../../components/ui'
@@ -559,16 +559,40 @@ export default function OrderDetailPage() {
         </CardBody>
       </Card>
 
-      {/* ── Payment Status Banner ── */}
-      <Card>
-        <CardBody className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
-              <CreditCard size={20} />
+      {/* ── Payment Details & Method Banner ── */}
+      <Card className="border border-surface-200">
+        <CardBody className="p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className={`p-3 rounded-2xl shrink-0 ${
+              latestPayment?.status === 'SUCCESS' || latestPayment?.status === 'COUNTER_PAYMENT_COLLECTED'
+                ? 'bg-emerald-100 text-emerald-700'
+                : latestPayment?.method === 'COUNTER' || latestPayment?.status === 'COUNTER_PAYMENT_DUE'
+                ? 'bg-amber-100 text-amber-700'
+                : 'bg-blue-100 text-blue-700'
+            }`}>
+              {latestPayment?.method === 'COUNTER' || latestPayment?.status === 'COUNTER_PAYMENT_DUE' || latestPayment?.status === 'COUNTER_PAYMENT_COLLECTED' ? (
+                <Banknote size={22} />
+              ) : (
+                <CreditCard size={22} />
+              )}
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="font-bold text-slate-900 text-sm">Payment Status</h3>
+
+            <div className="space-y-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="font-bold text-slate-900 text-sm">Payment Details</h3>
+
+                {/* Clear Payment Method Pill */}
+                <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                  latestPayment?.method === 'COUNTER' || latestPayment?.status === 'COUNTER_PAYMENT_DUE' || latestPayment?.status === 'COUNTER_PAYMENT_COLLECTED'
+                    ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                    : 'bg-blue-100 text-blue-800 border border-blue-300'
+                }`}>
+                  {latestPayment?.method === 'COUNTER' || latestPayment?.status === 'COUNTER_PAYMENT_DUE' || latestPayment?.status === 'COUNTER_PAYMENT_COLLECTED'
+                    ? '🏪 Pay at Counter'
+                    : '💳 Paid Online (Razorpay)'}
+                </span>
+
+                {/* Status Badge */}
                 <Badge
                   variant={
                     latestPayment?.status === 'SUCCESS' || latestPayment?.status === 'COUNTER_PAYMENT_COLLECTED'
@@ -577,27 +601,65 @@ export default function OrderDetailPage() {
                       ? 'red'
                       : 'yellow'
                   }
+                  size="sm"
                 >
-                  {latestPayment?.status || 'PENDING'}
+                  {latestPayment?.status === 'COUNTER_PAYMENT_DUE'
+                    ? 'COLLECT AT COUNTER'
+                    : latestPayment?.status === 'COUNTER_PAYMENT_COLLECTED'
+                    ? 'PAID AT COUNTER'
+                    : latestPayment?.status === 'SUCCESS'
+                    ? 'PAID IN ADVANCE'
+                    : (latestPayment?.status || 'PENDING')}
                 </Badge>
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                Method: <span className="font-semibold">{latestPayment?.method || 'N/A'}</span>
-                {latestPayment?.referenceId && (
-                  <span> • Ref: <span className="font-mono">{latestPayment.referenceId}</span></span>
-                )}
-                {latestPayment?.paidAt && (
-                  <span> • Paid: {new Date(latestPayment.paidAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+
+              {/* Informative description for the shop owner */}
+              <p className="text-xs text-slate-600">
+                {latestPayment?.status === 'COUNTER_PAYMENT_DUE' ? (
+                  <span className="text-amber-800 font-medium">
+                    Customer selected <strong>Pay at Counter</strong>. Please collect ₹{Number(order.totalAmount).toFixed(2)} when the customer picks up their print job.
+                  </span>
+                ) : latestPayment?.status === 'COUNTER_PAYMENT_COLLECTED' ? (
+                  <span className="text-emerald-800 font-medium">
+                    Payment collected at counter by operator.
+                  </span>
+                ) : latestPayment?.status === 'SUCCESS' ? (
+                  <span className="text-emerald-800 font-medium">
+                    Customer already paid online via UPI / Card. No payment collection needed at pickup.
+                  </span>
+                ) : (
+                  <span>Customer selected online payment (awaiting confirmation or counter payment).</span>
                 )}
               </p>
+
+              {(latestPayment?.referenceId || latestPayment?.razorpayPaymentId || latestPayment?.paidAt) && (
+                <div className="flex flex-wrap items-center gap-x-3 text-[11px] text-slate-400 font-mono pt-0.5">
+                  {(latestPayment.razorpayPaymentId || latestPayment.referenceId) && (
+                    <span>Ref: {latestPayment.razorpayPaymentId || latestPayment.referenceId}</span>
+                  )}
+                  {latestPayment.paidAt && (
+                    <span>Paid at: {new Date(latestPayment.paidAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="text-right">
-            <span className="text-xs text-slate-400 block">Amount</span>
-            <span className="text-xl font-bold text-slate-900">
+          <div className="text-left md:text-right shrink-0 border-t md:border-t-0 pt-3 md:pt-0 border-surface-100">
+            <span className="text-xs text-slate-400 block font-medium">Order Total</span>
+            <span className="text-2xl font-black text-slate-900">
               ₹ {Number(latestPayment?.amount || order.totalAmount).toFixed(2)}
             </span>
+            {latestPayment?.status === 'COUNTER_PAYMENT_DUE' && (
+              <span className="inline-block text-[11px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 mt-1">
+                To Collect: ₹{Number(order.totalAmount).toFixed(2)}
+              </span>
+            )}
+            {latestPayment?.status === 'SUCCESS' && (
+              <span className="inline-block text-[11px] font-bold text-emerald-800 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 mt-1">
+                ✓ Fully Paid
+              </span>
+            )}
           </div>
         </CardBody>
       </Card>

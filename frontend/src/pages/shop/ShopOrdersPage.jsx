@@ -130,19 +130,23 @@ export default function ShopOrdersPage() {
     }
   };
 
-  const getPaymentBadge = (status) => {
-    switch (status) {
-      case 'COMPLETED':
-        return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-      case 'PENDING':
-        return 'bg-amber-50 text-amber-700 border-amber-200';
-      case 'FAILED':
-        return 'bg-rose-50 text-rose-700 border-rose-200';
-      case 'REFUNDED':
-        return 'bg-purple-50 text-purple-700 border-purple-200';
-      default:
-        return 'bg-slate-50 text-slate-600 border-slate-200';
+  const getPaymentBadge = (status, method) => {
+    if (status === 'SUCCESS' || status === 'COMPLETED') {
+      return 'bg-emerald-50 text-emerald-700 border-emerald-300';
     }
+    if (status === 'COUNTER_PAYMENT_COLLECTED') {
+      return 'bg-emerald-50 text-emerald-700 border-emerald-300';
+    }
+    if (status === 'COUNTER_PAYMENT_DUE' || method === 'COUNTER') {
+      return 'bg-amber-50 text-amber-800 border-amber-300';
+    }
+    if (status === 'PAYMENT_PENDING' || status === 'PENDING') {
+      return 'bg-blue-50 text-blue-700 border-blue-200';
+    }
+    if (status === 'FAILED') {
+      return 'bg-rose-50 text-rose-700 border-rose-200';
+    }
+    return 'bg-slate-50 text-slate-600 border-slate-200';
   };
 
   return (
@@ -338,11 +342,21 @@ export default function ShopOrdersPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 font-semibold text-slate-900 whitespace-nowrap">
-                        ${Number(o.totalAmount).toFixed(2)}
+                        ₹ {Number(o.totalAmount).toFixed(2)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${getPaymentBadge(o.paymentStatus)}`}>
-                          {o.paymentStatus}
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold border ${getPaymentBadge(o.paymentStatus, o.paymentMethod)}`}>
+                          {o.paymentStatus === 'SUCCESS' || o.paymentStatus === 'COMPLETED' ? (
+                            <>💳 Paid Online</>
+                          ) : o.paymentStatus === 'COUNTER_PAYMENT_COLLECTED' ? (
+                            <>✅ Counter Paid</>
+                          ) : o.paymentStatus === 'COUNTER_PAYMENT_DUE' || o.paymentMethod === 'COUNTER' ? (
+                            <>🏪 Pay at Counter</>
+                          ) : o.paymentStatus === 'PAYMENT_PENDING' ? (
+                            <>⏳ Online Pending</>
+                          ) : (
+                            <>{o.paymentStatus || 'Pending'}</>
+                          )}
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">

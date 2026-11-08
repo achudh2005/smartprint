@@ -422,7 +422,7 @@ async function getShopOrders(shopId, userId, { status, search, startDate, endDat
           },
         },
         session: { select: { publicId: true, customerName: true, expiresAt: true, status: true } },
-        payments: { select: { id: true, amount: true, status: true } },
+        payments: { select: { id: true, amount: true, status: true, method: true, paidAt: true, referenceId: true } },
       },
       orderBy: { createdAt: 'desc' },
       take: parseInt(limit, 10),
@@ -446,6 +446,7 @@ async function getShopOrders(shopId, userId, { status, search, startDate, endDat
         totalAmount: Number(o.totalAmount),
         totalPages,
         paymentStatus: latestPayment?.status || 'PENDING',
+        paymentMethod: latestPayment?.method || 'COUNTER',
         orderFiles: (o.orderFiles || []).map((f) => ({
           ...f,
           fileSizeBytes: (f.fileSizeBytes || 0).toString(),

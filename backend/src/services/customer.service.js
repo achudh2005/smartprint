@@ -556,7 +556,7 @@ async function deleteFile(sessionToken, filePublicId) {
 /**
  * Confirm and seal customer order
  */
-async function confirmOrder(sessionToken, { notes = '', expiryOption } = {}) {
+async function confirmOrder(sessionToken, { notes = '', expiryOption, paymentMethod = 'COUNTER' } = {}) {
   const { session, draftOrder, shop } = await validateSession(sessionToken);
   const { calculateExpiresAt } = require('./expiry.service');
   const { scheduleOrderExpiry } = require('../queues/expiry.queue');
@@ -637,9 +637,13 @@ async function confirmOrder(sessionToken, { notes = '', expiryOption } = {}) {
     data: { expiresAt },
   });
 
-  // Determine initial status based on shop payment configuration
+  // Determine if customer chose Online Payment and whether shop has it enabled
   const isOnlinePaymentEnabled = shop.shopSettings?.paymentEnabled || false;
-  const initialStatus = isOnlinePaymentEnabled ? 'PAYMENT_PENDING' : 'CONFIRMED';
+  const isCounterChoice = (paymentMethod || '').toUpperCase() === 'COUNTER';
+  const wantsOnlinePayment = !isCounterChoice && isOnlinePaymentEnabled;
+  const initialStatus = wantsOnlinePayment ? 'PAYMENT_PENDING' : 'CONFIRMED';
+  const chosenMethodEnum = wantsOnlinePayment ? 'RAZORPAY' : 'COUNTER';
+  const paymentMethodLabel = wantsOnlinePayment ? 'Pay Online (Razorpay)' : 'Pay at Counter';
 
   // Update order status, total, and expiration
   const updatedOrder = await prisma.order.update({
@@ -668,8 +672,8 @@ async function confirmOrder(sessionToken, { notes = '', expiryOption } = {}) {
     data: { expiresAt },
   });
 
-  // If counter payment, create initial COUNTER_PAYMENT_DUE record
-  if (!isOnlinePaymentEnabled) {
+  // Create initial Payment record matching customer choice
+  if (!wantsOnlinePayment) {
     await prisma.payment.create({
       data: {
         orderId: fullOrder.id,
@@ -677,7 +681,18 @@ async function confirmOrder(sessionToken, { notes = '', expiryOption } = {}) {
         method: 'COUNTER',
         status: 'COUNTER_PAYMENT_DUE',
         referenceId: `COUNTER-DUE-${updatedOrder.orderNumber}`,
-        notes: 'Payment to be collected at the shop counter upon document collection',
+        notes: 'Pay at Counter: Customer selected to pay at shop counter upon document collection',
+      },
+    });
+  } else {
+    await prisma.payment.create({
+      data: {
+        orderId: fullOrder.id,
+        amount: orderSummary.totalAmount,
+        method: 'RAZORPAY',
+        status: 'PENDING',
+        referenceId: `ONLINE-PENDING-${updatedOrder.orderNumber}`,
+        notes: 'Pay Online: Customer selected online payment via UPI/Cards (Razorpay)',
       },
     });
   }
@@ -696,9 +711,9 @@ async function confirmOrder(sessionToken, { notes = '', expiryOption } = {}) {
       orderId: fullOrder.id,
       fromStatus: 'PENDING',
       toStatus: initialStatus,
-      note: isOnlinePaymentEnabled
-        ? 'Customer submitted order; pending online payment'
-        : 'Customer submitted print request via QR portal (Counter payment due)',
+      note: wantsOnlinePayment
+        ? 'Customer submitted order; pending online payment via Razorpay'
+        : 'Customer submitted print request via QR portal (Pay at Counter)',
     },
   });
 
@@ -716,7 +731,7 @@ async function confirmOrder(sessionToken, { notes = '', expiryOption } = {}) {
       data: {
         shopId: shop.id,
         title: 'New Print Order Received',
-        message: `Order #${updatedOrder.orderNumber} received (${filesList.length} document(s)). Total: ₹${Number(updatedOrder.totalAmount).toFixed(2)} [${initialStatus}]`,
+        message: `Order #${updatedOrder.orderNumber} received (${filesList.length} document(s)). Total: ₹${Number(updatedOrder.totalAmount).toFixed(2)} [${paymentMethodLabel} - ${wantsOnlinePayment ? 'Pending' : 'Due'}]`,
         type: 'ORDER_NEW',
       },
     });
@@ -737,6 +752,9 @@ async function confirmOrder(sessionToken, { notes = '', expiryOption } = {}) {
       expiresAt: updatedOrder.expiresAt,
       filesCount: filesList.length,
       notes: updatedOrder.notes,
+      paymentMethod: chosenMethodEnum,
+      paymentMethodLabel,
+      paymentStatus: wantsOnlinePayment ? 'PENDING' : 'COUNTER_PAYMENT_DUE',
     });
   } catch (wsErr) {
     logger.warn(`Failed to broadcast order:new: ${wsErr.message}`);
@@ -755,7 +773,10 @@ async function confirmOrder(sessionToken, { notes = '', expiryOption } = {}) {
     createdAt: updatedOrder.createdAt,
     shop: updatedOrder.shop,
     filesCount: filesList.length,
-    paymentRequired: isOnlinePaymentEnabled,
+    paymentRequired: wantsOnlinePayment,
+    paymentMethod: chosenMethodEnum,
+    paymentMethodLabel,
+    paymentStatus: wantsOnlinePayment ? 'PENDING' : 'COUNTER_PAYMENT_DUE',
     files: filesList.map((f) => ({
       publicId: f.publicId,
       originalName: f.originalName,

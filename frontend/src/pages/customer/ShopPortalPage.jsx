@@ -4,7 +4,7 @@ import {
   UploadCloud, FileText, CheckCircle2, AlertCircle, X, Eye,
   Plus, Minus, Settings2, Sparkles, Store, Clock, MapPin,
   Phone, ArrowRight, RefreshCw, Layers, ShieldCheck, File,
-  Repeat, Ban, Info
+  Repeat, Ban, Info, CreditCard, Banknote
 } from 'lucide-react'
 import { Card, CardHeader, CardBody, Button, Badge, Spinner, Alert, ThemeToggle } from '../../components/ui'
 import api from '../../lib/api'
@@ -25,6 +25,7 @@ export default function ShopPortalPage() {
   const [error, setError] = useState('')
   const [customerNotes, setCustomerNotes] = useState('')
   const [expiryOption, setExpiryOption] = useState('1h')
+  const [paymentMethod, setPaymentMethod] = useState('COUNTER')
   const [submitting, setSubmitting] = useState(false)
   const [uploadSuccessMessage, setUploadSuccessMessage] = useState('')
 
@@ -285,6 +286,7 @@ export default function ShopPortalPage() {
       const { data } = await api.post(`/customer/sessions/${sessionToken}/confirm`, {
         notes: customerNotes,
         expiryOption,
+        paymentMethod,
       })
 
       const confirmed = data.data
@@ -832,14 +834,75 @@ export default function ShopPortalPage() {
                 />
               </div>
 
+              {/* ── Choose Payment Option ── */}
+              <div className="space-y-2 pt-2 border-t border-surface-100">
+                <label className="text-xs font-semibold text-slate-700 block">
+                  Select Payment Option
+                </label>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Option 1: Pay at Counter */}
+                  <div
+                    onClick={() => setPaymentMethod('COUNTER')}
+                    className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 select-none ${
+                      paymentMethod === 'COUNTER'
+                        ? 'border-primary-600 bg-primary-50/50 shadow-xs ring-1 ring-primary-500/20'
+                        : 'border-surface-200 bg-white hover:border-surface-300'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-lg shrink-0 ${
+                      paymentMethod === 'COUNTER' ? 'bg-primary-600 text-white' : 'bg-surface-100 text-slate-600'
+                    }`}>
+                      <Banknote size={18} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-1 mb-0.5">
+                        <span className="font-bold text-slate-900 text-xs">Pay at Counter</span>
+                        <Badge variant="green" size="sm">Pay on Pickup</Badge>
+                      </div>
+                      <p className="text-[11px] text-slate-500 leading-snug">
+                        Pay cash or shop UPI when you pick up your printed documents.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Option 2: Pay Online via Razorpay */}
+                  {shop.settings?.paymentEnabled && (
+                    <div
+                      onClick={() => setPaymentMethod('ONLINE')}
+                      className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 select-none ${
+                        paymentMethod === 'ONLINE'
+                          ? 'border-primary-600 bg-primary-50/50 shadow-xs ring-1 ring-primary-500/20'
+                          : 'border-surface-200 bg-white hover:border-surface-300'
+                      }`}
+                    >
+                      <div className={`p-2 rounded-lg shrink-0 ${
+                        paymentMethod === 'ONLINE' ? 'bg-primary-600 text-white' : 'bg-surface-100 text-slate-600'
+                      }`}>
+                        <CreditCard size={18} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1 mb-0.5">
+                          <span className="font-bold text-slate-900 text-xs">Pay Online</span>
+                          <Badge variant="blue" size="sm">UPI / Cards</Badge>
+                        </div>
+                        <p className="text-[11px] text-slate-500 leading-snug">
+                          Pay instantly with GPay, PhonePe, Paytm, Cards, or Netbanking.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-3 border-t border-surface-100">
                 <div>
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-slate-500 block">
-                      {shop.settings?.paymentEnabled ? 'Total Amount (Online Payment)' : 'Total Payable at Counter'}
+                      {paymentMethod === 'ONLINE' ? 'Total Payable Online:' : 'Total Payable at Counter:'}
                     </span>
-                    <Badge variant={shop.settings?.paymentEnabled ? 'blue' : 'gray'}>
-                      {shop.settings?.paymentEnabled ? 'Razorpay Online' : 'Pay at Shop'}
+                    <Badge variant={paymentMethod === 'ONLINE' ? 'blue' : 'green'}>
+                      {paymentMethod === 'ONLINE' ? 'Razorpay Online' : 'Pay at Shop'}
                     </Badge>
                   </div>
                   <span className="text-2xl font-bold text-slate-900 mt-0.5 block">
@@ -854,7 +917,11 @@ export default function ShopPortalPage() {
                   onClick={handleConfirmOrder}
                   className="px-6"
                 >
-                  <span>{shop.settings?.paymentEnabled ? 'Pay & Submit Order' : 'Submit Print Request'}</span>
+                  <span>
+                    {paymentMethod === 'ONLINE'
+                      ? `Pay Online (${currencySymbol} ${draftOrder?.totalAmount?.toFixed(2) || '0.00'})`
+                      : 'Submit Order (Pay at Counter)'}
+                  </span>
                   <ArrowRight size={18} />
                 </Button>
               </div>
