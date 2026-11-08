@@ -382,7 +382,7 @@ function isValidTransition(from, to) {
   return allowed.includes(to);
 }
 
-async function getShopOrders(shopId, userId, { status, search, startDate, endDate, limit = 50, offset = 0 } = {}) {
+async function getShopOrders(shopId, userId, { status, search, startDate, endDate, limit = 15, offset, page, sortBy = 'createdAt', sortOrder = 'desc' } = {}) {
   const membership = await prisma.shopUser.findUnique({
     where: { shopId_userId: { shopId, userId } },
   });
@@ -392,12 +392,24 @@ async function getShopOrders(shopId, userId, { status, search, startDate, endDat
     throw err;
   }
 
+  const parsedLimit = Math.max(1, Math.min(100, parseInt(limit, 10) || 15));
+  const parsedPage = Math.max(1, parseInt(page, 10) || 1);
+  const parsedOffset = offset !== undefined ? Math.max(0, parseInt(offset, 10) || 0) : (parsedPage - 1) * parsedLimit;
+
+  const allowedSortFields = ['createdAt', 'totalAmount', 'status', 'orderNumber', 'updatedAt'];
+  const sortKey = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
+  const sortDirection = String(sortOrder || 'desc').toLowerCase() === 'asc' ? 'asc' : 'desc';
+
   const where = { shopId };
   if (status && status !== 'ALL') {
     where.status = status;
   }
   if (search && search.trim()) {
-    where.orderNumber = { contains: search.trim().toUpperCase() };
+    const q = search.trim();
+    where.OR = [
+      { orderNumber: { contains: q.toUpperCase() } },
+      { session: { customerName: { contains: q } } },
+    ];
   }
   if (startDate || endDate) {
     where.createdAt = {};
@@ -423,12 +435,14 @@ async function getShopOrders(shopId, userId, { status, search, startDate, endDat
         session: { select: { publicId: true, customerName: true, customerPhone: true, expiresAt: true, status: true } },
         payments: { select: { id: true, amount: true, status: true, method: true, paidAt: true, referenceId: true } },
       },
-      orderBy: { createdAt: 'desc' },
-      take: parseInt(limit, 10),
-      skip: parseInt(offset, 10),
+      orderBy: { [sortKey]: sortDirection },
+      take: parsedLimit,
+      skip: parsedOffset,
     }),
     prisma.order.count({ where }),
   ]);
+
+  const totalPages = Math.ceil(total / parsedLimit) || 1;
 
   return {
     orders: orders.map((o) => {
@@ -456,6 +470,12 @@ async function getShopOrders(shopId, userId, { status, search, startDate, endDat
       };
     }),
     total,
+    pagination: {
+      total,
+      totalPages,
+      page: parsedPage,
+      limit: parsedLimit,
+    },
   };
 }
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { User } from 'lucide-react';
+import { User, ArrowUpDown, ArrowDown, ArrowUp, Clock, Filter, Sparkles, RefreshCw } from 'lucide-react';
 import api from '../../lib/api';
 import ShopNavTabs from '../../components/shop/ShopNavTabs';
 import { subscribeToShopEvents } from '../../lib/socket';
@@ -32,6 +32,31 @@ export default function ShopOrdersPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [sortOrder, setSortOrder] = useState('desc'); // 'desc' = Latest First
+
+  // Client-side sort helper to keep list sorted at all times
+  const sortOrdersList = useCallback((list, field, direction) => {
+    return [...list].sort((a, b) => {
+      let valA = a[field];
+      let valB = b[field];
+
+      if (field === 'createdAt') {
+        valA = new Date(valA).getTime();
+        valB = new Date(valB).getTime();
+      } else if (field === 'totalAmount') {
+        valA = Number(valA || 0);
+        valB = Number(valB || 0);
+      } else if (typeof valA === 'string') {
+        valA = (valA || '').toLowerCase();
+        valB = (valB || '').toLowerCase();
+      }
+
+      if (valA < valB) return direction === 'asc' ? -1 : 1;
+      if (valA > valB) return direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, []);
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -43,14 +68,20 @@ export default function ShopOrdersPage() {
         search: searchQuery.trim() || undefined,
         startDate: startDate || undefined,
         endDate: endDate || undefined,
-        status: activeTab !== 'ALL' ? activeTab : undefined
+        status: activeTab !== 'ALL' ? activeTab : undefined,
+        sortBy,
+        sortOrder,
       };
 
       const res = await api.get(`/shops/${shopId}/orders`, { params });
       if (res.data.success) {
-        setOrders(res.data.data.orders);
-        setTotalPages(res.data.data.pagination.totalPages);
-        setTotalCount(res.data.data.pagination.total);
+        const fetchedOrders = res.data.data.orders || [];
+        const sorted = sortOrdersList(fetchedOrders, sortBy, sortOrder);
+        setOrders(sorted);
+        const tot = res.data.data.pagination?.total ?? res.data.data.total ?? fetchedOrders.length;
+        const tPages = res.data.data.pagination?.totalPages ?? Math.max(1, Math.ceil(tot / 15));
+        setTotalPages(tPages);
+        setTotalCount(tot);
       }
     } catch (err) {
       console.error('Failed to fetch orders:', err);
@@ -58,7 +89,7 @@ export default function ShopOrdersPage() {
     } finally {
       setLoading(false);
     }
-  }, [shopId, page, activeTab, searchQuery, startDate, endDate]);
+  }, [shopId, page, activeTab, searchQuery, startDate, endDate, sortBy, sortOrder, sortOrdersList]);
 
   useEffect(() => {
     fetchOrders();
@@ -68,11 +99,11 @@ export default function ShopOrdersPage() {
   useEffect(() => {
     const unsubscribe = subscribeToShopEvents(shopId, {
       onNewOrder: (newOrder) => {
-        // Prepend new order if it matches active filter
         setOrders((prev) => {
           if (prev.some((o) => o.id === newOrder.id)) return prev;
           if (activeTab === 'ALL' || activeTab === newOrder.status) {
-            return [newOrder, ...prev];
+            const updated = [newOrder, ...prev];
+            return sortOrdersList(updated, sortBy, sortOrder);
           }
           return prev;
         });
@@ -86,7 +117,7 @@ export default function ShopOrdersPage() {
     });
 
     return () => unsubscribe();
-  }, [shopId, activeTab]);
+  }, [shopId, activeTab, sortBy, sortOrder, sortOrdersList]);
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -99,6 +130,18 @@ export default function ShopOrdersPage() {
     setStartDate('');
     setEndDate('');
     setActiveTab('ALL');
+    setSortBy('createdAt');
+    setSortOrder('desc');
+    setPage(1);
+  };
+
+  const handleSortColumn = (field) => {
+    if (sortBy === field) {
+      setSortOrder((prev) => (prev === 'desc' ? 'asc' : 'desc'));
+    } else {
+      setSortBy(field);
+      setSortOrder(field === 'orderNumber' || field === 'status' ? 'asc' : 'desc');
+    }
     setPage(1);
   };
 
@@ -196,17 +239,17 @@ export default function ShopOrdersPage() {
         </nav>
       </div>
 
-      {/* Search & Date Filter Bar */}
+      {/* Search, Sort & Date Filter Bar */}
       <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm">
         <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
-          <div className="md:col-span-5">
+          <div className="md:col-span-4">
             <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
-              Search Order Number
+              Search Order / Customer
             </label>
             <div className="relative">
               <input
                 type="text"
-                placeholder="e.g. SP-2026-..."
+                placeholder="e.g. ORD-... or customer name"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
@@ -218,6 +261,32 @@ export default function ShopOrdersPage() {
           </div>
 
           <div className="md:col-span-3">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1 flex items-center justify-between">
+              <span>Sort Orders</span>
+              {sortBy === 'createdAt' && sortOrder === 'desc' && (
+                <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1 rounded">Latest Wise Active</span>
+              )}
+            </label>
+            <select
+              value={`${sortBy}-${sortOrder}`}
+              onChange={(e) => {
+                const [field, dir] = e.target.value.split('-');
+                setSortBy(field);
+                setSortOrder(dir);
+                setPage(1);
+              }}
+              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-slate-700 bg-white font-medium"
+            >
+              <option value="createdAt-desc">🕒 Latest First (Newest)</option>
+              <option value="createdAt-asc">⏳ Oldest First</option>
+              <option value="totalAmount-desc">💰 Total Amount (Highest)</option>
+              <option value="totalAmount-asc">📉 Total Amount (Lowest)</option>
+              <option value="status-asc">🏷️ Status (A-Z)</option>
+              <option value="orderNumber-desc">🔢 Order Number (Z-A)</option>
+            </select>
+          </div>
+
+          <div className="md:col-span-2">
             <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
               From Date
             </label>
@@ -229,7 +298,7 @@ export default function ShopOrdersPage() {
             />
           </div>
 
-          <div className="md:col-span-3">
+          <div className="md:col-span-2">
             <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
               To Date
             </label>
@@ -249,12 +318,12 @@ export default function ShopOrdersPage() {
             >
               Filter
             </button>
-            {(searchQuery || startDate || endDate || activeTab !== 'ALL') && (
+            {(searchQuery || startDate || endDate || activeTab !== 'ALL' || sortBy !== 'createdAt' || sortOrder !== 'desc') && (
               <button
                 type="button"
                 onClick={handleResetFilters}
                 className="px-2.5 py-2 text-sm text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
-                title="Reset Filters"
+                title="Reset Filters & Sorting to Latest First"
               >
                 ✕
               </button>
@@ -273,9 +342,16 @@ export default function ShopOrdersPage() {
       {/* Orders Table */}
       <div className="bg-white border border-slate-200/80 rounded-xl shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-slate-800">
-            Orders List <span className="text-slate-400 font-normal">({totalCount} found)</span>
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-sm font-semibold text-slate-800">
+              Orders List <span className="text-slate-400 font-normal">({totalCount} found)</span>
+            </h2>
+            {sortBy === 'createdAt' && sortOrder === 'desc' && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <Sparkles size={11} /> Sorted: Latest First
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-2">
             <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
             <span className="text-xs text-slate-500 font-medium">Socket.IO Live</span>
@@ -305,30 +381,98 @@ export default function ShopOrdersPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm text-slate-600">
-              <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200">
+              <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200 select-none">
                 <tr>
-                  <th className="px-6 py-3.5">Order</th>
-                  <th className="px-6 py-3.5">Time</th>
+                  <th
+                    onClick={() => handleSortColumn('orderNumber')}
+                    className="px-6 py-3.5 cursor-pointer hover:bg-slate-100/70 transition-colors"
+                    title="Click to sort by Order Number"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Order</span>
+                      {sortBy === 'orderNumber' ? (
+                        sortOrder === 'asc' ? <ArrowUp size={13} className="text-primary-600" /> : <ArrowDown size={13} className="text-primary-600" />
+                      ) : (
+                        <ArrowUpDown size={12} className="text-slate-300 hover:text-slate-500" />
+                      )}
+                    </div>
+                  </th>
+                  <th
+                    onClick={() => handleSortColumn('createdAt')}
+                    className="px-6 py-3.5 cursor-pointer hover:bg-slate-100/70 transition-colors"
+                    title="Click to sort by Time (Latest/Oldest)"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Time</span>
+                      {sortBy === 'createdAt' ? (
+                        sortOrder === 'desc' ? (
+                          <span className="inline-flex items-center gap-0.5 text-primary-600 font-bold normal-case text-[11px] bg-primary-50 px-1.5 py-0.5 rounded">
+                            <ArrowDown size={12} /> Latest First
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-0.5 text-primary-600 font-bold normal-case text-[11px] bg-primary-50 px-1.5 py-0.5 rounded">
+                            <ArrowUp size={12} /> Oldest First
+                          </span>
+                        )
+                      ) : (
+                        <ArrowUpDown size={12} className="text-slate-300 hover:text-slate-500" />
+                      )}
+                    </div>
+                  </th>
                   <th className="px-6 py-3.5">Files & Pages</th>
-                  <th className="px-6 py-3.5">Total</th>
+                  <th
+                    onClick={() => handleSortColumn('totalAmount')}
+                    className="px-6 py-3.5 cursor-pointer hover:bg-slate-100/70 transition-colors"
+                    title="Click to sort by Total Amount"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Total</span>
+                      {sortBy === 'totalAmount' ? (
+                        sortOrder === 'desc' ? <ArrowDown size={13} className="text-primary-600" /> : <ArrowUp size={13} className="text-primary-600" />
+                      ) : (
+                        <ArrowUpDown size={12} className="text-slate-300 hover:text-slate-500" />
+                      )}
+                    </div>
+                  </th>
                   <th className="px-6 py-3.5">Payment</th>
-                  <th className="px-6 py-3.5">Status</th>
+                  <th
+                    onClick={() => handleSortColumn('status')}
+                    className="px-6 py-3.5 cursor-pointer hover:bg-slate-100/70 transition-colors"
+                    title="Click to sort by Status"
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <span>Status</span>
+                      {sortBy === 'status' ? (
+                        sortOrder === 'asc' ? <ArrowUp size={13} className="text-primary-600" /> : <ArrowDown size={13} className="text-primary-600" />
+                      ) : (
+                        <ArrowUpDown size={12} className="text-slate-300 hover:text-slate-500" />
+                      )}
+                    </div>
+                  </th>
                   <th className="px-6 py-3.5">Expiry</th>
                   <th className="px-6 py-3.5 text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {orders.map((o) => {
+                {orders.map((o, idx) => {
                   const isExpired = o.status === 'EXPIRED' || (o.expiresAt && new Date(o.expiresAt) < new Date() && !['COLLECTED', 'COMPLETED', 'REJECTED', 'CANCELLED'].includes(o.status));
+                  const isLatestRow = idx === 0 && sortBy === 'createdAt' && sortOrder === 'desc';
                   return (
                     <tr key={o.id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="px-6 py-4">
-                        <Link
-                          to={`/shops/${shopId}/orders/${o.id}`}
-                          className="font-mono font-bold text-brand-600 hover:text-brand-700 hover:underline block"
-                        >
-                          {o.orderNumber}
-                        </Link>
+                        <div className="flex items-center gap-1.5">
+                          <Link
+                            to={`/shops/${shopId}/orders/${o.id}`}
+                            className="font-mono font-bold text-brand-600 hover:text-brand-700 hover:underline block"
+                          >
+                            {o.orderNumber}
+                          </Link>
+                          {isLatestRow && (
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <Sparkles size={9} /> Latest
+                            </span>
+                          )}
+                        </div>
                         <div className="text-xs text-slate-700 font-medium flex items-center gap-1 mt-0.5">
                           <User size={12} className="text-slate-400 shrink-0" />
                           <span className="truncate max-w-[140px] font-semibold text-slate-800">
@@ -337,8 +481,13 @@ export default function ShopOrdersPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-500">
-                        <div>{new Date(o.createdAt).toLocaleDateString()}</div>
-                        <div className="text-slate-400">{new Date(o.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                        <div className="font-medium text-slate-700">
+                          {new Date(o.createdAt).toLocaleDateString([], { month: 'numeric', day: 'numeric', year: 'numeric' })}
+                        </div>
+                        <div className="text-slate-400 font-mono text-[11px] flex items-center gap-1 mt-0.5">
+                          <Clock size={11} className="text-slate-400 shrink-0" />
+                          <span>{new Date(o.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-slate-800 font-medium">
