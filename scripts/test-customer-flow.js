@@ -94,7 +94,6 @@ async function main() {
   console.log('3. Uploading test document...');
   const uploadRes = await uploadFile(token, 'test_notes.txt', 'Hello SmartPrint AWS Sydney EC2 production server!', 'text/plain');
   console.log('Upload HTTP Status:', uploadRes.status);
-  console.log('Upload Result:', uploadRes.body);
 
   console.log('4. Fetching refreshed session...');
   const refreshedRes = await get(`/api/v1/customer/sessions/${token}`);
@@ -110,6 +109,19 @@ async function main() {
     paymentMethod: 'COUNTER',
   });
   console.log('Confirm Order Result:', confirmRes.body);
+
+  // Clean up test order if prisma is available
+  try {
+    const { PrismaClient } = require('@prisma/client');
+    const prisma = new PrismaClient();
+    const deleted = await prisma.order.deleteMany({
+      where: { notes: 'Test print' },
+    });
+    console.log(`Cleaned up ${deleted.count} test orders from DB.`);
+    await prisma.$disconnect();
+  } catch (e) {
+    // ignore
+  }
 
   console.log('FULL CUSTOMER FLOW VERIFIED SUCCESSFULLY! 🚀');
 }
