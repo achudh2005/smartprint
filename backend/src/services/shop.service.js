@@ -24,7 +24,6 @@ async function createShop({ name, address, phone, email, logoUrl }, userId) {
       data: {
         shopCode,
         name,
-        ownerId: userId,
         address: address || null,
         phone: phone || null,
         email: email || null,

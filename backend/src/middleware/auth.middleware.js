@@ -109,7 +109,7 @@ const requireShopMembership = async (req, res, next) => {
     // Verify shop exists
     const shop = await prisma.shop.findUnique({
       where: { id: shopId },
-      select: { id: true, status: true, ownerId: true },
+      select: { id: true, status: true },
     });
 
     if (!shop) {
@@ -122,13 +122,6 @@ const requireShopMembership = async (req, res, next) => {
 
     // Platform Super Admin has access to all shops
     if (req.user.role === 'SUPER_ADMIN') {
-      req.shopId = shopId;
-      req.shopMembership = { shopId, role: 'OWNER' };
-      return next();
-    }
-
-    // Direct shop owner always has OWNER access
-    if (shop.ownerId === req.user.id) {
       req.shopId = shopId;
       req.shopMembership = { shopId, role: 'OWNER' };
       return next();
