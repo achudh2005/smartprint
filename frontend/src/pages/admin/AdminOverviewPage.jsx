@@ -37,10 +37,11 @@ export default function AdminOverviewPage() {
 
   const formatBytes = (bytesStr) => {
     const bytes = Number(bytesStr || 0)
-    if (bytes === 0) return '0 B'
+    if (!bytes || isNaN(bytes) || bytes <= 0) return '0 B'
     const k = 1024
     const sizes = ['B', 'KB', 'MB', 'GB']
     const i = Math.floor(Math.log(bytes) / Math.log(k))
+    if (i < 0 || i >= sizes.length) return `${bytes} B`
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`
   }
 

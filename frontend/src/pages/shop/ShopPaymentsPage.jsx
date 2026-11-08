@@ -100,7 +100,7 @@ export default function ShopPaymentsPage() {
             <div>
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Collected</p>
               <p className="text-2xl font-black text-slate-900 mt-1">
-                ₹ {stats.totalRevenue?.toFixed(2) || '0.00'}
+                ₹ {Number(stats.totalRevenue || 0).toFixed(2)}
               </p>
             </div>
             <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
@@ -114,7 +114,7 @@ export default function ShopPaymentsPage() {
             <div>
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Online (Razorpay)</p>
               <p className="text-2xl font-black text-indigo-600 mt-1">
-                ₹ {stats.onlineRevenue?.toFixed(2) || '0.00'}
+                ₹ {Number(stats.onlineRevenue || 0).toFixed(2)}
               </p>
             </div>
             <div className="w-11 h-11 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
@@ -128,7 +128,7 @@ export default function ShopPaymentsPage() {
             <div>
               <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Counter Cash/UPI</p>
               <p className="text-2xl font-black text-teal-600 mt-1">
-                ₹ {stats.counterRevenue?.toFixed(2) || '0.00'}
+                ₹ {Number(stats.counterRevenue || 0).toFixed(2)}
               </p>
             </div>
             <div className="w-11 h-11 rounded-2xl bg-teal-50 text-teal-600 flex items-center justify-center">
@@ -280,7 +280,7 @@ export default function ShopPaymentsPage() {
                       </Link>
                     </td>
                     <td className="py-3.5 px-4 font-bold text-slate-900">
-                      ₹ {Number(p.amount).toFixed(2)}
+                      ₹ {Number(p.amount || 0).toFixed(2)}
                     </td>
                     <td className="py-3.5 px-4">
                       <span className="font-medium text-slate-700">{p.method}</span>

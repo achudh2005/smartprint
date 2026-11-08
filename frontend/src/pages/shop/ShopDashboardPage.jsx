@@ -119,7 +119,7 @@ export default function ShopDashboardPage() {
         <StatCard
           icon={IndianRupee}
           label="Today's Revenue"
-          value={`₹${stats?.todayRevenue?.toFixed(2) || '0.00'}`}
+          value={`₹${Number(stats?.todayRevenue || 0).toFixed(2)}`}
           color="emerald"
         />
         <StatCard
@@ -261,7 +261,7 @@ export default function ShopDashboardPage() {
 
                 <div className="flex items-center gap-4">
                   <span className="font-bold text-slate-900 text-sm">
-                    ₹{ord.totalAmount?.toFixed(2)}
+                    ₹{Number(ord.totalAmount || 0).toFixed(2)}
                   </span>
                   <Badge variant={getStatusVariant(ord.status)} size="sm">
                     {ord.status}

@@ -70,10 +70,11 @@ export default function ShopAnalyticsPage() {
   // Formatting bytes helper
   const formatBytes = (bytesStr) => {
     const bytes = Number(bytesStr || 0)
-    if (bytes === 0) return '0 B'
+    if (!bytes || isNaN(bytes) || bytes <= 0) return '0 B'
     const k = 1024
     const sizes = ['B', 'KB', 'MB', 'GB']
     const i = Math.floor(Math.log(bytes) / Math.log(k))
+    if (i < 0 || i >= sizes.length) return `${bytes} B`
     return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`
   }
 
@@ -244,7 +245,7 @@ export default function ShopAnalyticsPage() {
                     <td className="py-2.5 px-4 font-mono text-slate-800">{t.date}</td>
                     <td className="py-2.5 px-4 text-center">{t.orders}</td>
                     <td className="py-2.5 px-4 text-center font-bold text-primary-600">{t.pages}</td>
-                    <td className="py-2.5 px-4 text-right font-bold text-slate-900">₹{t.revenue.toFixed(2)}</td>
+                    <td className="py-2.5 px-4 text-right font-bold text-slate-900">₹{Number(t.revenue || 0).toFixed(2)}</td>
                   </tr>
                 ))
               )}

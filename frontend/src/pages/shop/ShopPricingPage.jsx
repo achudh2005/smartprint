@@ -197,7 +197,7 @@ export default function ShopPricingPage() {
                     >
                       <div>
                         <span className="font-semibold text-slate-800 block">{svc.name}</span>
-                        <span className="text-slate-500 font-mono">₹ {Number(svc.price).toFixed(2)}</span>
+                        <span className="text-slate-500 font-mono">₹ {Number(svc.price || 0).toFixed(2)}</span>
                       </div>
                       <button
                         type="button"

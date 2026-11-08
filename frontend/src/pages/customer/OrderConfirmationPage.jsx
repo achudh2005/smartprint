@@ -47,6 +47,12 @@ export default function OrderConfirmationPage() {
     return () => clearInterval(interval)
   }, [orderNumber])
 
+  // Safe price formatting
+  const formatPrice = (val) => {
+    const num = Number(val)
+    return isNaN(num) ? '0.00' : num.toFixed(2)
+  }
+
   // Live countdown timer for order expiration
   useEffect(() => {
     if (!order?.expiresAt) return
@@ -263,7 +269,7 @@ export default function OrderConfirmationPage() {
               <div className="text-left sm:text-right">
                 <span className="text-xs text-slate-400 block">Total Amount</span>
                 <span className="text-xl font-bold text-slate-900">
-                  ₹ {order.totalAmount?.toFixed(2) || '0.00'}
+                  ₹ {formatPrice(order.totalAmount)}
                 </span>
               </div>
 
@@ -338,7 +344,7 @@ export default function OrderConfirmationPage() {
             <div className="text-right">
               <span className="text-xs text-slate-400 block">Total Due</span>
               <span className="text-xl font-bold text-slate-900">
-                ₹ {order.totalAmount?.toFixed(2) || '0.00'}
+                ₹ {formatPrice(order.totalAmount)}
               </span>
             </div>
           </CardBody>
@@ -380,7 +386,7 @@ export default function OrderConfirmationPage() {
                     )}
                   </div>
                   <div className="text-right font-bold text-slate-900 text-sm">
-                    ₹ {cfg.calculatedTotal?.toFixed(2) || '0.00'}
+                    ₹ {formatPrice(cfg.calculatedTotal)}
                   </div>
                 </div>
               )

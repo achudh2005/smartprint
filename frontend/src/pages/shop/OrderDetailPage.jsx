@@ -508,7 +508,7 @@ export default function OrderDetailPage() {
           <div className="text-left md:text-right border-t md:border-t-0 pt-4 md:pt-0 w-full md:w-auto border-surface-100">
             <span className="text-xs text-slate-400 block">Total Amount</span>
             <span className="text-3xl font-black text-slate-900">
-              ₹ {order.totalAmount?.toFixed(2)}
+              ₹ {Number(order.totalAmount || 0).toFixed(2)}
             </span>
           </div>
         </CardBody>
@@ -633,7 +633,7 @@ export default function OrderDetailPage() {
               <p className="text-xs text-slate-600">
                 {latestPayment?.status === 'COUNTER_PAYMENT_DUE' ? (
                   <span className="text-amber-800 font-medium">
-                    Customer selected <strong>Pay at Counter</strong>. Please collect ₹{Number(order.totalAmount).toFixed(2)} when the customer picks up their print job.
+                    Customer selected <strong>Pay at Counter</strong>. Please collect ₹{Number(order.totalAmount || 0).toFixed(2)} when the customer picks up their print job.
                   </span>
                 ) : latestPayment?.status === 'COUNTER_PAYMENT_COLLECTED' ? (
                   <span className="text-emerald-800 font-medium">
@@ -664,11 +664,11 @@ export default function OrderDetailPage() {
           <div className="text-left md:text-right shrink-0 border-t md:border-t-0 pt-3 md:pt-0 border-surface-100">
             <span className="text-xs text-slate-400 block font-medium">Order Total</span>
             <span className="text-2xl font-black text-slate-900">
-              ₹ {Number(latestPayment?.amount || order.totalAmount).toFixed(2)}
+              ₹ {Number(latestPayment?.amount || order.totalAmount || 0).toFixed(2)}
             </span>
             {latestPayment?.status === 'COUNTER_PAYMENT_DUE' && (
               <span className="inline-block text-[11px] font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 mt-1">
-                To Collect: ₹{Number(order.totalAmount).toFixed(2)}
+                To Collect: ₹{Number(order.totalAmount || 0).toFixed(2)}
               </span>
             )}
             {latestPayment?.status === 'SUCCESS' && (

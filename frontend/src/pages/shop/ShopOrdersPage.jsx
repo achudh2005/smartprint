@@ -349,7 +349,7 @@ export default function ShopOrdersPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 font-semibold text-slate-900 whitespace-nowrap">
-                        ₹ {Number(o.totalAmount).toFixed(2)}
+                        ₹ {Number(o.totalAmount || 0).toFixed(2)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold border ${getPaymentBadge(o.paymentStatus, o.paymentMethod)}`}>

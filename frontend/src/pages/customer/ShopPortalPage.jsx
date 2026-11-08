@@ -382,11 +382,20 @@ export default function ShopPortalPage() {
 
   // Format file size
   const formatBytes = (bytes) => {
-    if (!bytes || bytes === '0') return '0 B'
+    const n = Number(bytes)
+    if (!n || isNaN(n) || n <= 0) return '0 B'
     const k = 1024
     const sizes = ['B', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(Number(bytes)) / Math.log(k))
-    return parseFloat((Number(bytes) / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i]
+    const i = Math.floor(Math.log(n) / Math.log(k))
+    if (i < 0 || i >= sizes.length) return `${n} B`
+    const val = n / Math.pow(k, i)
+    return parseFloat(val.toFixed(1)) + ' ' + sizes[i]
+  }
+
+  // Safe price formatting
+  const formatPrice = (val) => {
+    const num = Number(val)
+    return isNaN(num) ? '0.00' : num.toFixed(2)
   }
 
   if (loading) {
@@ -453,7 +462,7 @@ export default function ShopPortalPage() {
             <div className="text-right">
               <span className="text-xs text-slate-400 dark:text-slate-500 block">Est. Total</span>
               <span className="text-lg font-bold text-primary-600 dark:text-primary-400">
-                {currencySymbol} {draftOrder?.totalAmount?.toFixed(2) || '0.00'}
+                {currencySymbol} {formatPrice(draftOrder?.totalAmount)}
               </span>
             </div>
           </div>
@@ -621,7 +630,7 @@ export default function ShopPortalPage() {
                         <div className="text-right sm:mr-3">
                           <span className="text-xs text-slate-400 block sm:hidden">Document Price</span>
                           <span className="text-sm font-bold text-slate-900">
-                            {currencySymbol} {config.calculatedTotal?.toFixed(2) || '0.00'}
+                            {currencySymbol} {formatPrice(config.calculatedTotal)}
                           </span>
                         </div>
 
@@ -812,7 +821,7 @@ export default function ShopPortalPage() {
                                         : 'bg-white text-slate-700 border-surface-300 hover:border-slate-400'
                                     }`}
                                   >
-                                    <span>{svc.name} (+{currencySymbol}{Number(svc.price).toFixed(2)})</span>
+                                    <span>{svc.name} (+{currencySymbol}{formatPrice(svc.price)})</span>
                                     {isAttached ? <CheckCircle2 size={13} /> : <Plus size={13} />}
                                   </button>
                                 )
@@ -983,7 +992,7 @@ export default function ShopPortalPage() {
                     </Badge>
                   </div>
                   <span className="text-2xl font-bold text-slate-900 mt-0.5 block">
-                    {currencySymbol} {draftOrder?.totalAmount?.toFixed(2) || '0.00'}
+                    {currencySymbol} {formatPrice(draftOrder?.totalAmount)}
                   </span>
                 </div>
 
@@ -996,7 +1005,7 @@ export default function ShopPortalPage() {
                 >
                   <span>
                     {paymentMethod === 'ONLINE'
-                      ? `Pay Online (${currencySymbol} ${draftOrder?.totalAmount?.toFixed(2) || '0.00'})`
+                      ? `Pay Online (${currencySymbol} ${formatPrice(draftOrder?.totalAmount)})`
                       : 'Submit Order (Pay at Counter)'}
                   </span>
                   <ArrowRight size={18} />
