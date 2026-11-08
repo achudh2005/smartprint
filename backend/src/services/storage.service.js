@@ -26,8 +26,7 @@ const MAGIC_SIGNATURES = {
  */
 function verifyFileSignature(filePath, extension) {
   try {
-    const ext = extension.toLowerCase().replace('.', '');
-    const sig = MAGIC_SIGNATURES[ext] || (['docx', 'pptx', 'xlsx'].includes(ext) ? MAGIC_SIGNATURES.zip : null);
+    const ext = extension.toLowerCase().replace(/^\./, '');
     
     // For plain text, check if it contains readable characters (not binary)
     if (ext === 'txt') {
@@ -41,6 +40,17 @@ function verifyFileSignature(filePath, extension) {
       }
       return true;
     }
+
+    // PDF files per ISO 32000 specification must contain %PDF within the first 1024 bytes
+    if (ext === 'pdf') {
+      const buffer = Buffer.alloc(1024);
+      const fd = fs.openSync(filePath, 'r');
+      const bytesRead = fs.readSync(fd, buffer, 0, 1024, 0);
+      fs.closeSync(fd);
+      return buffer.subarray(0, bytesRead).includes(Buffer.from('%PDF'));
+    }
+
+    const sig = MAGIC_SIGNATURES[ext] || (['docx', 'pptx', 'xlsx'].includes(ext) ? MAGIC_SIGNATURES.zip : null);
 
     if (!sig) {
       // If no signature is defined (e.g. legacy doc), verify non-empty

@@ -83,8 +83,15 @@ export default function ShopPortalPage() {
   }, [shopCode])
 
   // Normalized accepted formats (clean, lowercase, without leading dot)
-  const acceptedFormatsList = (shop?.settings?.acceptedFormats || ['pdf', 'png', 'jpg', 'jpeg', 'docx', 'txt'])
-    .map((f) => f.trim().toLowerCase().replace(/^\./, ''))
+  const rawAccepted = shop?.settings?.acceptedFormats
+  const acceptedFormatsList = (
+    Array.isArray(rawAccepted)
+      ? rawAccepted
+      : typeof rawAccepted === 'string'
+        ? rawAccepted.split(',')
+        : ['pdf', 'png', 'jpg', 'jpeg', 'docx', 'txt']
+  )
+    .map((f) => String(f).trim().toLowerCase().replace(/^\./, ''))
     .filter(Boolean)
 
   // 2. Handle File Uploads
@@ -92,14 +99,35 @@ export default function ShopPortalPage() {
     if (!fileList || fileList.length === 0 || !sessionToken) return
 
     const filesArray = Array.from(fileList)
-    const acceptedFormats = acceptedFormatsList
+    const acceptedFormats = acceptedFormatsList.length > 0 ? acceptedFormatsList : ['pdf', 'png', 'jpg', 'jpeg', 'docx', 'txt']
     const maxBytes = (shop?.settings?.maxUploadSizeMb || 50) * 1024 * 1024
+
+    const mimeMap = {
+      'application/pdf': 'pdf',
+      'image/png': 'png',
+      'image/jpeg': 'jpg',
+      'image/jpg': 'jpg',
+      'image/pjpeg': 'jpeg',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+      'application/msword': 'doc',
+      'text/plain': 'txt',
+    }
 
     // Pre-flight client checks
     for (const f of filesArray) {
-      const ext = f.name.includes('.') ? f.name.split('.').pop().toLowerCase() : ''
-      if (!acceptedFormats.includes(ext)) {
-        toast.error(`"${f.name}" is not accepted. Allowed: ${acceptedFormats.map(e => `.${e}`).join(', ')}`)
+      const rawExt = f.name && f.name.includes('.') ? f.name.split('.').pop() : ''
+      const ext = (rawExt || '').trim().toLowerCase().replace(/^\./, '')
+      const mimeExt = f.type ? mimeMap[f.type.toLowerCase()] : null
+
+      const isAccepted =
+        acceptedFormats.length === 0 ||
+        acceptedFormats.some((fmt) => {
+          const cleanFmt = fmt.toLowerCase().replace(/^\./, '')
+          return cleanFmt === ext || (mimeExt && cleanFmt === mimeExt)
+        })
+
+      if (!isAccepted) {
+        toast.error(`"${f.name}" is not accepted. Allowed: ${acceptedFormats.map((e) => `.${e}`).join(', ')}`)
         return
       }
       if (f.size > maxBytes) {
@@ -475,7 +503,7 @@ export default function ShopPortalPage() {
             ref={fileInputRef}
             type="file"
             multiple
-            accept={acceptedFormatsList.map((ext) => `.${ext}`).join(',')}
+            accept={[...new Set([...acceptedFormatsList.map((ext) => `.${ext}`), '.pdf', '.png', '.jpg', '.jpeg', '.docx', '.txt', 'application/pdf', 'image/*'])].join(',')}
             className="hidden"
             onChange={(e) => handleFiles(e.target.files)}
           />
@@ -483,7 +511,7 @@ export default function ShopPortalPage() {
           <input
             ref={replaceInputRef}
             type="file"
-            accept={acceptedFormatsList.map((ext) => `.${ext}`).join(',')}
+            accept={[...new Set([...acceptedFormatsList.map((ext) => `.${ext}`), '.pdf', '.png', '.jpg', '.jpeg', '.docx', '.txt', 'application/pdf', 'image/*'])].join(',')}
             className="hidden"
             onChange={handleFileReplacement}
           />

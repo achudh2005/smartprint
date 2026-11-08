@@ -54,9 +54,14 @@ async function getShopByCode(shopCode) {
       manualPrintEnabled: shop.shopSettings?.manualPrintEnabled ?? true,
       directPrintEnabled: shop.shopSettings?.directPrintEnabled ?? false,
       maxUploadSizeMb: shop.shopSettings?.maxUploadSizeMb ?? 50,
-      acceptedFormats: (shop.shopSettings?.acceptedFormats || 'pdf,doc,docx,jpg,jpeg,png,txt')
-        .split(',')
-        .map((f) => f.trim().toLowerCase().replace(/^\./, ''))
+      acceptedFormats: (
+        Array.isArray(shop.shopSettings?.acceptedFormats)
+          ? shop.shopSettings.acceptedFormats
+          : typeof shop.shopSettings?.acceptedFormats === 'string'
+            ? shop.shopSettings.acceptedFormats.split(',')
+            : ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'txt']
+      )
+        .map((f) => String(f).trim().toLowerCase().replace(/^\./, ''))
         .filter(Boolean),
       currency: shop.shopSettings?.currency || 'INR',
       defaultExpiryHours: shop.shopSettings?.defaultExpiryHours || 24,
@@ -247,9 +252,15 @@ async function uploadFiles(sessionToken, rawFiles) {
   const { session, draftOrder, shop } = await validateSession(sessionToken);
 
   const maxUploadBytes = (shop.shopSettings?.maxUploadSizeMb || 50) * 1024 * 1024;
-  const acceptedFormats = (shop.shopSettings?.acceptedFormats || 'pdf,doc,docx,jpg,jpeg,png,txt')
-    .split(',')
-    .map((f) => f.trim().toLowerCase().replace(/^\./, ''))
+  const rawFormats = shop.shopSettings?.acceptedFormats;
+  const acceptedFormats = (
+    Array.isArray(rawFormats)
+      ? rawFormats
+      : typeof rawFormats === 'string'
+        ? rawFormats.split(',')
+        : ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'txt']
+  )
+    .map((f) => String(f).trim().toLowerCase().replace(/^\./, ''))
     .filter(Boolean);
 
   const processedFiles = [];
@@ -269,7 +280,8 @@ async function uploadFiles(sessionToken, rawFiles) {
       .slice(0, 255);
 
     const parts = rawFile.originalname.split('.');
-    const ext = parts.pop().toLowerCase();
+    const rawExt = parts.length > 1 ? parts.pop() : '';
+    const ext = (rawExt || '').trim().toLowerCase().replace(/^\./, '');
 
     // 0. Dangerous executable & script blacklist check
     if (BANNED_EXTENSIONS.has(ext)) {
@@ -277,8 +289,12 @@ async function uploadFiles(sessionToken, rawFiles) {
     }
 
     // 1. Extension check
-    if (!acceptedFormats.includes(ext)) {
-      throw new Error(`File format ".${ext}" is not accepted by this print shop. Allowed formats: ${acceptedFormats.join(', ')}`);
+    const isAccepted =
+      acceptedFormats.length === 0 ||
+      acceptedFormats.some((fmt) => fmt.toLowerCase().replace(/^\./, '') === ext);
+
+    if (!isAccepted) {
+      throw new Error(`File format ".${ext}" is not accepted by this print shop. Allowed formats: ${acceptedFormats.map((f) => `.${f}`).join(', ')}`);
     }
 
     // 2. Size check
