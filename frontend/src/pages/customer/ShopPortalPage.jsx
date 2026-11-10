@@ -264,7 +264,7 @@ export default function ShopPortalPage() {
     }))
 
     try {
-      const { data } = await api.put(
+      await api.put(
         `/customer/sessions/${sessionToken}/files/${filePublicId}/config`,
         updatedConfig
       )
@@ -400,10 +400,10 @@ export default function ShopPortalPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-surface-50 p-6">
+      <div className="min-h-screen flex items-center justify-center bg-[var(--bg)] p-6">
         <div className="flex flex-col items-center gap-3">
           <Spinner size="lg" />
-          <p className="text-sm text-slate-600 font-medium">Connecting to print shop...</p>
+          <p className="text-xs text-[var(--text-muted)] font-medium">Connecting to print shop...</p>
         </div>
       </div>
     )
@@ -411,57 +411,58 @@ export default function ShopPortalPage() {
 
   if (error || !shop) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-surface-50 p-6">
-        <div className="max-w-md w-full bg-white p-8 rounded-2xl shadow-sm border border-surface-200 text-center">
-          <AlertCircle size={40} className="text-red-500 mx-auto mb-3" />
-          <h1 className="text-lg font-bold text-slate-900 mb-2">Shop Unavailable</h1>
-          <p className="text-sm text-slate-500 mb-6">{error}</p>
-          <Button onClick={() => window.location.reload()} variant="primary">
-            <RefreshCw size={16} /> Try Again
+      <div className="min-h-screen flex items-center justify-center bg-[var(--bg)] p-6">
+        <div className="max-w-md w-full bg-[var(--surface)] p-8 rounded-xl border border-[var(--border)] text-center shadow-xs">
+          <AlertCircle size={36} strokeWidth={1.75} className="text-red-500 mx-auto mb-3" />
+          <h1 className="text-base font-semibold text-[var(--text)] mb-2">Shop Unavailable</h1>
+          <p className="text-xs text-[var(--text-muted)] mb-6">{error}</p>
+          <Button onClick={() => window.location.reload()} variant="primary" className="min-h-[44px]">
+            <RefreshCw size={15} strokeWidth={1.75} /> Try Again
           </Button>
         </div>
       </div>
     )
   }
 
-  const currencySymbol = shop.settings.currency === 'INR' ? '₹' : shop.settings.currency
+  const currencySymbol = shop.settings?.currency === 'INR' ? '₹' : (shop.settings?.currency || '₹')
   const activeFile = draftOrder?.files?.[activeConfigIndex] || draftOrder?.files?.[0]
+  const hasFiles = draftOrder?.files && draftOrder.files.length > 0
 
   return (
-    <div className="min-h-screen bg-surface-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 pb-24 transition-colors duration-200">
-      {/* ── Top Shop Brand Header ── */}
-      <header className="bg-white dark:bg-slate-900 border-b border-surface-200 dark:border-slate-800 sticky top-0 z-20 shadow-xs transition-colors duration-200">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+    <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] pb-32 sm:pb-20 transition-colors duration-150">
+      {/* Top Shop Brand Header */}
+      <header className="bg-[var(--surface)] border-b border-[var(--border)] sticky top-0 z-20 shadow-xs transition-colors duration-150">
+        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3 min-w-0">
             {shop.logoUrl ? (
-              <img src={shop.logoUrl} alt={shop.name} className="w-10 h-10 rounded-xl object-cover border border-surface-200 dark:border-slate-700" />
+              <img src={shop.logoUrl} alt={shop.name} className="w-9 h-9 rounded-lg object-cover border border-[var(--border)] shrink-0" />
             ) : (
-              <div className="w-10 h-10 bg-primary-600 text-white rounded-xl flex items-center justify-center font-bold text-lg shadow-xs">
-                {shop.name[0]}
+              <div className="w-9 h-9 bg-[var(--accent)] text-white rounded-lg flex items-center justify-center font-bold text-sm shrink-0">
+                {shop.name ? shop.name[0] : 'S'}
               </div>
             )}
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <h1 className="font-bold text-slate-900 dark:text-white text-base leading-tight">{shop.name}</h1>
-                <Badge variant="green" size="sm">Online</Badge>
+                <h1 className="font-semibold text-[var(--text)] text-sm sm:text-base leading-tight truncate">{shop.name}</h1>
+                <Badge variant="green" size="sm" dot>Live</Badge>
               </div>
-              <p className="text-xs text-slate-400 font-mono mt-0.5">Code: {shop.shopCode}</p>
+              <p className="text-[11px] text-[var(--text-muted)] font-mono mt-0.5 truncate">Code: {shop.shopCode}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 sm:gap-3">
+          <div className="flex items-center gap-2.5 shrink-0">
             <Link
               to="/about"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold text-slate-700 dark:text-slate-200 bg-surface-100 hover:bg-surface-200 dark:bg-slate-800 dark:hover:bg-slate-700 border border-surface-200 dark:border-slate-700 transition-all shadow-xs active:scale-95"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-[var(--text-muted)] bg-[var(--surface)] hover:text-[var(--text)] border border-[var(--border)] transition-colors min-h-[36px]"
               title="About SmartPrint"
             >
-              <Info size={14} className="text-primary-600 dark:text-primary-400 shrink-0" />
-              <span>About</span>
+              <Info size={13} strokeWidth={1.75} className="text-[#0E7490] shrink-0" />
+              <span className="hidden sm:inline">About</span>
             </Link>
             <ThemeToggle />
-            <div className="text-right">
-              <span className="text-xs text-slate-400 dark:text-slate-500 block">Est. Total</span>
-              <span className="text-lg font-bold text-primary-600 dark:text-primary-400">
+            <div className="text-right pl-2 border-l border-[var(--border)]">
+              <span className="text-[10px] text-[var(--text-muted)] block">Est. Total</span>
+              <span className="text-sm sm:text-base font-semibold text-[#0E7490] dark:text-[#22D3EE] tabular-nums">
                 {currencySymbol} {formatPrice(draftOrder?.totalAmount)}
               </span>
             </div>
@@ -469,43 +470,61 @@ export default function ShopPortalPage() {
         </div>
       </header>
 
-      {/* ── Main Container ── */}
-      <main className="max-w-4xl mx-auto px-4 pt-6 space-y-6">
-        {/* Shop Info & Instructions */}
-        <div className="bg-white rounded-2xl p-4 sm:p-5 border border-surface-200 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-slate-600 text-xs">
-              <MapPin size={14} className="text-slate-400" />
-              <span>{shop.address || 'In-store Print Counter'}</span>
+      {/* Main Container */}
+      <main className="max-w-3xl mx-auto px-4 pt-5 space-y-5">
+        {/* Shop Info Card */}
+        <div className="bg-[var(--surface)] rounded-xl p-4 border border-[var(--border)] flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between shadow-xs">
+          <div className="space-y-1 min-w-0">
+            <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
+              <MapPin size={13} strokeWidth={1.75} className="shrink-0 text-[var(--text-muted)]" />
+              <span className="truncate">{shop.address || 'In-store Print Counter'}</span>
             </div>
             {shop.contactPhone && (
-              <div className="flex items-center gap-2 text-slate-600 text-xs">
-                <Phone size={14} className="text-slate-400" />
+              <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
+                <Phone size={13} strokeWidth={1.75} className="shrink-0 text-[var(--text-muted)]" />
                 <span>{shop.contactPhone}</span>
               </div>
             )}
           </div>
-          <div className="flex flex-wrap gap-2 text-xs">
-            <span className="bg-surface-100 text-slate-600 px-2.5 py-1 rounded-lg">
-              Max: <strong className="text-slate-800">{shop.settings.maxUploadSizeMb} MB</strong>
+          <div className="flex flex-wrap gap-2 text-[11px] tabular-nums">
+            <span className="bg-[var(--surface-hover)] text-[var(--text-muted)] px-2 py-1 rounded-md border border-[var(--border)]">
+              Max: <strong className="text-[var(--text)]">{shop.settings?.maxUploadSizeMb || 50} MB</strong>
             </span>
-            <span className="bg-surface-100 text-slate-600 px-2.5 py-1 rounded-lg">
-              Formats: <strong className="text-slate-800">{acceptedFormatsList.slice(0, 4).map((e) => e.toUpperCase()).join(', ')}</strong>
+            <span className="bg-[var(--surface-hover)] text-[var(--text-muted)] px-2 py-1 rounded-md border border-[var(--border)]">
+              Formats: <strong className="text-[var(--text)]">{acceptedFormatsList.slice(0, 4).map((e) => e.toUpperCase()).join(', ')}</strong>
             </span>
           </div>
         </div>
 
-        {/* ── Document Upload Drag & Drop Area ── */}
+        {/* Step Indicator */}
+        <div className="flex items-center justify-between px-1 text-xs font-medium text-[var(--text-muted)]">
+          <div className="flex items-center gap-1.5 text-[var(--text)]">
+            <span className="w-5 h-5 rounded-full bg-[#0E7490] text-white flex items-center justify-center text-[10px] font-bold">1</span>
+            <span>Upload</span>
+          </div>
+          <div className="w-8 h-px bg-[var(--border)]" />
+          <div className={`flex items-center gap-1.5 ${hasFiles ? 'text-[var(--text)]' : ''}`}>
+            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${hasFiles ? 'bg-[#0E7490] text-white' : 'bg-[var(--surface-hover)] text-[var(--text-muted)] border border-[var(--border)]'}`}>2</span>
+            <span>Options</span>
+          </div>
+          <div className="w-8 h-px bg-[var(--border)]" />
+          <div className={`flex items-center gap-1.5 ${hasFiles ? 'text-[var(--text)]' : ''}`}>
+            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${hasFiles ? 'bg-[#0E7490] text-white' : 'bg-[var(--surface-hover)] text-[var(--text-muted)] border border-[var(--border)]'}`}>3</span>
+            <span>Confirm</span>
+          </div>
+        </div>
+
+        {/* Document Upload Drag & Drop Area */}
         <div
           onDragEnter={handleDrag}
           onDragLeave={handleDrag}
           onDragOver={handleDrag}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
-          className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all duration-200 ${
+          className={`border-2 border-dashed rounded-xl p-6 sm:p-8 text-center cursor-pointer transition-colors duration-150 ${
             dragActive
-              ? 'border-primary-500 bg-primary-50/50 scale-[1.01]'
-              : 'border-surface-300 bg-white hover:border-primary-400 hover:bg-surface-50/50'
+              ? 'border-[#0E7490] bg-[var(--accent-tint)]'
+              : 'border-[var(--border)] bg-[var(--surface)] hover:border-[#0E7490]/50 hover:bg-[var(--surface-hover)]'
           }`}
         >
           <input
@@ -525,72 +544,78 @@ export default function ShopPortalPage() {
             onChange={handleFileReplacement}
           />
 
-          <div className="w-14 h-14 bg-primary-50 text-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-xs">
+          <div className="w-12 h-12 bg-[var(--accent-tint)] text-[#0E7490] dark:text-[#22D3EE] rounded-xl flex items-center justify-center mx-auto mb-3 border border-[var(--border)]">
             {uploading ? (
               <Spinner size="md" />
             ) : (
-              <UploadCloud size={28} />
+              <UploadCloud size={24} strokeWidth={1.75} />
             )}
           </div>
 
-          <h3 className="text-base font-semibold text-slate-800 mb-1">
+          <h3 className="text-sm sm:text-base font-semibold text-[var(--text)] mb-1">
             {uploading ? 'Processing documents...' : 'Tap or Drag documents here to print'}
           </h3>
-          <p className="text-xs text-slate-500 max-w-sm mx-auto mb-4">
+          <p className="text-xs text-[var(--text-muted)] max-w-sm mx-auto mb-4">
             PDF, Word DOCX, JPEG, PNG, or Text. Multiple files supported.
           </p>
 
           {uploading ? (
             <div className="space-y-3">
-              <div className="w-48 mx-auto bg-surface-200 h-2 rounded-full overflow-hidden">
+              <div className="w-48 mx-auto bg-[var(--border)] h-1.5 rounded-full overflow-hidden">
                 <div
-                  className="bg-primary-600 h-full transition-all duration-300"
+                  className="bg-[#0E7490] h-full transition-all duration-300"
                   style={{ width: `${uploadProgress}%` }}
                 />
               </div>
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); handleCancelUpload(); }}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-950/30 dark:text-red-400 transition-colors min-h-[36px]"
               >
-                <Ban size={13} /> Cancel Upload
+                <Ban size={13} strokeWidth={1.75} /> Cancel Upload
               </button>
             </div>
           ) : (
-            <Button variant="secondary" size="sm" type="button" onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click() }}>
+            <Button
+              variant="secondary"
+              size="sm"
+              type="button"
+              className="min-h-[44px] px-5"
+              onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click() }}
+            >
               Browse Files
             </Button>
           )}
         </div>
 
-        {/* ── Uploaded Documents List ── */}
-        {draftOrder?.files && draftOrder.files.length > 0 && (
-          <div className="space-y-4">
+        {/* Uploaded Documents List */}
+        {hasFiles && (
+          <div className="space-y-3">
             {uploadSuccessMessage && (
-              <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs font-semibold flex items-center justify-between shadow-xs animate-fade-in">
-                <div className="flex items-center gap-2.5">
-                  <CheckCircle2 size={18} className="text-emerald-600 shrink-0" />
+              <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 rounded-xl text-xs font-medium flex items-center justify-between shadow-xs">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 size={16} strokeWidth={2} className="text-emerald-600 dark:text-emerald-400 shrink-0" />
                   <span>{uploadSuccessMessage}</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setUploadSuccessMessage('')}
-                  className="text-emerald-600 hover:text-emerald-800 p-1 rounded-md"
+                  className="text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 p-1"
                 >
-                  <X size={15} />
+                  <X size={14} strokeWidth={2} />
                 </button>
               </div>
             )}
 
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <FileText size={18} className="text-primary-600" />
+            <div className="flex items-center justify-between px-1">
+              <h2 className="text-sm font-semibold text-[var(--text)] flex items-center gap-2">
+                <FileText size={15} strokeWidth={1.75} className="text-[#0E7490]" />
                 Uploaded Documents ({draftOrder.files.length})
               </h2>
-              <span className="text-xs text-slate-500">Configure settings for each file below</span>
+              <span className="text-xs text-[var(--text-muted)]">Configure settings below</span>
             </div>
 
-            <div className="grid grid-cols-1 gap-3">
+            <div className="grid grid-cols-1 gap-2.5">
               {draftOrder.files.map((file, idx) => {
                 const config = file.printConfiguration || {}
                 const isConfigActive = activeFile?.publicId === file.publicId
@@ -599,26 +624,26 @@ export default function ShopPortalPage() {
                 return (
                   <Card
                     key={file.publicId}
-                    className={`transition-all ${isConfigActive ? 'ring-2 ring-primary-500 shadow-sm' : ''}`}
+                    className={`transition-colors duration-150 ${isConfigActive ? 'ring-1 ring-[#0E7490]' : ''}`}
                   >
-                    <div className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div className="p-3.5 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                       {/* File Icon & Info */}
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-10 h-10 rounded-xl bg-surface-100 flex items-center justify-center text-primary-600 shrink-0">
-                          <File size={20} />
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="w-9 h-9 rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] flex items-center justify-center text-[#0E7490] dark:text-[#22D3EE] shrink-0">
+                          <File size={16} strokeWidth={1.75} />
                         </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-semibold text-slate-800 truncate max-w-xs sm:max-w-sm">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs sm:text-sm font-semibold text-[var(--text)] truncate">
                             {file.originalName}
                           </p>
-                          <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+                          <div className="flex items-center gap-2 text-[11px] text-[var(--text-muted)] mt-0.5 tabular-nums">
                             <span>{formatBytes(file.fileSizeBytes)}</span>
                             <span>•</span>
-                            <span className="font-medium text-slate-700">
+                            <span className="font-medium text-[var(--text)]">
                               {file.pageCount || 1} {file.pageCount === 1 ? 'page' : 'pages'}
                             </span>
                             <span>•</span>
-                            <Badge variant={isReady ? 'green' : 'red'} size="sm">
+                            <Badge variant={isReady ? 'green' : 'red'} size="sm" dot>
                               {file.status}
                             </Badge>
                           </div>
@@ -626,10 +651,10 @@ export default function ShopPortalPage() {
                       </div>
 
                       {/* File Action Buttons */}
-                      <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
-                        <div className="text-right sm:mr-3">
-                          <span className="text-xs text-slate-400 block sm:hidden">Document Price</span>
-                          <span className="text-sm font-bold text-slate-900">
+                      <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 pt-2 sm:pt-0 border-[var(--border)]">
+                        <div className="text-right sm:mr-2">
+                          <span className="text-[10px] text-[var(--text-muted)] block sm:hidden">Price</span>
+                          <span className="text-xs sm:text-sm font-semibold text-[var(--text)] tabular-nums">
                             {currencySymbol} {formatPrice(config.calculatedTotal)}
                           </span>
                         </div>
@@ -638,79 +663,85 @@ export default function ShopPortalPage() {
                         <button
                           type="button"
                           onClick={() => setPreviewFile(file)}
-                          className="p-2 text-slate-500 hover:text-slate-800 hover:bg-surface-100 rounded-lg"
+                          className="p-2 text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)] rounded-lg min-h-[36px] min-w-[36px] flex items-center justify-center transition-colors"
                           title="Preview Document"
+                          aria-label="Preview Document"
                         >
-                          <Eye size={16} />
+                          <Eye size={15} strokeWidth={1.75} />
                         </button>
 
                         {/* Replace Document */}
                         <button
                           type="button"
                           onClick={() => triggerReplace(file.publicId)}
-                          className="p-2 text-slate-500 hover:text-slate-800 hover:bg-surface-100 rounded-lg"
+                          className="p-2 text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)] rounded-lg min-h-[36px] min-w-[36px] flex items-center justify-center transition-colors"
                           title="Replace Document"
+                          aria-label="Replace Document"
                         >
-                          <Repeat size={16} />
+                          <Repeat size={15} strokeWidth={1.75} />
                         </button>
 
-                        {/* Configure Drawer/Toggle */}
+                        {/* Configure Button */}
                         <Button
                           variant={isConfigActive ? 'primary' : 'secondary'}
                           size="sm"
                           onClick={() => setActiveConfigIndex(idx)}
+                          className="min-h-[36px] text-xs px-3"
                         >
-                          <Settings2 size={15} />
-                          {isConfigActive ? 'Configuring' : 'Configure'}
+                          <Settings2 size={13} strokeWidth={1.75} />
+                          {isConfigActive ? 'Done' : 'Options'}
                         </Button>
 
                         {/* Delete */}
                         <button
                           type="button"
                           onClick={() => handleDeleteFile(file.publicId)}
-                          className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg"
+                          className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg min-h-[36px] min-w-[36px] flex items-center justify-center transition-colors"
                           title="Remove file"
+                          aria-label="Remove file"
                         >
-                          <X size={16} />
+                          <X size={15} strokeWidth={1.75} />
                         </button>
                       </div>
                     </div>
 
-                    {/* ── Inline Configuration Details (if active) ── */}
+                    {/* Inline Configuration Details */}
                     {isConfigActive && (
-                      <div className="bg-surface-50 border-t border-surface-200 p-4 sm:p-5 rounded-b-xl space-y-4">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+                      <div className="bg-[var(--surface-hover)] border-t border-[var(--border)] p-4 sm:p-5 rounded-b-xl space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
                           {/* Copies */}
-                          <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-slate-600">Copies</label>
-                            <div className="flex items-center gap-2">
+                          <div className="space-y-1">
+                            <label className="text-xs font-semibold text-[var(--text-muted)]">Copies</label>
+                            <div className="flex items-center gap-1.5">
                               <button
                                 type="button"
                                 onClick={() => handleConfigUpdate(file.publicId, 'copies', Math.max(1, (config.copies || 1) - 1))}
-                                className="w-8 h-8 rounded-lg bg-white border border-surface-200 flex items-center justify-center text-slate-600 hover:bg-surface-100 font-bold"
+                                className="w-9 h-9 rounded-lg bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-[var(--text)] hover:bg-[var(--surface-hover)] transition-colors min-h-[36px] min-w-[36px]"
+                                aria-label="Decrease copies"
                               >
-                                <Minus size={14} />
+                                <Minus size={13} strokeWidth={2} />
                               </button>
-                              <span className="w-10 text-center font-bold text-sm text-slate-800">
+                              <span className="w-8 text-center font-semibold text-xs text-[var(--text)] tabular-nums">
                                 {config.copies || 1}
                               </span>
                               <button
                                 type="button"
                                 onClick={() => handleConfigUpdate(file.publicId, 'copies', (config.copies || 1) + 1)}
-                                className="w-8 h-8 rounded-lg bg-white border border-surface-200 flex items-center justify-center text-slate-600 hover:bg-surface-100 font-bold"
+                                className="w-9 h-9 rounded-lg bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center text-[var(--text)] hover:bg-[var(--surface-hover)] transition-colors min-h-[36px] min-w-[36px]"
+                                aria-label="Increase copies"
                               >
-                                <Plus size={14} />
+                                <Plus size={13} strokeWidth={2} />
                               </button>
                             </div>
                           </div>
 
                           {/* Color Mode */}
-                          <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-slate-600">Color Mode</label>
+                          <div className="space-y-1">
+                            <label className="text-xs font-semibold text-[var(--text-muted)]">Color Mode</label>
                             <select
                               value={config.colorMode || 'BLACK_WHITE'}
                               onChange={(e) => handleConfigUpdate(file.publicId, 'colorMode', e.target.value)}
-                              className="input text-xs py-1.5"
+                              className="input text-xs py-1.5 min-h-[38px] bg-[var(--surface)] text-[var(--text)]"
                             >
                               <option value="BLACK_WHITE">Black & White</option>
                               <option value="COLOR">Full Color</option>
@@ -719,12 +750,12 @@ export default function ShopPortalPage() {
                           </div>
 
                           {/* Paper Size */}
-                          <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-slate-600">Paper Size</label>
+                          <div className="space-y-1">
+                            <label className="text-xs font-semibold text-[var(--text-muted)]">Paper Size</label>
                             <select
                               value={config.paperSize || 'A4'}
                               onChange={(e) => handleConfigUpdate(file.publicId, 'paperSize', e.target.value)}
-                              className="input text-xs py-1.5"
+                              className="input text-xs py-1.5 min-h-[38px] bg-[var(--surface)] text-[var(--text)]"
                             >
                               <option value="A4">A4 (Standard)</option>
                               <option value="A3">A3 (Large)</option>
@@ -734,12 +765,12 @@ export default function ShopPortalPage() {
                           </div>
 
                           {/* Paper Type */}
-                          <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-slate-600">Paper Type</label>
+                          <div className="space-y-1">
+                            <label className="text-xs font-semibold text-[var(--text-muted)]">Paper Type</label>
                             <select
                               value={config.paperType || 'NORMAL'}
                               onChange={(e) => handleConfigUpdate(file.publicId, 'paperType', e.target.value)}
-                              className="input text-xs py-1.5"
+                              className="input text-xs py-1.5 min-h-[38px] bg-[var(--surface)] text-[var(--text)]"
                             >
                               <option value="NORMAL">Normal (75 GSM)</option>
                               <option value="PREMIUM">Premium Bond (100 GSM)</option>
@@ -749,47 +780,47 @@ export default function ShopPortalPage() {
                           </div>
 
                           {/* Duplex / Sides */}
-                          <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-slate-600">Printing Sides</label>
+                          <div className="space-y-1">
+                            <label className="text-xs font-semibold text-[var(--text-muted)]">Sides</label>
                             <select
                               value={config.duplexMode || 'SIMPLEX'}
                               onChange={(e) => handleConfigUpdate(file.publicId, 'duplexMode', e.target.value)}
-                              className="input text-xs py-1.5"
+                              className="input text-xs py-1.5 min-h-[38px] bg-[var(--surface)] text-[var(--text)]"
                             >
                               <option value="SIMPLEX">Single-Sided</option>
-                              <option value="DUPLEX_LONG_EDGE">Double-Sided (Flip Long Edge)</option>
-                              <option value="DUPLEX_SHORT_EDGE">Double-Sided (Flip Short Edge)</option>
+                              <option value="DUPLEX_LONG_EDGE">2-Sided (Flip Long Edge)</option>
+                              <option value="DUPLEX_SHORT_EDGE">2-Sided (Flip Short Edge)</option>
                             </select>
                           </div>
                         </div>
 
                         {/* Page Range & Orientation */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-surface-200/60">
-                          <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-slate-600">
-                              Pages to Print <span className="font-normal text-slate-400">("ALL" or e.g. "1-5, 8")</span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-[var(--border)]">
+                          <div className="space-y-1">
+                            <label className="text-xs font-semibold text-[var(--text-muted)]">
+                              Pages to Print <span className="font-normal text-[var(--text-muted)]">("ALL" or e.g. "1-5, 8")</span>
                             </label>
                             <input
                               type="text"
                               defaultValue={config.pageRange || 'ALL'}
                               onBlur={(e) => handleConfigUpdate(file.publicId, 'pageRange', e.target.value)}
                               placeholder="ALL"
-                              className="input text-xs py-1.5"
+                              className="input text-xs py-1.5 min-h-[38px] bg-[var(--surface)] text-[var(--text)]"
                             />
                           </div>
 
-                          <div className="space-y-1.5">
-                            <label className="text-xs font-semibold text-slate-600">Orientation</label>
+                          <div className="space-y-1">
+                            <label className="text-xs font-semibold text-[var(--text-muted)]">Orientation</label>
                             <div className="flex gap-2">
                               {['PORTRAIT', 'LANDSCAPE'].map((ori) => (
                                 <button
                                   key={ori}
                                   type="button"
                                   onClick={() => handleConfigUpdate(file.publicId, 'orientation', ori)}
-                                  className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-medium border transition-colors ${
+                                  className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-medium border transition-colors min-h-[38px] ${
                                     (config.orientation || 'PORTRAIT') === ori
-                                      ? 'bg-primary-50 border-primary-500 text-primary-700'
-                                      : 'bg-white border-surface-200 text-slate-600 hover:bg-surface-100'
+                                      ? 'bg-[var(--accent-tint)] border-[#0E7490] text-[#0E7490] dark:text-[#22D3EE]'
+                                      : 'bg-[var(--surface)] border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)]'
                                   }`}
                                 >
                                   {ori === 'PORTRAIT' ? 'Portrait' : 'Landscape'}
@@ -801,9 +832,9 @@ export default function ShopPortalPage() {
 
                         {/* Additional Services for this file */}
                         {shop.additionalServices && shop.additionalServices.length > 0 && (
-                          <div className="pt-3 border-t border-surface-200/60">
-                            <label className="text-xs font-semibold text-slate-700 block mb-2">
-                              Additional Services for this document:
+                          <div className="pt-3 border-t border-[var(--border)]">
+                            <label className="text-xs font-semibold text-[var(--text-muted)] block mb-2">
+                              Additional Services:
                             </label>
                             <div className="flex flex-wrap gap-2">
                               {shop.additionalServices.map((svc) => {
@@ -815,14 +846,14 @@ export default function ShopPortalPage() {
                                     key={svc.id}
                                     type="button"
                                     onClick={() => handleToggleService(file.publicId, svc.id, isAttached)}
-                                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors min-h-[36px] ${
                                       isAttached
-                                        ? 'bg-primary-600 text-white border-primary-600'
-                                        : 'bg-white text-slate-700 border-surface-300 hover:border-slate-400'
+                                        ? 'bg-[#0E7490] text-white border-[#0E7490]'
+                                        : 'bg-[var(--surface)] text-[var(--text-muted)] border-[var(--border)] hover:text-[var(--text)]'
                                     }`}
                                   >
                                     <span>{svc.name} (+{currencySymbol}{formatPrice(svc.price)})</span>
-                                    {isAttached ? <CheckCircle2 size={13} /> : <Plus size={13} />}
+                                    {isAttached ? <CheckCircle2 size={13} strokeWidth={2} /> : <Plus size={13} strokeWidth={2} />}
                                   </button>
                                 )
                               })}
@@ -838,28 +869,28 @@ export default function ShopPortalPage() {
           </div>
         )}
 
-        {/* ── Order Summary & Notes ── */}
-        {draftOrder?.files && draftOrder.files.length > 0 && (
-          <Card className="bg-white border border-surface-200 shadow-xs">
-            <CardBody className="space-y-4">
-              {/* File Lifetime Expiry Option Selector */}
+        {/* Order Summary & Customer Info */}
+        {hasFiles && (
+          <Card>
+            <CardBody className="space-y-4 p-5">
+              {/* Privacy Lifetime Expiry */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
-                    <Clock size={13} className="text-slate-500" />
-                    <span>File Privacy & Lifetime Expiry</span>
+                  <label className="text-xs font-semibold text-[var(--text-muted)] flex items-center gap-1.5">
+                    <Clock size={13} strokeWidth={1.75} className="text-[#0E7490]" />
+                    <span>File Privacy & Auto-Purge Lifetime</span>
                   </label>
-                  <span className="text-[10px] text-slate-400 font-medium">Auto-purged from server after expiry</span>
+                  <span className="text-[11px] text-[var(--text-muted)]">Auto-deleted after expiry</span>
                 </div>
                 <select
                   value={expiryOption}
                   onChange={(e) => setExpiryOption(e.target.value)}
-                  className="input text-xs font-medium bg-white"
+                  className="input text-xs font-medium bg-[var(--surface)] text-[var(--text)] min-h-[44px]"
                 >
                   {(shop.settings?.enabledExpiryOptions || ['15m', '1h', '3h', '8h']).map((opt) => (
                     <option key={opt} value={opt}>
                       {opt === '15m' ? '15 Minutes (Maximum Privacy)' :
-                       opt === '1h' ? '1 Hour (Recommended)' :
+                       opt === '1h' ? '1 Hour (Standard / Recommended)' :
                        opt === '3h' ? '3 Hours' :
                        opt === '8h' ? '8 Hours' : `${opt}`}
                     </option>
@@ -867,11 +898,11 @@ export default function ShopPortalPage() {
                 </select>
               </div>
 
-              {/* ── Customer Information ── */}
-              <div className="space-y-3 pt-2 border-t border-surface-100">
+              {/* Customer Information */}
+              <div className="space-y-3 pt-3 border-t border-[var(--border)]">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-semibold text-slate-700 block mb-1">
+                    <label className="text-xs font-semibold text-[var(--text)] block mb-1">
                       Your Name <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
@@ -880,17 +911,17 @@ export default function ShopPortalPage() {
                         required
                         value={customerName}
                         onChange={(e) => setCustomerName(e.target.value)}
-                        placeholder="e.g. Rahul Sharma / Sarah"
-                        className="input text-xs font-medium pl-8"
+                        placeholder="e.g. Rahul Sharma"
+                        className="input text-xs font-medium pl-8 min-h-[44px] bg-[var(--surface)] text-[var(--text)]"
                       />
-                      <User size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                      <User size={14} strokeWidth={1.75} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none" />
                     </div>
-                    <span className="text-[10px] text-slate-400 mt-0.5 block">Printed on your order tag so shop staff can identify you</span>
+                    <span className="text-[10px] text-[var(--text-muted)] mt-1 block">Printed on your order tag for collection</span>
                   </div>
 
                   <div>
-                    <label className="text-xs font-semibold text-slate-700 block mb-1">
-                      Phone Number <span className="text-slate-400 font-normal">(Optional)</span>
+                    <label className="text-xs font-semibold text-[var(--text)] block mb-1">
+                      Phone Number <span className="text-[var(--text-muted)] font-normal">(Optional)</span>
                     </label>
                     <div className="relative">
                       <input
@@ -898,31 +929,31 @@ export default function ShopPortalPage() {
                         value={customerPhone}
                         onChange={(e) => setCustomerPhone(e.target.value)}
                         placeholder="e.g. 9876543210"
-                        className="input text-xs font-medium pl-8"
+                        className="input text-xs font-medium pl-8 min-h-[44px] bg-[var(--surface)] text-[var(--text)]"
                       />
-                      <Phone size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                      <Phone size={14} strokeWidth={1.75} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none" />
                     </div>
-                    <span className="text-[10px] text-slate-400 mt-0.5 block">Used only to notify you when your prints are ready</span>
+                    <span className="text-[10px] text-[var(--text-muted)] mt-1 block">Used only to notify you when prints are ready</span>
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1">
-                  Special Instructions or Notes (Optional)
+                <label className="text-xs font-semibold text-[var(--text)] block mb-1">
+                  Special Instructions (Optional)
                 </label>
                 <textarea
                   value={customerNotes}
                   onChange={(e) => setCustomerNotes(e.target.value)}
                   placeholder="e.g. Please staple top-left corner, or call when ready..."
                   rows={2}
-                  className="input text-xs"
+                  className="input text-xs bg-[var(--surface)] text-[var(--text)]"
                 />
               </div>
 
-              {/* ── Choose Payment Option ── */}
-              <div className="space-y-2 pt-2 border-t border-surface-100">
-                <label className="text-xs font-semibold text-slate-700 block">
+              {/* Payment Option Selection */}
+              <div className="space-y-2 pt-3 border-t border-[var(--border)]">
+                <label className="text-xs font-semibold text-[var(--text)] block">
                   Select Payment Option
                 </label>
 
@@ -930,24 +961,24 @@ export default function ShopPortalPage() {
                   {/* Option 1: Pay at Counter */}
                   <div
                     onClick={() => setPaymentMethod('COUNTER')}
-                    className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 select-none ${
+                    className={`p-3.5 rounded-xl border cursor-pointer transition-colors flex items-start gap-3 select-none min-h-[44px] ${
                       paymentMethod === 'COUNTER'
-                        ? 'border-primary-600 bg-primary-50/50 shadow-xs ring-1 ring-primary-500/20'
-                        : 'border-surface-200 bg-white hover:border-surface-300'
+                        ? 'border-[#0E7490] bg-[var(--accent-tint)]'
+                        : 'border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-hover)]'
                     }`}
                   >
                     <div className={`p-2 rounded-lg shrink-0 ${
-                      paymentMethod === 'COUNTER' ? 'bg-primary-600 text-white' : 'bg-surface-100 text-slate-600'
+                      paymentMethod === 'COUNTER' ? 'bg-[#0E7490] text-white' : 'bg-[var(--surface-hover)] text-[var(--text-muted)]'
                     }`}>
-                      <Banknote size={18} />
+                      <Banknote size={16} strokeWidth={1.75} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1 mb-0.5">
-                        <span className="font-bold text-slate-900 text-xs">Pay at Counter</span>
-                        <Badge variant="green" size="sm">Pay on Pickup</Badge>
+                        <span className="font-semibold text-[var(--text)] text-xs">Pay at Counter</span>
+                        <Badge variant="green" size="sm" dot>Pay on Pickup</Badge>
                       </div>
-                      <p className="text-[11px] text-slate-500 leading-snug">
-                        Pay cash or shop UPI when you pick up your printed documents.
+                      <p className="text-[11px] text-[var(--text-muted)] leading-snug">
+                        Pay cash or shop UPI when you collect your printed documents.
                       </p>
                     </div>
                   </div>
@@ -956,23 +987,23 @@ export default function ShopPortalPage() {
                   {shop.settings?.paymentEnabled && (
                     <div
                       onClick={() => setPaymentMethod('ONLINE')}
-                      className={`p-3.5 rounded-xl border-2 cursor-pointer transition-all flex items-start gap-3 select-none ${
+                      className={`p-3.5 rounded-xl border cursor-pointer transition-colors flex items-start gap-3 select-none min-h-[44px] ${
                         paymentMethod === 'ONLINE'
-                          ? 'border-primary-600 bg-primary-50/50 shadow-xs ring-1 ring-primary-500/20'
-                          : 'border-surface-200 bg-white hover:border-surface-300'
+                          ? 'border-[#0E7490] bg-[var(--accent-tint)]'
+                          : 'border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--surface-hover)]'
                       }`}
                     >
                       <div className={`p-2 rounded-lg shrink-0 ${
-                        paymentMethod === 'ONLINE' ? 'bg-primary-600 text-white' : 'bg-surface-100 text-slate-600'
+                        paymentMethod === 'ONLINE' ? 'bg-[#0E7490] text-white' : 'bg-[var(--surface-hover)] text-[var(--text-muted)]'
                       }`}>
-                        <CreditCard size={18} />
+                        <CreditCard size={16} strokeWidth={1.75} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-1 mb-0.5">
-                          <span className="font-bold text-slate-900 text-xs">Pay Online</span>
+                          <span className="font-semibold text-[var(--text)] text-xs">Pay Online</span>
                           <Badge variant="blue" size="sm">UPI / Cards</Badge>
                         </div>
-                        <p className="text-[11px] text-slate-500 leading-snug">
+                        <p className="text-[11px] text-[var(--text-muted)] leading-snug">
                           Pay instantly with GPay, PhonePe, Paytm, Cards, or Netbanking.
                         </p>
                       </div>
@@ -981,17 +1012,18 @@ export default function ShopPortalPage() {
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-3 border-t border-surface-100">
+              {/* Desktop Confirmation Bar */}
+              <div className="hidden sm:flex sm:items-center sm:justify-between gap-4 pt-4 border-t border-[var(--border)]">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-500 block">
+                    <span className="text-xs text-[var(--text-muted)] block">
                       {paymentMethod === 'ONLINE' ? 'Total Payable Online:' : 'Total Payable at Counter:'}
                     </span>
-                    <Badge variant={paymentMethod === 'ONLINE' ? 'blue' : 'green'}>
+                    <Badge variant={paymentMethod === 'ONLINE' ? 'blue' : 'green'} size="sm">
                       {paymentMethod === 'ONLINE' ? 'Razorpay Online' : 'Pay at Shop'}
                     </Badge>
                   </div>
-                  <span className="text-2xl font-bold text-slate-900 mt-0.5 block">
+                  <span className="text-xl font-bold text-[var(--text)] mt-0.5 block tabular-nums">
                     {currencySymbol} {formatPrice(draftOrder?.totalAmount)}
                   </span>
                 </div>
@@ -1001,14 +1033,14 @@ export default function ShopPortalPage() {
                   size="lg"
                   loading={submitting}
                   onClick={handleConfirmOrder}
-                  className="px-6"
+                  className="px-6 min-h-[44px]"
                 >
                   <span>
                     {paymentMethod === 'ONLINE'
                       ? `Pay Online (${currencySymbol} ${formatPrice(draftOrder?.totalAmount)})`
                       : 'Submit Order (Pay at Counter)'}
                   </span>
-                  <ArrowRight size={18} />
+                  <ArrowRight size={16} strokeWidth={1.75} />
                 </Button>
               </div>
             </CardBody>
@@ -1016,51 +1048,76 @@ export default function ShopPortalPage() {
         )}
       </main>
 
-      {/* ── Document Preview Modal ── */}
+      {/* Mobile Sticky Bottom Action Bar */}
+      {hasFiles && (
+        <div className="fixed bottom-0 left-0 right-0 z-30 sm:hidden bg-[var(--surface)] border-t border-[var(--border)] p-3 px-4 shadow-lg backdrop-blur-md">
+          <div className="flex items-center justify-between gap-3 max-w-md mx-auto">
+            <div>
+              <span className="text-[10px] text-[var(--text-muted)] block leading-tight">Total Amount</span>
+              <span className="text-lg font-bold text-[var(--text)] tabular-nums leading-tight">
+                {currencySymbol} {formatPrice(draftOrder?.totalAmount)}
+              </span>
+            </div>
+            <Button
+              variant="primary"
+              size="md"
+              loading={submitting}
+              onClick={handleConfirmOrder}
+              className="flex-1 min-h-[44px] text-xs font-semibold"
+            >
+              <span>{paymentMethod === 'ONLINE' ? 'Pay Online' : 'Submit Order'}</span>
+              <ArrowRight size={15} strokeWidth={1.75} />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Document Preview Modal */}
       {previewFile && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-xl overflow-hidden">
-            <div className="p-4 border-b border-surface-200 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <FileText size={18} className="text-primary-600" />
-                <h3 className="font-semibold text-slate-900 text-sm truncate max-w-md">
+          <div className="bg-[var(--surface)] rounded-xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-xl overflow-hidden border border-[var(--border)]">
+            <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
+              <div className="flex items-center gap-2 min-w-0">
+                <FileText size={16} strokeWidth={1.75} className="text-[#0E7490] shrink-0" />
+                <h3 className="font-semibold text-[var(--text)] text-sm truncate">
                   {previewFile.originalName}
                 </h3>
               </div>
               <button
                 onClick={() => setPreviewFile(null)}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-surface-100"
+                className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)] min-h-[36px] min-w-[36px] flex items-center justify-center transition-colors"
+                aria-label="Close preview"
               >
-                <X size={18} />
+                <X size={16} strokeWidth={1.75} />
               </button>
             </div>
 
-            <div className="flex-1 bg-surface-100 p-4 overflow-auto flex items-center justify-center min-h-[400px]">
+            <div className="flex-1 bg-[var(--bg)] p-4 overflow-auto flex items-center justify-center min-h-[350px]">
               {previewFile.mimeType === 'application/pdf' ? (
                 <iframe
                   src={`/api/v1/customer/files/${previewFile.publicId || previewFile.id}/preview?sessionToken=${sessionToken}#toolbar=0`}
                   title={previewFile.originalName}
-                  className="w-full h-[550px] border-0 rounded-lg bg-white shadow-xs"
+                  className="w-full h-[500px] border-0 rounded-lg bg-white shadow-xs"
                 />
               ) : previewFile.mimeType?.startsWith('image/') ? (
                 <img
                   src={`/api/v1/customer/files/${previewFile.publicId || previewFile.id}/preview?sessionToken=${sessionToken}`}
                   alt={previewFile.originalName}
-                  className="max-h-[550px] max-w-full object-contain rounded-lg shadow-xs"
+                  className="max-h-[500px] max-w-full object-contain rounded-lg shadow-xs"
                 />
               ) : (
                 <div className="text-center p-8">
-                  <File size={48} className="text-slate-400 mx-auto mb-2" />
-                  <p className="text-sm font-medium text-slate-700">{previewFile.originalName}</p>
-                  <p className="text-xs text-slate-400 mt-1">
+                  <File size={40} strokeWidth={1.5} className="text-[var(--text-muted)] mx-auto mb-2" />
+                  <p className="text-xs font-medium text-[var(--text)]">{previewFile.originalName}</p>
+                  <p className="text-[11px] text-[var(--text-muted)] mt-1">
                     Preview not supported for this file format in browser. Document is queued for native printing.
                   </p>
                 </div>
               )}
             </div>
 
-            <div className="p-3 bg-white border-t border-surface-200 flex justify-end">
-              <Button variant="secondary" size="sm" onClick={() => setPreviewFile(null)}>
+            <div className="p-3 bg-[var(--surface)] border-t border-[var(--border)] flex justify-end">
+              <Button variant="secondary" size="sm" onClick={() => setPreviewFile(null)} className="min-h-[36px]">
                 Close Preview
               </Button>
             </div>
