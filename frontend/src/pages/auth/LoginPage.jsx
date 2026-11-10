@@ -37,16 +37,16 @@ export default function LoginPage() {
 
   return (
     <div>
-      {/* Logo + heading */}
-      <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-14 h-14 bg-primary-600 rounded-2xl mb-4">
-          <Printer size={28} className="text-white" />
+      {/* Heading */}
+      <div className="mb-8">
+        <div className="inline-flex items-center justify-center w-10 h-10 bg-[#0E7490] rounded-lg mb-5">
+          <Printer size={18} className="text-white" strokeWidth={1.75} />
         </div>
-        <h1 className="text-2xl font-bold text-slate-900">Welcome back</h1>
-        <p className="mt-1.5 text-sm text-slate-500">Sign in to your SmartPrint account</p>
+        <h1 className="text-2xl font-semibold text-[var(--text)] tracking-tight">Welcome back</h1>
+        <p className="mt-1.5 text-sm text-[var(--text-muted)]">Sign in to your SmartPrint account</p>
       </div>
 
-      {/* Form card */}
+      {/* Form */}
       <div className="card">
         <div className="card-body">
           <form onSubmit={handleSubmit} noValidate className="space-y-4">
@@ -81,10 +81,10 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => setShowPass((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors duration-150"
                   aria-label={showPass ? 'Hide password' : 'Show password'}
                 >
-                  {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {showPass ? <EyeOff size={16} strokeWidth={1.75} /> : <Eye size={16} strokeWidth={1.75} />}
                 </button>
               </div>
               {errors.password && <p className="form-error">{errors.password}</p>}
@@ -97,9 +97,9 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <p className="text-center text-sm text-slate-500 mt-5">
+      <p className="text-center text-sm text-[var(--text-muted)] mt-5">
         Don't have an account?{' '}
-        <Link to="/register" className="text-primary-600 font-medium hover:text-primary-700">
+        <Link to="/register" className="text-[#0E7490] font-medium hover:text-[#155E75] transition-colors duration-150">
           Create one for free
         </Link>
       </p>

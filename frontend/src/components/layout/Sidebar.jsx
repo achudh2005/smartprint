@@ -1,7 +1,7 @@
 import { NavLink, Link, useNavigate } from 'react-router-dom'
 import {
   Printer, LayoutDashboard, Store, Settings,
-  User, LogOut, X, ChevronRight, Info
+  User, LogOut, X, Info
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import toast from 'react-hot-toast'
@@ -27,21 +27,25 @@ export default function Sidebar({ open, onClose }) {
   return (
     <>
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex lg:flex-col w-64 bg-white dark:bg-slate-900 border-r border-surface-200 dark:border-slate-800 h-full transition-colors duration-200">
+      <aside className="hidden lg:flex lg:flex-col w-60 bg-[var(--surface)] border-r border-[var(--border)] h-full shrink-0 transition-colors duration-150">
         <SidebarContent user={user} onLogout={handleLogout} />
       </aside>
 
       {/* Mobile drawer */}
       <aside
         className={clsx(
-          'fixed inset-y-0 left-0 z-30 w-72 bg-white dark:bg-slate-900 border-r border-surface-200 dark:border-slate-800 transform transition-transform duration-200 lg:hidden',
+          'fixed inset-y-0 left-0 z-30 w-64 bg-[var(--surface)] border-r border-[var(--border)] transform transition-transform duration-150 lg:hidden',
           open ? 'translate-x-0' : '-translate-x-full'
         )}
       >
-        <div className="flex items-center justify-between p-4 border-b border-surface-100 dark:border-slate-800">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
           <LogoMark />
-          <button onClick={onClose} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-surface-100 dark:hover:bg-slate-800">
-            <X size={18} />
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)] transition-colors duration-150"
+            aria-label="Close sidebar"
+          >
+            <X size={16} strokeWidth={1.75} />
           </button>
         </div>
         <SidebarContent user={user} onLogout={handleLogout} hideLogo />
@@ -53,10 +57,10 @@ export default function Sidebar({ open, onClose }) {
 function LogoMark() {
   return (
     <Link to="/dashboard" className="inline-flex items-center gap-2.5">
-      <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center shrink-0">
-        <Printer size={16} className="text-white" />
+      <div className="w-7 h-7 bg-[#0E7490] rounded-lg flex items-center justify-center shrink-0">
+        <Printer size={14} className="text-white" strokeWidth={1.75} />
       </div>
-      <span className="text-lg font-bold text-slate-900 dark:text-white">SmartPrint</span>
+      <span className="text-base font-bold text-[var(--text)] tracking-tight">SmartPrint</span>
     </Link>
   )
 }
@@ -66,46 +70,64 @@ function SidebarContent({ user, onLogout, hideLogo }) {
     <div className="flex flex-col h-full">
       {/* Logo */}
       {!hideLogo && (
-        <div className="p-5 border-b border-surface-100 dark:border-slate-800">
+        <div className="px-5 py-4 border-b border-[var(--border)]">
           <LogoMark />
         </div>
       )}
 
       {/* Nav */}
-      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-        <p className="px-3 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Menu</p>
+      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+        <p className="px-3 mb-3 text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-widest">
+          Navigation
+        </p>
         {navItems.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}
             to={to}
             className={({ isActive }) =>
-              clsx('sidebar-link', isActive && 'sidebar-link-active')
+              clsx(
+                'group relative flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-150',
+                isActive
+                  ? 'bg-[var(--accent-tint)] text-[#0E7490] dark:text-[#22D3EE]'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)]'
+              )
             }
           >
-            <Icon size={18} />
-            <span>{label}</span>
+            {({ isActive }) => (
+              <>
+                {/* Accent indicator bar */}
+                {isActive && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-[#0E7490] rounded-r" />
+                )}
+                <Icon size={16} strokeWidth={1.75} className={clsx('shrink-0', isActive ? 'text-[#0E7490] dark:text-[#22D3EE]' : 'text-[var(--text-muted)] group-hover:text-[var(--text)]')} />
+                <span>{label}</span>
+              </>
+            )}
           </NavLink>
         ))}
       </nav>
 
-      {/* User + Logout */}
-      <div className="p-4 border-t border-surface-100 dark:border-slate-800">
-        <div className="flex items-center gap-3 px-3 py-2 mb-2">
-          <div className="w-8 h-8 rounded-full bg-primary-100 dark:bg-primary-900/50 flex items-center justify-center shrink-0">
-            <span className="text-sm font-semibold text-primary-700 dark:text-primary-300">
+      {/* User block + Logout */}
+      <div className="px-3 py-4 border-t border-[var(--border)] space-y-1">
+        {/* User info */}
+        <div className="flex items-center gap-3 px-3 py-2.5 mb-1">
+          <div className="w-7 h-7 rounded-full bg-[var(--accent-tint)] border border-[var(--border)] flex items-center justify-center shrink-0">
+            <span className="text-xs font-semibold text-[#0E7490]">
               {user?.name?.[0]?.toUpperCase() || 'U'}
             </span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-slate-900 dark:text-slate-100 truncate">{user?.name}</p>
-            <p className="text-xs text-slate-400 truncate">{user?.email}</p>
+            <p className="text-xs font-semibold text-[var(--text)] truncate">{user?.name}</p>
+            <p className="text-[11px] text-[var(--text-muted)] truncate">{user?.email}</p>
           </div>
         </div>
+
+        {/* Logout */}
         <button
           onClick={onLogout}
-          className="sidebar-link w-full text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-700"
+          className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm font-medium text-[var(--text-muted)] hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors duration-150"
         >
-          <LogOut size={18} />
+          <LogOut size={16} strokeWidth={1.75} className="shrink-0" />
           <span>Log out</span>
         </button>
       </div>

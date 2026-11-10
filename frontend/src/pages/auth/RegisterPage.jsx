@@ -43,12 +43,13 @@ export default function RegisterPage() {
 
   return (
     <div>
-      <div className="text-center mb-8">
-        <div className="inline-flex items-center justify-center w-14 h-14 bg-primary-600 rounded-2xl mb-4">
-          <Printer size={28} className="text-white" />
+      {/* Heading */}
+      <div className="mb-8">
+        <div className="inline-flex items-center justify-center w-10 h-10 bg-[#0E7490] rounded-lg mb-5">
+          <Printer size={18} className="text-white" strokeWidth={1.75} />
         </div>
-        <h1 className="text-2xl font-bold text-slate-900">Create your account</h1>
-        <p className="mt-1.5 text-sm text-slate-500">Start managing your print shop today</p>
+        <h1 className="text-2xl font-semibold text-[var(--text)] tracking-tight">Create your account</h1>
+        <p className="mt-1.5 text-sm text-[var(--text-muted)]">Start managing your print shop today</p>
       </div>
 
       <div className="card">
@@ -59,7 +60,7 @@ export default function RegisterPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <span>{apiError}</span>
                   {apiError.toLowerCase().includes('already exists') && (
-                    <Link to="/login" className="font-semibold underline text-primary-700 hover:text-primary-800 shrink-0">
+                    <Link to="/login" className="font-semibold underline text-[#0E7490] hover:text-[#155E75] shrink-0">
                       Sign in here &rarr;
                     </Link>
                   )}
@@ -108,9 +109,9 @@ export default function RegisterPage() {
                 <button
                   type="button"
                   onClick={() => setShowPass((v) => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors duration-150"
                 >
-                  {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
+                  {showPass ? <EyeOff size={16} strokeWidth={1.75} /> : <Eye size={16} strokeWidth={1.75} />}
                 </button>
               </div>
               {errors.password && <p className="form-error">{errors.password}</p>}
@@ -121,8 +122,8 @@ export default function RegisterPage() {
                   {requirements.map((req) => {
                     const met = req.test(values.password)
                     return (
-                      <div key={req.label} className={`flex items-center gap-1.5 text-xs ${met ? 'text-green-600' : 'text-slate-400'}`}>
-                        <CheckCircle2 size={12} className={met ? 'text-green-500' : 'text-slate-300'} />
+                      <div key={req.label} className={`flex items-center gap-1.5 text-xs ${met ? 'text-green-600 dark:text-green-500' : 'text-[var(--text-muted)]'}`}>
+                        <CheckCircle2 size={12} strokeWidth={2} className={met ? 'text-green-500' : 'text-[var(--border)]'} />
                         {req.label}
                       </div>
                     )
@@ -150,9 +151,9 @@ export default function RegisterPage() {
         </div>
       </div>
 
-      <p className="text-center text-sm text-slate-500 mt-5">
+      <p className="text-center text-sm text-[var(--text-muted)] mt-5">
         Already have an account?{' '}
-        <Link to="/login" className="text-primary-600 font-medium hover:text-primary-700">
+        <Link to="/login" className="text-[#0E7490] font-medium hover:text-[#155E75] transition-colors duration-150">
           Sign in
         </Link>
       </p>

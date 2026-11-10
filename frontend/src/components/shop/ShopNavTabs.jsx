@@ -24,25 +24,37 @@ export default function ShopNavTabs({ shopId }) {
   ]
 
   return (
-    <div className="flex gap-2 border-b border-surface-200 pb-3 mb-6 overflow-x-auto">
-      {tabs.map(({ to, icon: Icon, label }) => (
-        <NavLink
-          key={to}
-          to={to}
-          end
-          className={({ isActive }) =>
-            clsx(
-              'flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all shrink-0',
-              isActive
-                ? 'bg-primary-600 text-white shadow-xs'
-                : 'bg-white text-slate-600 border border-surface-200 hover:bg-surface-50'
-            )
-          }
-        >
-          <Icon size={15} />
-          <span>{label}</span>
-        </NavLink>
-      ))}
+    <div className="relative mb-6">
+      {/* Scrollable tab strip */}
+      <div className="flex gap-0 overflow-x-auto scrollbar-none border-b border-[var(--border)]">
+        {tabs.map(({ to, icon: Icon, label }) => (
+          <NavLink
+            key={to}
+            to={to}
+            end
+            className={({ isActive }) =>
+              clsx(
+                'relative flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-medium whitespace-nowrap shrink-0 transition-colors duration-150',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22D3EE] focus-visible:ring-offset-1',
+                isActive
+                  ? 'text-[#0E7490] dark:text-[#22D3EE]'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+              )
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <Icon size={14} strokeWidth={1.75} className="shrink-0" />
+                <span>{label}</span>
+                {/* Active underline indicator */}
+                {isActive && (
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#0E7490] dark:bg-[#22D3EE] rounded-t-full" />
+                )}
+              </>
+            )}
+          </NavLink>
+        ))}
+      </div>
     </div>
   )
 }

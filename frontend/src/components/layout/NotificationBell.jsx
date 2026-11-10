@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Bell, Check, Volume2, VolumeX, ShoppingBag, Clock } from 'lucide-react'
+import { Bell, Check, Volume2, VolumeX, ShoppingBag } from 'lucide-react'
 import api from '../../lib/api'
 import toast from 'react-hot-toast'
 
@@ -54,73 +54,79 @@ export default function NotificationBell({ shopId }) {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setOpen(!open)}
-        className="p-2 text-slate-500 hover:text-slate-800 hover:bg-surface-100 rounded-xl relative transition-colors"
+        className="relative p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)] transition-colors duration-150"
         title="Notifications"
+        aria-label="Notifications"
       >
-        <Bell size={18} />
+        <Bell size={16} strokeWidth={1.75} />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 w-4 h-4 bg-red-600 text-white rounded-full text-[10px] font-bold flex items-center justify-center animate-pulse">
+          <span className="absolute top-0.5 right-0.5 w-3.5 h-3.5 bg-red-600 text-white rounded-full text-[9px] font-bold flex items-center justify-center leading-none">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-surface-200 z-50 overflow-hidden animate-in fade-in-50 duration-150">
-          <div className="p-3.5 border-b border-surface-100 flex items-center justify-between bg-surface-50">
+        <div className="absolute right-0 mt-1.5 w-80 sm:w-96 bg-[var(--surface)] rounded-xl shadow-card border border-[var(--border)] z-50 overflow-hidden">
+          {/* Header */}
+          <div className="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="font-bold text-slate-900 text-xs">Notifications</span>
+              <span className="text-sm font-semibold text-[var(--text)]">Notifications</span>
               {unreadCount > 0 && (
-                <span className="bg-primary-100 text-primary-700 font-semibold px-2 py-0.5 rounded-full text-[10px]">
+                <span className="bg-[var(--accent-tint)] text-[#0E7490] font-semibold px-1.5 py-0.5 rounded-md text-[10px] border border-[#0E7490]/20">
                   {unreadCount} new
                 </span>
               )}
             </div>
 
-            <div className="flex items-center gap-2 text-xs">
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => setSoundEnabled(!soundEnabled)}
-                className="text-slate-400 hover:text-slate-700 p-1 rounded"
+                className="p-1 rounded text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)] transition-colors duration-150"
                 title={soundEnabled ? 'Mute sound' : 'Unmute sound'}
               >
-                {soundEnabled ? <Volume2 size={15} /> : <VolumeX size={15} />}
+                {soundEnabled ? <Volume2 size={14} strokeWidth={1.75} /> : <VolumeX size={14} strokeWidth={1.75} />}
               </button>
               {unreadCount > 0 && (
                 <button
                   onClick={markAllRead}
-                  className="text-primary-600 hover:text-primary-700 font-medium text-xs flex items-center gap-1"
+                  className="flex items-center gap-1 text-[11px] font-medium text-[#0E7490] hover:text-[#155E75] transition-colors duration-150"
                 >
-                  <Check size={13} /> Mark read
+                  <Check size={12} strokeWidth={2} />
+                  Mark read
                 </button>
               )}
             </div>
           </div>
 
-          <div className="max-h-80 overflow-y-auto divide-y divide-surface-100">
+          {/* Body */}
+          <div className="max-h-80 overflow-y-auto divide-y divide-[var(--border)]">
             {notifications.length === 0 ? (
-              <div className="py-8 text-center text-xs text-slate-400">
+              <div className="py-10 text-center text-sm text-[var(--text-muted)]">
                 No notifications yet.
               </div>
             ) : (
               notifications.map((n) => (
                 <div
                   key={n.id}
-                  className={`p-3 text-xs transition-colors ${
-                    n.isRead ? 'bg-white' : 'bg-primary-50/40'
+                  className={`px-4 py-3 text-xs transition-colors ${
+                    n.isRead
+                      ? 'bg-[var(--surface)]'
+                      : 'bg-[var(--accent-tint)]/30'
                   }`}
                 >
-                  <div className="flex items-start gap-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-primary-100 text-primary-700 flex items-center justify-center shrink-0 mt-0.5">
-                      <ShoppingBag size={14} />
+                  <div className="flex items-start gap-3">
+                    <div className="w-7 h-7 rounded-lg bg-[var(--accent-tint)] border border-[var(--border)] flex items-center justify-center shrink-0 mt-0.5">
+                      <ShoppingBag size={13} strokeWidth={1.75} className="text-[#0E7490]" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-slate-800 text-xs leading-snug">
+                      <p className="font-semibold text-[var(--text)] text-xs leading-snug">
                         {n.title}
                       </p>
-                      <p className="text-slate-500 mt-0.5 line-clamp-2 leading-relaxed">
+                      <p className="text-[var(--text-muted)] mt-0.5 line-clamp-2 leading-relaxed">
                         {n.message}
                       </p>
-                      <span className="text-[10px] text-slate-400 mt-1 block">
+                      <span className="text-[10px] text-[var(--text-muted)] mt-1 block">
                         {new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} • {new Date(n.createdAt).toLocaleDateString()}
                       </span>
                     </div>
