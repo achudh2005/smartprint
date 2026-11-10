@@ -113,57 +113,52 @@ export default function ShopPricingPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20">
       <PageHeader
         title="Print Pricing & Additional Services"
         description="Set standard rates per page and add optional finishing services (lamination, binding, etc.)."
-        action={
-          <Button variant="primary" loading={saving} onClick={handleSaveRules}>
-            <Save size={16} /> Save Pricing Rules
-          </Button>
-        }
       />
 
       <ShopNavTabs shopId={shopId} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* ── Document Printing Rates Matrix ── */}
-        <Card className="lg:col-span-2">
+        <Card className="lg:col-span-2 overflow-hidden">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-slate-800 text-sm">Base Rates Per Page (₹)</h3>
-              <Badge variant="blue">Dynamic Calculator</Badge>
+              <h3 className="font-semibold text-[var(--text)] text-sm">Base Rates Per Page (₹)</h3>
+              <Badge variant="blue" dot>Dynamic Calculator</Badge>
             </div>
           </CardHeader>
           <CardBody className="p-0">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-surface-50 text-slate-500 font-semibold uppercase tracking-wider border-b border-surface-200">
+                <thead className="bg-[var(--surface-hover)] text-[var(--text-muted)] font-semibold uppercase tracking-wider text-[11px] border-b border-[var(--border)]">
                   <tr>
-                    <th className="py-3 px-4">Size & Mode</th>
-                    <th className="py-3 px-4">Sides</th>
-                    <th className="py-3 px-4">Price Per Page (₹)</th>
+                    <th className="py-2.5 px-4">Size & Mode</th>
+                    <th className="py-2.5 px-4">Sides</th>
+                    <th className="py-2.5 px-4 text-right">Price Per Page (₹)</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-surface-100">
+                <tbody className="divide-y divide-[var(--border)]">
                   {rules.map((rule, idx) => (
-                    <tr key={idx} className="hover:bg-surface-50/50">
-                      <td className="py-3 px-4 font-medium text-slate-800">
+                    <tr key={idx} className="hover:bg-[var(--surface-hover)] transition-colors duration-150 h-11">
+                      <td className="py-2.5 px-4 font-medium text-[var(--text)]">
                         {rule.name || `${rule.paperSize} ${rule.colorMode}`}
                       </td>
-                      <td className="py-3 px-4 text-slate-500">
+                      <td className="py-2.5 px-4 text-[var(--text-muted)]">
                         {rule.duplexMode?.includes('DUPLEX') ? 'Double-Sided' : 'Single-Sided'}
                       </td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-1.5 max-w-[120px]">
-                          <span className="text-slate-400">₹</span>
+                      <td className="py-2.5 px-4 text-right">
+                        <div className="inline-flex items-center gap-1.5 max-w-[120px]">
+                          <span className="text-[var(--text-muted)]">₹</span>
                           <input
                             type="number"
                             step="0.5"
                             min="0"
                             value={rule.pricePerPage}
                             onChange={(e) => handlePriceChange(idx, e.target.value)}
-                            className="input py-1 px-2 text-xs font-semibold"
+                            className="input py-1 px-2 text-xs font-semibold tabular-nums text-right h-8"
                           />
                         </div>
                       </td>
@@ -180,31 +175,32 @@ export default function ShopPricingPage() {
           <Card>
             <CardHeader>
               <div className="flex items-center gap-2">
-                <Layers size={16} className="text-primary-600" />
-                <h3 className="font-semibold text-slate-800 text-sm">Finishing Services</h3>
+                <Layers size={15} strokeWidth={1.75} className="text-[#0E7490]" />
+                <h3 className="font-semibold text-[var(--text)] text-sm">Finishing Services</h3>
               </div>
             </CardHeader>
             <CardBody className="space-y-4">
               {/* Existing Services List */}
               <div className="space-y-2">
                 {services.length === 0 ? (
-                  <p className="text-xs text-slate-400 py-2">No additional services added yet.</p>
+                  <p className="text-xs text-[var(--text-muted)] py-2 text-center">No additional services added yet.</p>
                 ) : (
                   services.map((svc) => (
                     <div
                       key={svc.id}
-                      className="flex items-center justify-between p-2.5 rounded-xl bg-surface-50 border border-surface-200 text-xs"
+                      className="flex items-center justify-between p-2.5 rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] text-xs"
                     >
                       <div>
-                        <span className="font-semibold text-slate-800 block">{svc.name}</span>
-                        <span className="text-slate-500 font-mono">₹ {Number(svc.price || 0).toFixed(2)}</span>
+                        <span className="font-semibold text-[var(--text)] block">{svc.name}</span>
+                        <span className="text-[var(--text-muted)] font-mono tabular-nums">₹ {Number(svc.price || 0).toFixed(2)}</span>
                       </div>
                       <button
                         type="button"
                         onClick={() => handleDeleteService(svc.id)}
-                        className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg"
+                        className="p-1 text-[var(--text-muted)] hover:text-red-600 rounded-md transition-colors duration-150"
+                        title="Remove service"
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={13} strokeWidth={1.75} />
                       </button>
                     </div>
                   ))
@@ -212,8 +208,8 @@ export default function ShopPricingPage() {
               </div>
 
               {/* Add New Service Form */}
-              <form onSubmit={handleAddService} className="pt-3 border-t border-surface-100 space-y-3">
-                <h4 className="text-xs font-semibold text-slate-700">Add Service (e.g. Spiral Binding)</h4>
+              <form onSubmit={handleAddService} className="pt-3 border-t border-[var(--border)] space-y-3">
+                <h4 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider">Add Service (e.g. Spiral Binding)</h4>
                 <div className="space-y-2">
                   <input
                     type="text"
@@ -230,10 +226,10 @@ export default function ShopPricingPage() {
                       placeholder="Price (₹)"
                       value={newServicePrice}
                       onChange={(e) => setNewServicePrice(e.target.value)}
-                      className="input text-xs"
+                      className="input text-xs tabular-nums"
                     />
                     <Button variant="secondary" size="sm" type="submit" className="shrink-0">
-                      <Plus size={14} /> Add
+                      <Plus size={13} strokeWidth={1.75} /> Add
                     </Button>
                   </div>
                 </div>
@@ -241,6 +237,16 @@ export default function ShopPricingPage() {
             </CardBody>
           </Card>
         </div>
+      </div>
+
+      {/* Sticky Save Bar */}
+      <div className="sticky bottom-0 z-20 -mx-4 -mb-6 sm:-mx-6 lg:-mx-8 px-6 py-3.5 bg-[var(--surface)]/95 backdrop-blur-xs border-t border-[var(--border)] flex items-center justify-between shadow-card">
+        <span className="text-xs text-[var(--text-muted)]">
+          Ensure you click save to apply page rates to live customer calculations.
+        </span>
+        <Button variant="primary" loading={saving} onClick={handleSaveRules}>
+          <Save size={15} strokeWidth={1.75} /> Save Pricing Rules
+        </Button>
       </div>
     </div>
   )

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Store, Plus, Printer, ShoppingBag, Settings, ChevronRight, AlertCircle, QrCode, DollarSign } from 'lucide-react'
+import { Store, Plus, Printer, ShoppingBag, Settings, AlertCircle, QrCode, DollarSign } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { PageHeader, Card, CardBody, EmptyState, Badge, Button, Spinner, Alert } from '../../components/ui'
 import api from '../../lib/api'
@@ -28,12 +28,12 @@ export default function DashboardPage() {
   return (
     <div>
       <PageHeader
-        title={`${greeting()}, ${user?.name?.split(' ')[0]} 👋`}
+        title={`${greeting()}, ${user?.name?.split(' ')[0]}`}
         description="Here's an overview of your SmartPrint workspace."
         action={
           <Link to="/shops/new">
             <Button variant="primary">
-              <Plus size={16} /> New Shop
+              <Plus size={15} strokeWidth={1.75} /> New Shop
             </Button>
           </Link>
         }
@@ -47,7 +47,7 @@ export default function DashboardPage() {
         <Card>
           <CardBody>
             <div className="flex items-center gap-3 text-red-600 py-4">
-              <AlertCircle size={20} className="shrink-0" />
+              <AlertCircle size={18} strokeWidth={1.75} className="shrink-0" />
               <p className="text-sm">{error}</p>
             </div>
           </CardBody>
@@ -62,7 +62,7 @@ export default function DashboardPage() {
               action={
                 <Link to="/shops/new">
                   <Button variant="primary">
-                    <Plus size={16} /> Create your first shop
+                    <Plus size={15} strokeWidth={1.75} /> Create your first shop
                   </Button>
                 </Link>
               }
@@ -73,13 +73,13 @@ export default function DashboardPage() {
         <>
           {/* Stats row */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-            <StatCard icon={Store}       label="Total Shops"   value={shops.length} color="blue" />
-            <StatCard icon={ShoppingBag} label="Total Orders"  value={shops.reduce((a, s) => a + (s._count?.orders || 0), 0)} color="green" />
-            <StatCard icon={Printer}     label="Total Printers" value={shops.reduce((a, s) => a + (s._count?.printers || 0), 0)} color="purple" />
+            <StatCard icon={Store}       label="Total Shops"    value={shops.length} />
+            <StatCard icon={ShoppingBag} label="Total Orders"   value={shops.reduce((a, s) => a + (s._count?.orders || 0), 0)} />
+            <StatCard icon={Printer}     label="Total Printers" value={shops.reduce((a, s) => a + (s._count?.printers || 0), 0)} />
           </div>
 
           {/* Shop cards */}
-          <h2 className="text-base font-semibold text-slate-700 mb-3">Your Shops</h2>
+          <h2 className="text-sm font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-3">Your Shops</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {shops.map((shop) => <ShopCard key={shop.id} shop={shop} />)}
           </div>
@@ -89,21 +89,16 @@ export default function DashboardPage() {
   )
 }
 
-function StatCard({ icon: Icon, label, value, color }) {
-  const colors = {
-    blue:   'bg-blue-50 text-blue-600',
-    green:  'bg-green-50 text-green-600',
-    purple: 'bg-purple-50 text-purple-600',
-  }
+function StatCard({ icon: Icon, label, value }) {
   return (
     <Card>
       <CardBody className="flex items-center gap-4">
-        <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${colors[color]}`}>
-          <Icon size={22} />
+        <div className="w-10 h-10 rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] flex items-center justify-center shrink-0">
+          <Icon size={18} strokeWidth={1.75} className="text-[var(--text-muted)]" />
         </div>
         <div>
-          <p className="text-2xl font-bold text-slate-900">{value}</p>
-          <p className="text-sm text-slate-500">{label}</p>
+          <p className="text-2xl font-bold text-[var(--text)] tabular-nums leading-tight">{value}</p>
+          <p className="text-xs text-[var(--text-muted)] mt-0.5">{label}</p>
         </div>
       </CardBody>
     </Card>
@@ -113,46 +108,46 @@ function StatCard({ icon: Icon, label, value, color }) {
 function ShopCard({ shop }) {
   const statusVariant = shop.status === 'ACTIVE' ? 'green' : 'gray'
   return (
-    <Card className="hover:shadow-card-hover transition-shadow">
+    <Card className="hover:shadow-card-hover transition-shadow duration-150">
       <CardBody>
         <div className="flex items-start justify-between mb-3">
-          <div className="w-11 h-11 rounded-xl bg-primary-100 flex items-center justify-center text-primary-700 font-bold text-lg shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-[var(--accent-tint)] border border-[var(--border)] flex items-center justify-center text-[#0E7490] font-bold text-base shrink-0">
             {shop.name[0].toUpperCase()}
           </div>
-          <Badge variant={statusVariant}>{shop.status}</Badge>
+          <Badge variant={statusVariant} dot>{shop.status}</Badge>
         </div>
 
-        <h3 className="font-semibold text-slate-900 truncate">{shop.name}</h3>
-        <p className="text-xs text-slate-400 mt-0.5 font-mono">{shop.shopCode}</p>
+        <h3 className="text-sm font-semibold text-[var(--text)] truncate">{shop.name}</h3>
+        <p className="text-[11px] text-[var(--text-muted)] mt-0.5 font-mono">{shop.shopCode}</p>
         {shop.address && (
-          <p className="text-xs text-slate-500 mt-2 line-clamp-2">{shop.address}</p>
+          <p className="text-xs text-[var(--text-muted)] mt-2 line-clamp-2">{shop.address}</p>
         )}
 
-        <div className="flex items-center gap-4 mt-4 text-xs text-slate-500">
-          <span>{shop._count?.orders || 0} orders</span>
-          <span>{shop._count?.printers || 0} printers</span>
+        <div className="flex items-center gap-4 mt-4 text-xs text-[var(--text-muted)]">
+          <span className="tabular-nums">{shop._count?.orders || 0} orders</span>
+          <span className="tabular-nums">{shop._count?.printers || 0} printers</span>
           <Badge variant="blue" className="ml-auto">{shop.myRole}</Badge>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-surface-100">
+        <div className="grid grid-cols-2 gap-2 mt-4 pt-4 border-t border-[var(--border)]">
           <Link to={`/shops/${shop.id}/qr`} className="flex-1">
             <Button variant="primary" size="sm" className="w-full">
-              <QrCode size={13} /> QR Portal
+              <QrCode size={13} strokeWidth={1.75} /> QR Portal
             </Button>
           </Link>
           <Link to={`/shops/${shop.id}/orders`} className="flex-1">
             <Button variant="secondary" size="sm" className="w-full">
-              <ShoppingBag size={13} /> Orders
+              <ShoppingBag size={13} strokeWidth={1.75} /> Orders
             </Button>
           </Link>
           <Link to={`/shops/${shop.id}/pricing`} className="flex-1">
-            <Button variant="ghost" size="sm" className="w-full text-slate-600">
-              <DollarSign size={13} /> Pricing
+            <Button variant="ghost" size="sm" className="w-full text-[var(--text-muted)]">
+              <DollarSign size={13} strokeWidth={1.75} /> Pricing
             </Button>
           </Link>
           <Link to={`/shops/${shop.id}/settings`} className="flex-1">
-            <Button variant="ghost" size="sm" className="w-full text-slate-600">
-              <Settings size={13} /> Settings
+            <Button variant="ghost" size="sm" className="w-full text-[var(--text-muted)]">
+              <Settings size={13} strokeWidth={1.75} /> Settings
             </Button>
           </Link>
         </div>

@@ -55,7 +55,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-2xl space-y-6">
       <PageHeader
         title="My Profile"
         description="Manage your account details and security settings."
@@ -66,23 +66,23 @@ export default function ProfilePage() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <User size={16} className="text-slate-500" />
-              <h2 className="font-semibold text-slate-800">Account Information</h2>
+              <User size={15} strokeWidth={1.75} className="text-[#0E7490]" />
+              <h2 className="text-sm font-semibold text-[var(--text)]">Account Information</h2>
             </div>
           </CardHeader>
-          <CardBody>
+          <CardBody className="p-5">
             <div className="flex items-center gap-4 mb-5">
-              <div className="w-14 h-14 rounded-full bg-primary-100 flex items-center justify-center">
-                <span className="text-xl font-bold text-primary-700">
+              <div className="w-12 h-12 rounded-full bg-[var(--accent-tint)] border border-[var(--border)] flex items-center justify-center shrink-0">
+                <span className="text-lg font-bold text-[#0E7490]">
                   {user?.name?.[0]?.toUpperCase()}
                 </span>
               </div>
               <div>
-                <p className="font-semibold text-slate-900">{user?.name}</p>
-                <p className="text-sm text-slate-500">{user?.email}</p>
+                <p className="font-semibold text-sm text-[var(--text)]">{user?.name}</p>
+                <p className="text-xs text-[var(--text-muted)]">{user?.email}</p>
                 <div className="flex gap-2 mt-1.5">
-                  <Badge variant="blue">{user?.role}</Badge>
-                  <Badge variant={user?.status === 'ACTIVE' ? 'green' : 'gray'}>{user?.status}</Badge>
+                  <Badge variant="blue" size="sm">{user?.role}</Badge>
+                  <Badge variant={user?.status === 'ACTIVE' ? 'green' : 'gray'} size="sm" dot>{user?.status}</Badge>
                 </div>
               </div>
             </div>
@@ -115,11 +115,11 @@ export default function ProfilePage() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Lock size={16} className="text-slate-500" />
-              <h2 className="font-semibold text-slate-800">Change Password</h2>
+              <Lock size={15} strokeWidth={1.75} className="text-[#0E7490]" />
+              <h2 className="text-sm font-semibold text-[var(--text)]">Change Password</h2>
             </div>
           </CardHeader>
-          <CardBody>
+          <CardBody className="p-5">
             <form onSubmit={handlePasswordChange} className="space-y-4">
               {passError && <Alert type="error">{passError}</Alert>}
               <Input
@@ -160,19 +160,19 @@ export default function ProfilePage() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Shield size={16} className="text-slate-500" />
-              <h2 className="font-semibold text-slate-800">Security</h2>
+              <Shield size={15} strokeWidth={1.75} className="text-[#0E7490]" />
+              <h2 className="text-sm font-semibold text-[var(--text)]">Security</h2>
             </div>
           </CardHeader>
-          <CardBody>
-            <div className="text-sm text-slate-600 space-y-2">
-              <div className="flex justify-between">
-                <span className="text-slate-500">Password hashing</span>
-                <span className="font-medium text-green-700">Argon2id ✓</span>
+          <CardBody className="p-5">
+            <div className="text-xs text-[var(--text-muted)] space-y-2.5">
+              <div className="flex justify-between items-center">
+                <span>Password hashing</span>
+                <span className="font-medium text-green-700 dark:text-green-400">Argon2id</span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-500">Last login</span>
-                <span>{user?.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString() : 'Unknown'}</span>
+              <div className="flex justify-between items-center">
+                <span>Last login</span>
+                <span className="text-[var(--text)]">{user?.lastLoginAt ? new Date(user.lastLoginAt).toLocaleString() : 'Unknown'}</span>
               </div>
             </div>
           </CardBody>

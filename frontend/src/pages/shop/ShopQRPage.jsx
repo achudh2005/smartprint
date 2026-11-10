@@ -113,11 +113,11 @@ export default function ShopQRPage() {
           <div className="flex items-center gap-2">
             <Link to={`/s/${shop?.shopCode}`} target="_blank">
               <Button variant="secondary" size="sm">
-                <ExternalLink size={15} /> Open Portal
+                <ExternalLink size={14} strokeWidth={1.75} /> Open Portal
               </Button>
             </Link>
             <Button variant="primary" size="sm" onClick={() => window.print()}>
-              <Printer size={15} /> Print Flyer
+              <Printer size={14} strokeWidth={1.75} /> Print Flyer
             </Button>
           </div>
         }
@@ -128,33 +128,33 @@ export default function ShopQRPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* ── Main QR Card ── */}
         <Card className="lg:col-span-2">
-          <CardBody className="p-8 flex flex-col sm:flex-row items-center gap-8">
+          <CardBody className="p-6 sm:p-8 flex flex-col sm:flex-row items-center gap-8">
             {/* The QR Code Image */}
-            <div className="bg-white p-4 rounded-3xl border-2 border-surface-200 shadow-md flex items-center justify-center shrink-0">
+            <div className="bg-white p-4 rounded-xl border border-[var(--border)] shadow-xs flex items-center justify-center shrink-0">
               <img
                 src={qrData?.pngDataUrl}
                 alt="Shop QR Code"
-                className="w-56 h-56 sm:w-64 sm:h-64 object-contain"
+                className="w-56 h-56 sm:w-60 sm:h-60 object-contain"
               />
             </div>
 
             {/* Details & Actions */}
-            <div className="space-y-5 flex-1 min-w-0">
+            <div className="space-y-4 flex-1 min-w-0">
               <div>
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">
+                <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider block mb-1">
                   Unique Shop Code
                 </span>
-                <span className="text-3xl font-mono font-black text-slate-900 tracking-wider">
+                <span className="text-3xl font-mono font-bold text-[var(--text)] tracking-wider">
                   {shop?.shopCode}
                 </span>
-                <p className="text-xs text-slate-500 mt-1">
+                <p className="text-xs text-[var(--text-muted)] mt-1">
                   Active and ready for customer scanning.
                 </p>
               </div>
 
               {/* Direct Link Box */}
               <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-1.5">
+                <label className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider block mb-1.5">
                   Direct Customer URL
                 </label>
                 <div className="flex items-center gap-2">
@@ -162,22 +162,22 @@ export default function ShopQRPage() {
                     type="text"
                     readOnly
                     value={effectiveUrl}
-                    className="input text-xs font-mono bg-surface-50 text-slate-700 select-all"
+                    className="input text-xs font-mono select-all bg-[var(--surface-hover)]"
                   />
                   <Button variant="secondary" size="sm" onClick={copyLink} className="shrink-0">
-                    {copied ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
+                    {copied ? <Check size={13} strokeWidth={2} className="text-green-600" /> : <Copy size={13} strokeWidth={1.75} />}
                     {copied ? 'Copied' : 'Copy'}
                   </Button>
                 </div>
               </div>
 
               {/* Download Buttons */}
-              <div className="flex flex-wrap gap-2.5 pt-2 border-t border-surface-100">
+              <div className="flex flex-wrap gap-2 pt-2 border-t border-[var(--border)]">
                 <Button variant="secondary" size="sm" onClick={downloadPNG}>
-                  <Download size={14} /> Download PNG (High Res)
+                  <Download size={13} strokeWidth={1.75} /> Download PNG
                 </Button>
                 <Button variant="secondary" size="sm" onClick={downloadSVG}>
-                  <Download size={14} /> Download SVG (Vector)
+                  <Download size={13} strokeWidth={1.75} /> Download SVG
                 </Button>
               </div>
             </div>
@@ -185,27 +185,27 @@ export default function ShopQRPage() {
         </Card>
 
         {/* ── Flyer / Table Tent Preview Card ── */}
-        <Card className="bg-primary-50/40 border-primary-100">
+        <Card className="bg-[var(--surface)] border border-[var(--border)]">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Sparkles size={16} className="text-primary-600" />
-              <h3 className="font-semibold text-slate-900 text-sm">Storefront Display Flyer</h3>
+              <Sparkles size={15} strokeWidth={1.75} className="text-[#0E7490]" />
+              <h3 className="font-semibold text-[var(--text)] text-sm">Storefront Display Flyer</h3>
             </div>
           </CardHeader>
-          <CardBody className="space-y-4 text-xs text-slate-600">
+          <CardBody className="space-y-4 text-xs text-[var(--text-muted)]">
             <p>
               Click <strong>"Print Flyer"</strong> above to print a counter display sign for your shop counter or front window.
             </p>
-            <div className="bg-white p-4 rounded-xl border border-primary-200/60 shadow-xs space-y-2">
-              <div className="font-bold text-slate-900 text-center text-sm">{shop?.name}</div>
-              <div className="text-center text-primary-600 font-semibold">Self-Service Cloud Printing</div>
-              <ul className="list-disc pl-4 space-y-1 text-slate-500">
+            <div className="bg-[var(--surface-hover)] p-4 rounded-lg border border-[var(--border)] space-y-2">
+              <div className="font-semibold text-[var(--text)] text-center text-sm">{shop?.name}</div>
+              <div className="text-center text-[#0E7490] font-medium text-xs">Self-Service Cloud Printing</div>
+              <ul className="list-disc pl-4 space-y-1 text-[var(--text-muted)] text-[11px]">
                 <li>1. Scan QR with your phone</li>
                 <li>2. Upload your PDF or images</li>
                 <li>3. Pick up at our counter</li>
               </ul>
             </div>
-            <p className="text-slate-400">
+            <p className="text-[11px] text-[var(--text-muted)]">
               No app download or customer sign-up needed. Fast, private and contactless.
             </p>
           </CardBody>
@@ -213,11 +213,11 @@ export default function ShopQRPage() {
       </div>
 
       {/* ── Danger Zone: Regenerate Code ── */}
-      <Card className="border-red-100">
-        <CardBody className="p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <Card className="border-red-200 dark:border-red-900/40 bg-red-50/20 dark:bg-red-950/10">
+        <CardBody className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div>
-            <h4 className="font-bold text-red-900 text-sm">Regenerate Shop QR Code</h4>
-            <p className="text-xs text-slate-500 mt-1 max-w-xl">
+            <h4 className="font-semibold text-red-700 dark:text-red-400 text-sm">Regenerate Shop QR Code</h4>
+            <p className="text-xs text-[var(--text-muted)] mt-1 max-w-xl">
               Generating a new code will immediately invalidate previously printed flyers and old customer links. Use this only if your QR code was compromised.
             </p>
           </div>
@@ -238,7 +238,7 @@ export default function ShopQRPage() {
             </div>
           ) : (
             <Button variant="danger" size="sm" onClick={() => setShowConfirm(true)}>
-              <RefreshCw size={14} /> Regenerate QR Code
+              <RefreshCw size={13} strokeWidth={1.75} /> Regenerate QR Code
             </Button>
           )}
         </CardBody>

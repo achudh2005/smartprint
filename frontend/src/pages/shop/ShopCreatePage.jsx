@@ -36,24 +36,24 @@ export default function ShopCreatePage() {
   }
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-2xl space-y-6">
       <PageHeader
         title="Create a New Shop"
         description="Set up your print shop in seconds. You can update details anytime."
       />
 
       <Card>
-        <div className="card-header flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-primary-100 flex items-center justify-center">
-            <Store size={18} className="text-primary-600" />
+        <div className="px-5 py-4 border-b border-[var(--border)] flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-[var(--accent-tint)] border border-[var(--border)] flex items-center justify-center shrink-0">
+            <Store size={15} strokeWidth={1.75} className="text-[#0E7490]" />
           </div>
           <div>
-            <h2 className="font-semibold text-slate-900">Shop Details</h2>
-            <p className="text-xs text-slate-500">These will be visible to customers</p>
+            <h2 className="text-sm font-semibold text-[var(--text)]">Shop Details</h2>
+            <p className="text-xs text-[var(--text-muted)]">These will be visible to customers</p>
           </div>
         </div>
-        <CardBody>
-          <form onSubmit={handleSubmit} noValidate className="space-y-5">
+        <CardBody className="p-5">
+          <form onSubmit={handleSubmit} noValidate className="space-y-4">
             {apiError && <Alert type="error">{apiError}</Alert>}
 
             <Input
@@ -99,7 +99,7 @@ export default function ShopCreatePage() {
               />
             </div>
 
-            <div className="flex gap-3 pt-2">
+            <div className="flex gap-2 pt-2">
               <Button type="button" variant="secondary" onClick={() => navigate('/dashboard')}>
                 Cancel
               </Button>

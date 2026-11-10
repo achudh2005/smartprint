@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Settings, Store, Upload, Clock, Image, Save, ArrowLeft, CreditCard, ShieldAlert } from 'lucide-react'
-import { PageHeader, Card, CardHeader, CardBody, Button, Toggle, Alert, Spinner, Badge } from '../../components/ui'
+import { Settings, Store, Upload, Clock, Image, Save, ArrowLeft, CreditCard } from 'lucide-react'
+import { PageHeader, Card, CardHeader, CardBody, Button, Toggle, Alert, Spinner } from '../../components/ui'
 import ShopNavTabs from '../../components/shop/ShopNavTabs'
 import { useAuth } from '../../hooks/useAuth'
 import api from '../../lib/api'
@@ -135,7 +135,7 @@ export default function ShopSettingsPage() {
     .map((o) => o.trim())
 
   return (
-    <div className="max-w-3xl space-y-6">
+    <div className="max-w-4xl space-y-6">
       <PageHeader
         title="Shop Settings"
         description={`Manage identity, branding, printing options, privacy expiry, and payments for ${shop.name}`}
@@ -143,27 +143,27 @@ export default function ShopSettingsPage() {
 
       <ShopNavTabs shopId={shopId} />
 
-      <div className="space-y-6">
+      <div className="space-y-6 pb-20">
         {/* Branding & Logo */}
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Image size={18} className="text-slate-500" />
-              <h2 className="font-semibold text-slate-800">Shop Branding & Logo</h2>
+              <Image size={16} strokeWidth={1.75} className="text-[#0E7490]" />
+              <h2 className="text-sm font-semibold text-[var(--text)]">Shop Branding & Logo</h2>
             </div>
           </CardHeader>
           <CardBody>
             <div className="flex flex-col sm:flex-row items-center gap-6">
-              <div className="w-24 h-24 rounded-2xl border-2 border-dashed border-slate-300 flex items-center justify-center overflow-hidden bg-slate-50 shrink-0 shadow-inner">
+              <div className="w-20 h-20 rounded-xl border-2 border-dashed border-[var(--border)] flex items-center justify-center overflow-hidden bg-[var(--surface-hover)] shrink-0">
                 {logoPreview ? (
                   <img src={logoPreview} alt="Shop Logo" className="w-full h-full object-cover" />
                 ) : (
-                  <Store className="w-8 h-8 text-slate-400" />
+                  <Store className="w-8 h-8 text-[var(--text-muted)]" />
                 )}
               </div>
               <div className="flex-1 space-y-2 text-center sm:text-left">
-                <p className="text-sm font-medium text-slate-700">Store Logo</p>
-                <p className="text-xs text-slate-500">
+                <p className="text-sm font-semibold text-[var(--text)]">Store Logo</p>
+                <p className="text-xs text-[var(--text-muted)]">
                   Visible on your customer storefront page and print receipts. Max 2MB (PNG, JPG, SVG).
                 </p>
                 <div className="flex flex-wrap items-center gap-3 pt-1">
@@ -203,44 +203,44 @@ export default function ShopSettingsPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Store size={18} className="text-slate-500" />
-              <h2 className="font-semibold text-slate-800">Storefront Profile</h2>
+              <Store size={16} strokeWidth={1.75} className="text-[#0E7490]" />
+              <h2 className="text-sm font-semibold text-[var(--text)]">Storefront Profile</h2>
             </div>
           </CardHeader>
           <CardBody className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1">
                   Shop Name
                 </label>
                 <input
                   type="text"
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500"
+                  className="input"
                   value={shopDetails.name}
                   onChange={(e) => setShopDetails((p) => ({ ...p, name: e.target.value }))}
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1">
                   Shop Code
                 </label>
                 <input
                   type="text"
                   readOnly
                   disabled
-                  className="w-full px-3 py-2 text-sm border border-slate-200 bg-slate-100 text-slate-500 rounded-lg font-mono cursor-not-allowed"
+                  className="input bg-[var(--surface-hover)] text-[var(--text-muted)] font-mono cursor-not-allowed opacity-80"
                   value={shop.shopCode}
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1">
                 Description / Tagline
               </label>
               <input
                 type="text"
-                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500"
+                className="input"
                 placeholder="High quality color & xerox printing"
                 value={shopDetails.description}
                 onChange={(e) => setShopDetails((p) => ({ ...p, description: e.target.value }))}
@@ -249,24 +249,24 @@ export default function ShopSettingsPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1">
                   Contact Phone
                 </label>
                 <input
                   type="text"
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500"
+                  className="input"
                   placeholder="+1 234 567 890"
                   value={shopDetails.phone}
                   onChange={(e) => setShopDetails((p) => ({ ...p, phone: e.target.value }))}
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1">
                   Contact Email
                 </label>
                 <input
                   type="email"
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500"
+                  className="input"
                   placeholder="contact@smartprint.com"
                   value={shopDetails.email}
                   onChange={(e) => setShopDetails((p) => ({ ...p, email: e.target.value }))}
@@ -275,12 +275,12 @@ export default function ShopSettingsPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1">
                 Physical Address
               </label>
               <textarea
                 rows={2}
-                className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500"
+                className="input py-2 h-auto"
                 placeholder="Building, street, city..."
                 value={shopDetails.address}
                 onChange={(e) => setShopDetails((p) => ({ ...p, address: e.target.value }))}
@@ -293,25 +293,25 @@ export default function ShopSettingsPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Settings size={18} className="text-slate-500" />
-              <h2 className="font-semibold text-slate-800">Operational Features</h2>
+              <Settings size={16} strokeWidth={1.75} className="text-[#0E7490]" />
+              <h2 className="text-sm font-semibold text-[var(--text)]">Operational Features</h2>
             </div>
           </CardHeader>
-          <CardBody className="space-y-5">
+          <CardBody className="space-y-4">
             <Toggle
               checked={settings?.manualPrintEnabled ?? true}
               onChange={handleToggle('manualPrintEnabled')}
               label="Manual Printing Workflow"
               description="Staff inspects, previews, downloads, and prints jobs using store equipment."
             />
-            <div className="border-t border-slate-100" />
+            <div className="border-t border-[var(--border)]" />
             <Toggle
               checked={settings?.paymentEnabled || false}
               onChange={handleToggle('paymentEnabled')}
               label="Customer Online Payments"
               description="Require or accept online payment via Razorpay before jobs enter print queue."
             />
-            <div className="border-t border-slate-100" />
+            <div className="border-t border-[var(--border)]" />
             <Toggle
               checked={settings?.directPrintEnabled || false}
               onChange={handleToggle('directPrintEnabled')}
@@ -323,37 +323,37 @@ export default function ShopSettingsPage() {
 
         {/* Razorpay Online Payment Gateway Configuration */}
         {settings?.paymentEnabled && (
-          <Card className="border-indigo-200 bg-indigo-50/20">
+          <Card className="border-[var(--border)] bg-[var(--accent-tint)]/20">
             <CardHeader>
               <div className="flex items-center gap-2">
-                <CreditCard size={18} className="text-indigo-600" />
-                <h2 className="font-semibold text-slate-800">Razorpay Gateway Credentials</h2>
+                <CreditCard size={16} strokeWidth={1.75} className="text-[#0E7490]" />
+                <h2 className="text-sm font-semibold text-[var(--text)]">Razorpay Gateway Credentials</h2>
               </div>
             </CardHeader>
             <CardBody className="space-y-4">
-              <p className="text-xs text-slate-500">
+              <p className="text-xs text-[var(--text-muted)]">
                 Configure your shop's merchant API keys. If left empty, system defaults or test mock mode will be used.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  <label className="block text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1">
                     Razorpay Key ID
                   </label>
                   <input
                     type="text"
-                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg font-mono text-xs"
+                    className="input font-mono text-xs"
                     placeholder="rzp_live_..."
                     value={settings?.razorpayKeyId || ''}
                     onChange={(e) => setSettings((p) => ({ ...p, razorpayKeyId: e.target.value }))}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  <label className="block text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1">
                     Razorpay Key Secret
                   </label>
                   <input
                     type="password"
-                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg font-mono text-xs"
+                    className="input font-mono text-xs"
                     placeholder="••••••••••••"
                     value={settings?.razorpayKeySecret || ''}
                     onChange={(e) => setSettings((p) => ({ ...p, razorpayKeySecret: e.target.value }))}
@@ -361,12 +361,12 @@ export default function ShopSettingsPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1">
                   Razorpay Webhook Secret
                 </label>
                 <input
                   type="password"
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg font-mono text-xs"
+                  className="input font-mono text-xs"
                   placeholder="Webhook secret for signature validation"
                   value={settings?.razorpayWebhookSecret || ''}
                   onChange={(e) => setSettings((p) => ({ ...p, razorpayWebhookSecret: e.target.value }))}
@@ -376,17 +376,17 @@ export default function ShopSettingsPage() {
           </Card>
         )}
 
-        {/* Automatic Expiry Options & Privacy Policies (Phase 4) */}
+        {/* Automatic Expiry Options & Privacy Policies */}
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Clock size={18} className="text-slate-500" />
-              <h2 className="font-semibold text-slate-800">Document Lifetime & Privacy Expiry</h2>
+              <Clock size={16} strokeWidth={1.75} className="text-[#0E7490]" />
+              <h2 className="text-sm font-semibold text-[var(--text)]">Document Lifetime & Privacy Expiry</h2>
             </div>
           </CardHeader>
           <CardBody className="space-y-5">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">
+              <label className="block text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">
                 Enabled Expiry Options for Customers
               </label>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -400,38 +400,38 @@ export default function ShopSettingsPage() {
                   return (
                     <label
                       key={id}
-                      className={`p-3 rounded-xl border cursor-pointer transition-all flex flex-col justify-between ${
+                      className={`p-3 rounded-lg border cursor-pointer transition-colors duration-150 flex flex-col justify-between ${
                         isChecked
-                          ? 'border-brand-500 bg-brand-50/40 text-brand-900 ring-1 ring-brand-500'
-                          : 'border-slate-200 bg-white text-slate-500 hover:bg-slate-50'
+                          ? 'border-[#0E7490] bg-[var(--accent-tint)] text-[var(--text)] ring-1 ring-[#0E7490]'
+                          : 'border-[var(--border)] bg-[var(--surface)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)]'
                       }`}
                     >
                       <div className="flex items-center justify-between mb-1">
-                        <span className="font-bold text-xs">{label}</span>
+                        <span className="font-semibold text-xs text-[var(--text)]">{label}</span>
                         <input
                           type="checkbox"
                           checked={isChecked}
                           onChange={() => handleExpiryOptionToggle(id)}
-                          className="rounded text-brand-600 focus:ring-brand-500"
+                          className="rounded text-[#0E7490] focus:ring-[#22D3EE]"
                         />
                       </div>
-                      <span className="text-[10px] text-slate-400">{desc}</span>
+                      <span className="text-[10px] text-[var(--text-muted)]">{desc}</span>
                     </label>
                   )
                 })}
               </div>
-              <p className="text-xs text-slate-400 mt-2">
+              <p className="text-xs text-[var(--text-muted)] mt-2">
                 Customers choose from these enabled options during upload. Documents are automatically purged when expired.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-[var(--border)]">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1">
                   Default Expiry Option
                 </label>
                 <select
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 bg-white"
+                  className="input"
                   value={settings?.defaultExpiryOption || '1h'}
                   onChange={(e) => setSettings((p) => ({ ...p, defaultExpiryOption: e.target.value }))}
                 >
@@ -444,12 +444,12 @@ export default function ShopSettingsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1">
                   Max Allowed Expiry Limit (Hours)
                 </label>
                 <input
                   type="number"
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500"
+                  className="input"
                   value={settings?.maxExpiryHours || 8}
                   min={1}
                   max={24}
@@ -464,19 +464,19 @@ export default function ShopSettingsPage() {
         <Card>
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Upload size={18} className="text-slate-500" />
-              <h2 className="font-semibold text-slate-800">File Upload Limits & Formats</h2>
+              <Upload size={16} strokeWidth={1.75} className="text-[#0E7490]" />
+              <h2 className="text-sm font-semibold text-[var(--text)]">File Upload Limits & Formats</h2>
             </div>
           </CardHeader>
           <CardBody className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1">
                   Max Upload Size (MB)
                 </label>
                 <input
                   type="number"
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500"
+                  className="input"
                   value={settings?.maxUploadSizeMb || 50}
                   min={1}
                   max={500}
@@ -485,12 +485,12 @@ export default function ShopSettingsPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                <label className="block text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-1">
                   Accepted File Formats
                 </label>
                 <input
                   type="text"
-                  className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 font-mono text-xs"
+                  className="input font-mono text-xs"
                   value={settings?.acceptedFormats || 'pdf,doc,docx,jpg,jpeg,png,ppt,pptx,txt'}
                   onChange={(e) => setSettings((p) => ({ ...p, acceptedFormats: e.target.value }))}
                 />
@@ -498,30 +498,30 @@ export default function ShopSettingsPage() {
             </div>
           </CardBody>
         </Card>
+      </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center justify-between pt-2">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={() => navigate(`/shops/${shopId}/dashboard`)}
-            className="flex items-center gap-2"
-          >
-            <ArrowLeft size={16} />
-            Back to Dashboard
-          </Button>
+      {/* Sticky Save Bar */}
+      <div className="sticky bottom-0 z-20 -mx-4 -mb-6 sm:-mx-6 lg:-mx-8 px-6 py-3.5 bg-[var(--surface)]/95 backdrop-blur-xs border-t border-[var(--border)] flex items-center justify-between shadow-card">
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => navigate(`/shops/${shopId}/dashboard`)}
+          className="flex items-center gap-2"
+        >
+          <ArrowLeft size={15} strokeWidth={1.75} />
+          Back to Dashboard
+        </Button>
 
-          <Button
-            type="button"
-            variant="primary"
-            loading={saving}
-            onClick={handleSave}
-            className="flex items-center gap-2"
-          >
-            <Save size={16} />
-            Save All Changes
-          </Button>
-        </div>
+        <Button
+          type="button"
+          variant="primary"
+          loading={saving}
+          onClick={handleSave}
+          className="flex items-center gap-2"
+        >
+          <Save size={15} strokeWidth={1.75} />
+          Save All Changes
+        </Button>
       </div>
     </div>
   )

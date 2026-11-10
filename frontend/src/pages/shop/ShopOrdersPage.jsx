@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { User, ArrowUpDown, ArrowDown, ArrowUp, Clock, Filter, Sparkles, RefreshCw } from 'lucide-react';
+import { User, ArrowUpDown, ArrowDown, ArrowUp, Clock, Filter, Sparkles, RefreshCw, ShoppingBag } from 'lucide-react';
 import api from '../../lib/api';
 import ShopNavTabs from '../../components/shop/ShopNavTabs';
 import { subscribeToShopEvents } from '../../lib/socket';
@@ -148,68 +148,66 @@ export default function ShopOrdersPage() {
   const getStatusBadge = (status) => {
     switch (status) {
       case 'PENDING':
-        return 'bg-amber-100 text-amber-800 border-amber-300 animate-pulse';
+        return { cls: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800', dot: 'bg-amber-500' };
       case 'CONFIRMED':
-        return 'bg-blue-100 text-blue-800 border-blue-300';
+        return { cls: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800', dot: 'bg-blue-500' };
       case 'ACCEPTED':
-        return 'bg-indigo-100 text-indigo-800 border-indigo-300';
+        return { cls: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800', dot: 'bg-blue-500' };
       case 'PRINTING':
-        return 'bg-purple-100 text-purple-800 border-purple-300';
+      case 'PROCESSING':
+        return { cls: 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-900/20 dark:text-purple-400 dark:border-purple-800', dot: 'bg-purple-500' };
       case 'PRINTED':
-        return 'bg-teal-100 text-teal-800 border-teal-300';
       case 'READY':
-        return 'bg-cyan-100 text-cyan-800 border-cyan-300';
+        return { cls: 'bg-cyan-50 text-cyan-700 border-cyan-200 dark:bg-cyan-900/20 dark:text-cyan-400 dark:border-cyan-800', dot: 'bg-cyan-500' };
       case 'COLLECTED':
       case 'COMPLETED':
-        return 'bg-emerald-100 text-emerald-800 border-emerald-300';
+        return { cls: 'bg-green-50 text-[#15803D] border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800', dot: 'bg-green-500' };
       case 'PAYMENT_PENDING':
-        return 'bg-orange-100 text-orange-800 border-orange-300';
+        return { cls: 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800', dot: 'bg-orange-500' };
       case 'REJECTED':
       case 'CANCELLED':
-        return 'bg-rose-100 text-rose-800 border-rose-300';
+        return { cls: 'bg-red-50 text-[#B91C1C] border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800', dot: 'bg-red-500' };
       case 'EXPIRED':
-        return 'bg-slate-100 text-slate-700 border-slate-300';
+        return { cls: 'bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700', dot: 'bg-zinc-400' };
       default:
-        return 'bg-slate-100 text-slate-800 border-slate-200';
+        return { cls: 'bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700', dot: 'bg-zinc-400' };
     }
   };
 
   const getPaymentBadge = (status, method) => {
     if (status === 'SUCCESS' || status === 'COMPLETED') {
-      return 'bg-emerald-50 text-emerald-700 border-emerald-300';
+      return 'bg-green-50 text-[#15803D] border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800';
     }
     if (status === 'COUNTER_PAYMENT_COLLECTED') {
-      return 'bg-emerald-50 text-emerald-700 border-emerald-300';
+      return 'bg-green-50 text-[#15803D] border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800';
     }
     if (status === 'COUNTER_PAYMENT_DUE' || method === 'COUNTER') {
-      return 'bg-amber-50 text-amber-800 border-amber-300';
+      return 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800';
     }
     if (status === 'PAYMENT_PENDING' || status === 'PENDING') {
-      return 'bg-blue-50 text-blue-700 border-blue-200';
+      return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800';
     }
     if (status === 'FAILED') {
-      return 'bg-rose-50 text-rose-700 border-rose-200';
+      return 'bg-red-50 text-[#B91C1C] border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800';
     }
-    return 'bg-slate-50 text-slate-600 border-slate-200';
+    return 'bg-zinc-100 text-zinc-600 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700';
   };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Order Management</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className="text-xl font-semibold text-[var(--text)] tracking-tight">Order Management</h1>
+          <p className="text-sm text-[var(--text-muted)] mt-1">
             Real-time feed of print orders, live status updates, and production tracking.
           </p>
         </div>
         <div className="flex items-center gap-3">
           <button
             onClick={() => fetchOrders()}
-            className="inline-flex items-center gap-2 px-3.5 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 shadow-sm transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-[var(--text-muted)] bg-[var(--surface)] border border-[var(--border)] rounded-lg hover:bg-[var(--surface-hover)] transition-colors duration-150"
           >
-            <svg className="w-4 h-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
+            <RefreshCw size={14} />
             Refresh
           </button>
         </div>
@@ -218,8 +216,8 @@ export default function ShopOrdersPage() {
       <ShopNavTabs shopId={shopId} />
 
       {/* Filter Tabs */}
-      <div className="border-b border-slate-200 overflow-x-auto scrollbar-thin">
-        <nav className="flex space-x-1 py-1" aria-label="Order Status Tabs">
+      <div className="border-b border-[var(--border)] overflow-x-auto">
+        <nav className="flex" aria-label="Order Status Tabs">
           {ALL_STATUSES.map((status) => (
             <button
               key={status}
@@ -227,10 +225,10 @@ export default function ShopOrdersPage() {
                 setActiveTab(status);
                 setPage(1);
               }}
-              className={`px-3 py-1.5 text-xs font-medium rounded-md whitespace-nowrap transition-colors ${
+              className={`px-3 py-2 text-xs font-medium whitespace-nowrap transition-colors duration-150 ${
                 activeTab === status
-                  ? 'bg-brand-600 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                  ? 'text-[#0E7490] border-b-2 border-[#0E7490]'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text)]'
               }`}
             >
               {status.replace('_', ' ')}
@@ -240,10 +238,10 @@ export default function ShopOrdersPage() {
       </div>
 
       {/* Search, Sort & Date Filter Bar */}
-      <div className="bg-white p-4 rounded-xl border border-slate-200/80 shadow-sm">
+      <div className="bg-[var(--surface)] p-4 rounded-xl border border-[var(--border)]">
         <form onSubmit={handleSearchSubmit} className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
           <div className="md:col-span-4">
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-1">
               Search Order / Customer
             </label>
             <div className="relative">
@@ -252,19 +250,19 @@ export default function ShopOrdersPage() {
                 placeholder="e.g. ORD-... or customer name"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                className="w-full pl-9 pr-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:ring-2 focus:ring-[#22D3EE]/30 focus:border-[#0E7490]"
               />
-              <svg className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
           </div>
 
           <div className="md:col-span-3">
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1 flex items-center justify-between">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-1 flex items-center justify-between">
               <span>Sort Orders</span>
               {sortBy === 'createdAt' && sortOrder === 'desc' && (
-                <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-1 rounded">Latest Wise Active</span>
+                <span className="text-[10px] text-[#0E7490] font-semibold bg-[var(--accent-tint)] px-1.5 py-0.5 rounded">Latest Wise Active</span>
               )}
             </label>
             <select
@@ -275,45 +273,45 @@ export default function ShopOrdersPage() {
                 setSortOrder(dir);
                 setPage(1);
               }}
-              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-slate-700 bg-white font-medium"
+              className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:ring-2 focus:ring-[#22D3EE]/30 focus:border-[#0E7490] text-[var(--text)] bg-[var(--surface)] font-medium"
             >
-              <option value="createdAt-desc">🕒 Latest First (Newest)</option>
-              <option value="createdAt-asc">⏳ Oldest First</option>
-              <option value="totalAmount-desc">💰 Total Amount (Highest)</option>
-              <option value="totalAmount-asc">📉 Total Amount (Lowest)</option>
-              <option value="status-asc">🏷️ Status (A-Z)</option>
-              <option value="orderNumber-desc">🔢 Order Number (Z-A)</option>
+              <option value="createdAt-desc">Latest First (Newest)</option>
+              <option value="createdAt-asc">Oldest First</option>
+              <option value="totalAmount-desc">Total Amount (Highest)</option>
+              <option value="totalAmount-asc">Total Amount (Lowest)</option>
+              <option value="status-asc">Status (A-Z)</option>
+              <option value="orderNumber-desc">Order Number (Z-A)</option>
             </select>
           </div>
 
           <div className="md:col-span-2">
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-1">
               From Date
             </label>
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-slate-700"
+              className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:ring-2 focus:ring-[#22D3EE]/30 focus:border-[#0E7490] text-[var(--text)]"
             />
           </div>
 
           <div className="md:col-span-2">
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-1">
               To Date
             </label>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-lg focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-slate-700"
+              className="w-full px-3 py-2 text-sm border border-[var(--border)] rounded-lg focus:ring-2 focus:ring-[#22D3EE]/30 focus:border-[#0E7490] text-[var(--text)]"
             />
           </div>
 
           <div className="md:col-span-1 flex gap-2">
             <button
               type="submit"
-              className="w-full px-3 py-2 text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-800 transition-colors shadow-sm"
+              className="w-full px-3 py-2 text-sm font-medium text-white bg-[#0E7490] rounded-lg hover:bg-[#155E75] transition-colors duration-150"
               title="Apply Filters"
             >
               Filter
@@ -322,7 +320,7 @@ export default function ShopOrdersPage() {
               <button
                 type="button"
                 onClick={handleResetFilters}
-                className="px-2.5 py-2 text-sm text-slate-600 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
+                className="px-2.5 py-2 text-sm text-[var(--text-muted)] bg-[var(--surface-hover)] rounded-lg hover:bg-[var(--border)] transition-colors duration-150"
                 title="Reset Filters & Sorting to Latest First"
               >
                 ✕
@@ -333,211 +331,206 @@ export default function ShopOrdersPage() {
       </div>
 
       {error && (
-        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-700 text-sm rounded-lg flex items-center justify-between">
+        <div className="p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm rounded-lg flex items-center justify-between">
           <span>{error}</span>
-          <button onClick={() => setError('')} className="text-rose-500 hover:text-rose-700">✕</button>
+          <button onClick={() => setError('')} className="text-red-500 hover:text-red-700">✕</button>
         </div>
       )}
 
       {/* Orders Table */}
-      <div className="bg-white border border-slate-200/80 rounded-xl shadow-sm overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl overflow-hidden">
+        <div className="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between bg-[var(--surface)]">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-slate-800">
-              Orders List <span className="text-slate-400 font-normal">({totalCount} found)</span>
+            <h2 className="text-sm font-semibold text-[var(--text)]">
+              Orders List <span className="text-[var(--text-muted)] font-normal">({totalCount} found)</span>
             </h2>
             {sortBy === 'createdAt' && sortOrder === 'desc' && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <span className="inline-flex items-center gap-0.5 text-[#0E7490] font-semibold normal-case text-[11px] bg-[var(--accent-tint)] px-1.5 py-0.5 rounded">
                 <Sparkles size={11} /> Sorted: Latest First
               </span>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
-            <span className="text-xs text-slate-500 font-medium">Socket.IO Live</span>
+          <div className="flex items-center gap-1.5">
+            <span className="flex h-1.5 w-1.5 rounded-full bg-green-500" />
+            <span className="text-[11px] text-[var(--text-muted)] font-medium">Live</span>
           </div>
         </div>
 
         {loading ? (
-          <div className="py-20 flex flex-col items-center justify-center text-slate-400">
-            <svg className="w-8 h-8 animate-spin mb-3 text-brand-600" viewBox="0 0 24 24" fill="none">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-            </svg>
+          <div className="py-20 flex flex-col items-center gap-3 text-[var(--text-muted)]">
+            <div className="w-6 h-6 border-2 border-[var(--border)] border-t-[#0E7490] rounded-full animate-spin" />
             <p className="text-sm">Fetching orders...</p>
           </div>
         ) : orders.length === 0 ? (
           <div className="py-20 text-center">
-            <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </div>
-            <p className="text-base font-semibold text-slate-700">No orders found</p>
-            <p className="text-sm text-slate-400 mt-1 max-w-sm mx-auto">
+            <ShoppingBag size={32} strokeWidth={1.5} className="text-[var(--border)] mx-auto mb-3" />
+            <p className="text-base font-semibold text-[var(--text)]">No orders found</p>
+            <p className="text-sm text-[var(--text-muted)] mt-1 max-w-sm mx-auto">
               There are no orders matching your current filter criteria or status tab.
             </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-600">
-              <thead className="bg-slate-50 text-xs font-semibold uppercase tracking-wider text-slate-500 border-b border-slate-200 select-none">
+            <table className="w-full text-left text-sm text-[var(--text)]">
+              <thead className="bg-[var(--surface-hover)] text-[var(--text-muted)] text-[11px] font-semibold uppercase tracking-wider border-b border-[var(--border)] select-none sticky top-0 z-10">
                 <tr>
                   <th
                     onClick={() => handleSortColumn('orderNumber')}
-                    className="px-6 py-3.5 cursor-pointer hover:bg-slate-100/70 transition-colors"
+                    className="px-4 py-3 cursor-pointer hover:bg-[var(--border)]/30 transition-colors duration-150"
                     title="Click to sort by Order Number"
                   >
                     <div className="flex items-center gap-1.5">
                       <span>Order</span>
                       {sortBy === 'orderNumber' ? (
-                        sortOrder === 'asc' ? <ArrowUp size={13} className="text-primary-600" /> : <ArrowDown size={13} className="text-primary-600" />
+                        sortOrder === 'asc' ? <ArrowUp size={13} className="text-[#0E7490]" /> : <ArrowDown size={13} className="text-[#0E7490]" />
                       ) : (
-                        <ArrowUpDown size={12} className="text-slate-300 hover:text-slate-500" />
+                        <ArrowUpDown size={12} className="text-[var(--border)] hover:text-[var(--text-muted)]" />
                       )}
                     </div>
                   </th>
                   <th
                     onClick={() => handleSortColumn('createdAt')}
-                    className="px-6 py-3.5 cursor-pointer hover:bg-slate-100/70 transition-colors"
+                    className="px-4 py-3 cursor-pointer hover:bg-[var(--border)]/30 transition-colors duration-150"
                     title="Click to sort by Time (Latest/Oldest)"
                   >
                     <div className="flex items-center gap-1.5">
                       <span>Time</span>
                       {sortBy === 'createdAt' ? (
                         sortOrder === 'desc' ? (
-                          <span className="inline-flex items-center gap-0.5 text-primary-600 font-bold normal-case text-[11px] bg-primary-50 px-1.5 py-0.5 rounded">
+                          <span className="inline-flex items-center gap-0.5 text-[#0E7490] font-semibold normal-case text-[11px] bg-[var(--accent-tint)] px-1.5 py-0.5 rounded">
                             <ArrowDown size={12} /> Latest First
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-0.5 text-primary-600 font-bold normal-case text-[11px] bg-primary-50 px-1.5 py-0.5 rounded">
+                          <span className="inline-flex items-center gap-0.5 text-[#0E7490] font-semibold normal-case text-[11px] bg-[var(--accent-tint)] px-1.5 py-0.5 rounded">
                             <ArrowUp size={12} /> Oldest First
                           </span>
                         )
                       ) : (
-                        <ArrowUpDown size={12} className="text-slate-300 hover:text-slate-500" />
+                        <ArrowUpDown size={12} className="text-[var(--border)] hover:text-[var(--text-muted)]" />
                       )}
                     </div>
                   </th>
-                  <th className="px-6 py-3.5">Files & Pages</th>
+                  <th className="px-4 py-3">Files &amp; Pages</th>
                   <th
                     onClick={() => handleSortColumn('totalAmount')}
-                    className="px-6 py-3.5 cursor-pointer hover:bg-slate-100/70 transition-colors"
+                    className="px-4 py-3 cursor-pointer hover:bg-[var(--border)]/30 transition-colors duration-150"
                     title="Click to sort by Total Amount"
                   >
                     <div className="flex items-center gap-1.5">
                       <span>Total</span>
                       {sortBy === 'totalAmount' ? (
-                        sortOrder === 'desc' ? <ArrowDown size={13} className="text-primary-600" /> : <ArrowUp size={13} className="text-primary-600" />
+                        sortOrder === 'desc' ? <ArrowDown size={13} className="text-[#0E7490]" /> : <ArrowUp size={13} className="text-[#0E7490]" />
                       ) : (
-                        <ArrowUpDown size={12} className="text-slate-300 hover:text-slate-500" />
+                        <ArrowUpDown size={12} className="text-[var(--border)] hover:text-[var(--text-muted)]" />
                       )}
                     </div>
                   </th>
-                  <th className="px-6 py-3.5">Payment</th>
+                  <th className="px-4 py-3">Payment</th>
                   <th
                     onClick={() => handleSortColumn('status')}
-                    className="px-6 py-3.5 cursor-pointer hover:bg-slate-100/70 transition-colors"
+                    className="px-4 py-3 cursor-pointer hover:bg-[var(--border)]/30 transition-colors duration-150"
                     title="Click to sort by Status"
                   >
                     <div className="flex items-center gap-1.5">
                       <span>Status</span>
                       {sortBy === 'status' ? (
-                        sortOrder === 'asc' ? <ArrowUp size={13} className="text-primary-600" /> : <ArrowDown size={13} className="text-primary-600" />
+                        sortOrder === 'asc' ? <ArrowUp size={13} className="text-[#0E7490]" /> : <ArrowDown size={13} className="text-[#0E7490]" />
                       ) : (
-                        <ArrowUpDown size={12} className="text-slate-300 hover:text-slate-500" />
+                        <ArrowUpDown size={12} className="text-[var(--border)] hover:text-[var(--text-muted)]" />
                       )}
                     </div>
                   </th>
-                  <th className="px-6 py-3.5">Expiry</th>
-                  <th className="px-6 py-3.5 text-right">Action</th>
+                  <th className="px-4 py-3">Expiry</th>
+                  <th className="px-4 py-3 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[var(--border)]">
                 {orders.map((o, idx) => {
                   const isExpired = o.status === 'EXPIRED' || (o.expiresAt && new Date(o.expiresAt) < new Date() && !['COLLECTED', 'COMPLETED', 'REJECTED', 'CANCELLED'].includes(o.status));
                   const isLatestRow = idx === 0 && sortBy === 'createdAt' && sortOrder === 'desc';
+                  const badge = getStatusBadge(o.status);
                   return (
-                    <tr key={o.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="px-6 py-4">
+                    <tr key={o.id} className="hover:bg-[var(--surface-hover)] transition-colors duration-150 h-11">
+                      <td className="px-4 py-2.5">
                         <div className="flex items-center gap-1.5">
                           <Link
                             to={`/shops/${shopId}/orders/${o.id}`}
-                            className="font-mono font-bold text-brand-600 hover:text-brand-700 hover:underline block"
+                            className="font-mono font-semibold text-[#0E7490] hover:text-[#155E75] block"
                           >
                             {o.orderNumber}
                           </Link>
                           {isLatestRow && (
-                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--accent-tint)] text-[#0E7490] border border-[#0E7490]/20">
                               <Sparkles size={9} /> Latest
                             </span>
                           )}
                         </div>
-                        <div className="text-xs text-slate-700 font-medium flex items-center gap-1 mt-0.5">
-                          <User size={12} className="text-slate-400 shrink-0" />
-                          <span className="truncate max-w-[140px] font-semibold text-slate-800">
+                        <div className="text-xs text-[var(--text-muted)] font-medium flex items-center gap-1 mt-0.5">
+                          <User size={12} className="text-[var(--text-muted)] shrink-0" />
+                          <span className="truncate max-w-[140px] font-semibold text-[var(--text)]">
                             {o.session?.customerName || o.customerName || 'Anonymous'}
                           </span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-500">
-                        <div className="font-medium text-slate-700">
+                      <td className="px-4 py-2.5 whitespace-nowrap text-xs text-[var(--text-muted)]">
+                        <div className="font-medium text-[var(--text)]">
                           {new Date(o.createdAt).toLocaleDateString([], { month: 'numeric', day: 'numeric', year: 'numeric' })}
                         </div>
-                        <div className="text-slate-400 font-mono text-[11px] flex items-center gap-1 mt-0.5">
-                          <Clock size={11} className="text-slate-400 shrink-0" />
+                        <div className="text-[var(--text-muted)] font-mono text-[11px] flex items-center gap-1 mt-0.5">
+                          <Clock size={11} className="text-[var(--text-muted)] shrink-0" />
                           <span>{new Date(o.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-slate-800 font-medium">
+                      <td className="px-4 py-2.5 whitespace-nowrap">
+                        <div className="text-[var(--text)] font-medium">
                           {o.fileCount || o.files?.length || 1} file(s)
                         </div>
-                        <div className="text-xs text-slate-400">
+                        <div className="text-xs text-[var(--text-muted)]">
                           {o.totalPages || 0} page(s)
                         </div>
                       </td>
-                      <td className="px-6 py-4 font-semibold text-slate-900 whitespace-nowrap">
+                      <td className="px-4 py-2.5 font-semibold text-[var(--text)] whitespace-nowrap tabular-nums">
                         ₹ {Number(o.totalAmount || 0).toFixed(2)}
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold border ${getPaymentBadge(o.paymentStatus, o.paymentMethod)}`}>
+                      <td className="px-4 py-2.5 whitespace-nowrap">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium border ${getPaymentBadge(o.paymentStatus, o.paymentMethod)}`}>
                           {o.paymentStatus === 'SUCCESS' || o.paymentStatus === 'COMPLETED' ? (
-                            <>💳 Paid Online</>
+                            <>Paid Online</>
                           ) : o.paymentStatus === 'COUNTER_PAYMENT_COLLECTED' ? (
-                            <>✅ Counter Paid</>
+                            <>Counter Paid</>
                           ) : o.paymentStatus === 'COUNTER_PAYMENT_DUE' || o.paymentMethod === 'COUNTER' ? (
-                            <>🏪 Pay at Counter</>
+                            <>Pay at Counter</>
                           ) : o.paymentStatus === 'PAYMENT_PENDING' ? (
-                            <>⏳ Online Pending</>
+                            <>Online Pending</>
                           ) : (
                             <>{o.paymentStatus || 'Pending'}</>
                           )}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${getStatusBadge(o.status)}`}>
+                      <td className="px-4 py-2.5 whitespace-nowrap">
+                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium border ${badge.cls}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${badge.dot} shrink-0`} />
                           {o.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-xs">
+                      <td className="px-4 py-2.5 whitespace-nowrap text-xs">
                         {isExpired ? (
-                          <span className="text-rose-600 font-semibold">Expired</span>
+                          <span className="text-red-600 dark:text-red-400 font-semibold">Expired</span>
                         ) : o.expiresAt ? (
-                          <span className="text-slate-500 font-mono">
+                          <span className="text-[var(--text-muted)] font-mono">
                             {new Date(o.expiresAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         ) : (
-                          <span className="text-slate-400">—</span>
+                          <span className="text-[var(--text-muted)]">—</span>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-right whitespace-nowrap">
+                      <td className="px-4 py-2.5 text-right whitespace-nowrap">
                         <Link
                           to={`/shops/${shopId}/orders/${o.id}`}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-200 rounded-lg hover:bg-slate-50 shadow-sm transition-colors"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[var(--text-muted)] bg-[var(--surface)] border border-[var(--border)] rounded-lg hover:bg-[var(--surface-hover)] transition-colors duration-150"
                         >
                           <span>Manage</span>
-                          <svg className="w-3.5 h-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                           </svg>
                         </Link>
@@ -552,22 +545,22 @@ export default function ShopOrdersPage() {
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between text-sm">
-            <span className="text-slate-500">
-              Page <span className="font-semibold text-slate-700">{page}</span> of <span className="font-semibold text-slate-700">{totalPages}</span>
+          <div className="px-4 py-3 border-t border-[var(--border)] flex items-center justify-between text-sm bg-[var(--surface)]">
+            <span className="text-[var(--text-muted)]">
+              Page <span className="font-semibold text-[var(--text)]">{page}</span> of <span className="font-semibold text-[var(--text)]">{totalPages}</span>
             </span>
             <div className="flex gap-2">
               <button
                 disabled={page <= 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-600 font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50"
+                className="px-3 py-1.5 rounded-lg border border-[var(--border)] text-[var(--text-muted)] text-sm font-medium disabled:opacity-40 hover:bg-[var(--surface-hover)] transition-colors duration-150"
               >
                 Previous
               </button>
               <button
                 disabled={page >= totalPages}
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                className="px-3 py-1.5 rounded-lg border border-slate-300 text-slate-600 font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50"
+                className="px-3 py-1.5 rounded-lg border border-[var(--border)] text-[var(--text-muted)] text-sm font-medium disabled:opacity-40 hover:bg-[var(--surface-hover)] transition-colors duration-150"
               >
                 Next
               </button>
