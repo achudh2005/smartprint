@@ -46,116 +46,117 @@ export default function AdminOverviewPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <div className="flex items-center justify-between gap-4 mb-8">
+    <div className="max-w-6xl mx-auto space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Platform Control Center</h1>
-          <p className="text-sm text-slate-500 mt-1">
+          <h1 className="text-xl font-semibold text-[var(--text)] tracking-tight">Platform Control Center</h1>
+          <p className="text-sm text-[var(--text-muted)] mt-0.5">
             Global metrics, tenant health, storage allocation, and platform-wide activity.
           </p>
         </div>
 
         <button
           onClick={loadOverview}
-          className="flex items-center gap-1.5 px-3.5 py-2 bg-white border border-surface-200 text-slate-700 text-xs font-semibold rounded-xl hover:bg-surface-50 shadow-xs"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)] text-xs font-medium rounded-lg shadow-xs transition-colors duration-150 self-start sm:self-auto"
         >
-          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+          <RefreshCw size={13} strokeWidth={1.75} className={loading ? 'animate-spin' : ''} />
           Refresh Metrics
         </button>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-        <div className="bg-white border border-surface-200 rounded-2xl p-5 shadow-xs">
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">Total Shops</span>
-            <div className="w-8 h-8 rounded-xl bg-primary-50 text-primary-600 flex items-center justify-center">
-              <Store size={16} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Total Shops</span>
+            <div className="w-7 h-7 rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] flex items-center justify-center">
+              <Store size={14} strokeWidth={1.75} className="text-[#0E7490]" />
             </div>
           </div>
-          <div className="text-2xl font-black text-slate-900 tracking-tight">
+          <div className="text-2xl font-bold text-[var(--text)] tracking-tight tabular-nums">
             {kpis.totalShops || 0}
           </div>
-          <div className="text-xs text-slate-500 mt-2 flex items-center justify-between">
-            <span className="text-emerald-600 font-semibold">{kpis.activeShops || 0} Active</span>
-            <span className="text-rose-600 font-semibold">{kpis.suspendedShops || 0} Suspended</span>
+          <div className="text-xs text-[var(--text-muted)] mt-2 flex items-center justify-between">
+            <span className="text-green-600 dark:text-green-400 font-medium">{kpis.activeShops || 0} Active</span>
+            <span className="text-red-600 dark:text-red-400 font-medium">{kpis.suspendedShops || 0} Suspended</span>
           </div>
         </div>
 
-        <div className="bg-white border border-surface-200 rounded-2xl p-5 shadow-xs">
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">Registered Users</span>
-            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center">
-              <Users size={16} />
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Registered Users</span>
+            <div className="w-7 h-7 rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] flex items-center justify-center">
+              <Users size={14} strokeWidth={1.75} className="text-[#0E7490]" />
             </div>
           </div>
-          <div className="text-2xl font-black text-slate-900 tracking-tight">
+          <div className="text-2xl font-bold text-[var(--text)] tracking-tight tabular-nums">
             {kpis.totalUsers || 0}
           </div>
-          <p className="text-xs text-slate-400 mt-2">Platform owners & staff accounts</p>
+          <p className="text-xs text-[var(--text-muted)] mt-2">Platform owners & staff accounts</p>
         </div>
 
-        <div className="bg-white border border-surface-200 rounded-2xl p-5 shadow-xs">
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">Platform Revenue</span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <TrendingUp size={16} />
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Platform Revenue</span>
+            <div className="w-7 h-7 rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] flex items-center justify-center">
+              <TrendingUp size={14} strokeWidth={1.75} className="text-[#0E7490]" />
             </div>
           </div>
-          <div className="text-2xl font-black text-slate-900 tracking-tight">
+          <div className="text-2xl font-bold text-[var(--text)] tracking-tight tabular-nums">
             ₹{kpis.totalPlatformRevenue || 0}
           </div>
-          <p className="text-xs text-slate-400 mt-2">Gross verified customer payments</p>
+          <p className="text-xs text-[var(--text-muted)] mt-2">Gross verified customer payments</p>
         </div>
 
-        <div className="bg-white border border-surface-200 rounded-2xl p-5 shadow-xs">
-          <div className="flex items-center justify-between text-slate-500 mb-2">
-            <span className="text-xs font-semibold uppercase tracking-wider">Storage Usage</span>
-            <div className="w-8 h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center">
-              <HardDrive size={16} />
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Storage Usage</span>
+            <div className="w-7 h-7 rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] flex items-center justify-center">
+              <HardDrive size={14} strokeWidth={1.75} className="text-[#0E7490]" />
             </div>
           </div>
-          <div className="text-2xl font-black text-slate-900 tracking-tight">
+          <div className="text-2xl font-bold text-[var(--text)] tracking-tight">
             {formatBytes(kpis.storage?.activeBytes)}
           </div>
-          <div className="text-xs text-slate-500 mt-2 flex items-center justify-between">
+          <div className="text-xs text-[var(--text-muted)] mt-2 flex items-center justify-between">
             <span>Active: {formatBytes(kpis.storage?.activeBytes)}</span>
-            <span className="text-emerald-600">Purged: {formatBytes(kpis.storage?.purgedBytes)}</span>
+            <span className="text-green-600 dark:text-green-400">Purged: {formatBytes(kpis.storage?.purgedBytes)}</span>
           </div>
         </div>
       </div>
 
       {/* Recent Shops & Audit Logs */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Registered Shops */}
-        <div className="bg-white border border-surface-200 rounded-2xl p-6 shadow-xs">
-          <h2 className="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
-            <Store size={18} className="text-primary-600" />
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
+          <h2 className="text-sm font-semibold text-[var(--text)] mb-3 flex items-center gap-2">
+            <Store size={15} strokeWidth={1.75} className="text-[#0E7490]" />
             Recently Registered Print Shops
           </h2>
 
-          <div className="divide-y divide-surface-100">
+          <div className="divide-y divide-[var(--border)]">
             {recentShops.length === 0 ? (
-              <p className="text-xs text-slate-400 py-6 text-center">No registered shops found.</p>
+              <p className="text-xs text-[var(--text-muted)] py-6 text-center">No registered shops found.</p>
             ) : (
               recentShops.map((shop) => (
-                <div key={shop.id} className="py-3.5 flex items-center justify-between gap-4">
+                <div key={shop.id} className="py-3 flex items-center justify-between gap-4">
                   <div>
-                    <h3 className="text-sm font-bold text-slate-900">{shop.name}</h3>
-                    <p className="text-xs text-slate-500 font-mono mt-0.5">{shop.shopCode}</p>
+                    <h3 className="text-xs font-semibold text-[var(--text)]">{shop.name}</h3>
+                    <p className="text-[11px] text-[var(--text-muted)] font-mono mt-0.5">{shop.shopCode}</p>
                   </div>
 
                   <div className="text-right">
                     <span
-                      className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium border ${
                         shop.status === 'ACTIVE'
-                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                          : 'bg-rose-50 text-rose-700 border border-rose-200'
+                          ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800'
+                          : 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800'
                       }`}
                     >
+                      <span className={`w-1 h-1 rounded-full ${shop.status === 'ACTIVE' ? 'bg-green-500' : 'bg-red-500'}`} />
                       {shop.status}
                     </span>
-                    <p className="text-[11px] text-slate-400 mt-1">{shop._count?.orders || 0} orders</p>
+                    <p className="text-[11px] text-[var(--text-muted)] tabular-nums mt-1">{shop._count?.orders || 0} orders</p>
                   </div>
                 </div>
               ))
@@ -164,29 +165,29 @@ export default function AdminOverviewPage() {
         </div>
 
         {/* Security Audit Activity */}
-        <div className="bg-white border border-surface-200 rounded-2xl p-6 shadow-xs">
-          <h2 className="text-base font-bold text-slate-900 mb-4 flex items-center gap-2">
-            <ShieldCheck size={18} className="text-emerald-600" />
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
+          <h2 className="text-sm font-semibold text-[var(--text)] mb-3 flex items-center gap-2">
+            <ShieldCheck size={15} strokeWidth={1.75} className="text-[#0E7490]" />
             Recent Security & Administrative Actions
           </h2>
 
-          <div className="divide-y divide-surface-100">
+          <div className="divide-y divide-[var(--border)]">
             {recentAudits.length === 0 ? (
-              <p className="text-xs text-slate-400 py-6 text-center">No audit logs recorded yet.</p>
+              <p className="text-xs text-[var(--text-muted)] py-6 text-center">No audit logs recorded yet.</p>
             ) : (
               recentAudits.map((log) => (
                 <div key={log.id} className="py-3 flex items-start justify-between gap-3 text-xs">
                   <div>
-                    <span className="font-bold text-slate-800 uppercase tracking-wider text-[11px]">
+                    <span className="font-semibold text-[var(--text)] uppercase tracking-wider text-[11px]">
                       {log.action}
                     </span>
-                    <p className="text-slate-500 mt-0.5">
+                    <p className="text-[var(--text-muted)] text-[11px] mt-0.5">
                       By: {log.user?.name || log.user?.email || 'System'} {log.shop ? `at ${log.shop.name}` : ''}
                     </p>
                   </div>
 
-                  <span className="text-[11px] text-slate-400 shrink-0 flex items-center gap-1">
-                    <Clock size={12} />
+                  <span className="text-[11px] text-[var(--text-muted)] shrink-0 flex items-center gap-1 font-mono">
+                    <Clock size={11} strokeWidth={1.75} />
                     {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
