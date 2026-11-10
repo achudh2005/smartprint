@@ -1,48 +1,32 @@
 import { useTheme } from '../../hooks/useTheme'
+import { Sun, Moon } from 'lucide-react'
 import clsx from 'clsx'
 
 export default function ThemeToggle({ className }) {
-  const { theme, toggleTheme, isDark } = useTheme()
+  const { toggleTheme, isDark } = useTheme()
 
   return (
     <button
       type="button"
       onClick={toggleTheme}
       className={clsx(
-        'relative inline-flex items-center p-1 rounded-full cursor-pointer select-none transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-xs border',
-        isDark
-          ? 'bg-slate-900 border-slate-700 text-slate-300'
-          : 'bg-slate-100 border-slate-300 text-slate-600',
+        'inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-[#E4E4E7] dark:border-[#27272A] bg-white dark:bg-[#18181B] text-[#71717A] dark:text-[#A1A1AA] hover:text-[#18181B] dark:hover:text-[#FAFAFA] hover:bg-[#F4F4F5] dark:hover:bg-[#27272A] text-xs font-medium transition-colors duration-150 shadow-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-[#22D3EE]/40',
         className
       )}
-      title={isDark ? 'Switch to Light Mode ☀️' : 'Switch to Dark Mode 🌙'}
+      title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
       aria-label="Toggle theme"
     >
-      {/* Light Option with Sun Emoji */}
-      <span
-        className={clsx(
-          'flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all duration-200',
-          !isDark
-            ? 'bg-white text-amber-600 shadow-sm'
-            : 'text-slate-400 hover:text-slate-200'
-        )}
-      >
-        <span className="text-sm leading-none">☀️</span>
-        <span className="hidden sm:inline">Light</span>
-      </span>
-
-      {/* Dark Option with Moon Emoji */}
-      <span
-        className={clsx(
-          'flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold transition-all duration-200',
-          isDark
-            ? 'bg-primary-600 text-white shadow-sm'
-            : 'text-slate-500 hover:text-slate-700'
-        )}
-      >
-        <span className="text-sm leading-none">🌙</span>
-        <span className="hidden sm:inline">Dark</span>
-      </span>
+      {isDark ? (
+        <>
+          <Sun size={14} strokeWidth={1.75} className="text-amber-500 dark:text-amber-400" />
+          <span className="hidden sm:inline">Light</span>
+        </>
+      ) : (
+        <>
+          <Moon size={14} strokeWidth={1.75} className="text-[#0E7490]" />
+          <span className="hidden sm:inline">Dark</span>
+        </>
+      )}
     </button>
   )
 }
