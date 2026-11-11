@@ -8,6 +8,7 @@ const { v4: uuidv4 } = require('uuid');
 const { prisma } = require('../database/client');
 const logger = require('../utils/logger');
 const otpService = require('./otp.service');
+const { isEmailConfigured } = require('./email.service');
 
 const ARGON2_OPTIONS = {
   type: argon2.argon2id,
@@ -111,9 +112,17 @@ async function register({ name, email, password }) {
   logger.info(`[Auth] New user registered (unverified): ${email} (ID: ${user.id})`);
 
   // Send OTP — do NOT issue tokens yet
-  await otpService.createAndSendOtp(user);
+  const { otp } = await otpService.createAndSendOtp(user);
+  const configured = isEmailConfigured();
 
-  return { requiresVerification: true, email: user.email };
+  return {
+    requiresVerification: true,
+    email: user.email,
+    devOtp: configured ? undefined : otp,
+    message: configured
+      ? 'Registration successful. A 6-digit verification code has been sent to your email.'
+      : `Registration successful. (Code: ${otp})`,
+  };
 }
 
 // ── Verify OTP → issue tokens ──────────────────────────────
@@ -193,9 +202,13 @@ async function resendOtp({ email }) {
     throw err;
   }
 
-  await otpService.createAndSendOtp(user);
+  const { otp } = await otpService.createAndSendOtp(user);
+  const configured = isEmailConfigured();
   logger.info(`[Auth] OTP resent to ${email}`);
-  return { sent: true };
+  return {
+    sent: true,
+    devOtp: configured ? undefined : otp,
+  };
 }
 
 // ── Login ─────────────────────────────────────────────────
@@ -242,10 +255,17 @@ async function login({ email, password }) {
 
   // ── Email verification gate ──────────────────────────────
   if (!user.emailVerified) {
+    let sentOtp;
+    try {
+      const res = await otpService.createAndSendOtp(user);
+      sentOtp = res.otp;
+    } catch (_) {}
+    const configured = isEmailConfigured();
     const err = new Error('Please verify your email address before logging in.');
     err.statusCode = 403;
     err.code = 'EMAIL_NOT_VERIFIED';
     err.email = email;
+    err.devOtp = configured ? undefined : sentOtp;
     throw err;
   }
   // ─────────────────────────────────────────────────────────

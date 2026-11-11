@@ -13,6 +13,7 @@ export default function LoginPage() {
   const [showPass, setShowPass] = useState(false)
   const [apiError, setApiError] = useState('')
   const [pendingVerificationEmail, setPendingVerificationEmail] = useState('')
+  const [initialOtp, setInitialOtp] = useState('')
 
   const { values, errors, loading, setLoading, handleChange, setApiErrors } = useForm({
     email: '',
@@ -31,7 +32,8 @@ export default function LoginPage() {
       if (err.response?.data?.code === 'EMAIL_NOT_VERIFIED') {
         const unverifiedEmail = err.response.data.email || values.email
         setPendingVerificationEmail(unverifiedEmail)
-        toast.error('Email not verified. We sent a code to your email.')
+        if (err.response.data.devOtp) setInitialOtp(err.response.data.devOtp)
+        toast.error('Email not verified. Verification code has been issued.')
         return
       }
       const msg = err.response?.data?.message || 'Login failed. Please try again.'
@@ -47,10 +49,14 @@ export default function LoginPage() {
     return (
       <OtpVerificationForm
         email={pendingVerificationEmail}
+        initialOtp={initialOtp}
         onSuccess={() => {
           navigate('/dashboard')
         }}
-        onBack={() => setPendingVerificationEmail('')}
+        onBack={() => {
+          setPendingVerificationEmail('')
+          setInitialOtp('')
+        }}
       />
     )
   }

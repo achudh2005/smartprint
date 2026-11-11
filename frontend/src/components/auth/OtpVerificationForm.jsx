@@ -1,16 +1,22 @@
 import { useState, useEffect } from 'react';
-import { Mail, ArrowLeft, RefreshCw, KeyRound, CheckCircle2 } from 'lucide-react';
+import { Mail, ArrowLeft, RefreshCw, KeyRound, Info } from 'lucide-react';
 import { Button, Alert } from '../ui';
 import { useAuth } from '../../hooks/useAuth';
 import toast from 'react-hot-toast';
 
-export default function OtpVerificationForm({ email, onSuccess, onBack }) {
+export default function OtpVerificationForm({ email, initialOtp = '', onSuccess, onBack }) {
   const { verifyOtp, resendOtp } = useAuth();
-  const [otp, setOtp] = useState('');
+  const [otp, setOtp] = useState(initialOtp || '');
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [error, setError] = useState('');
   const [cooldown, setCooldown] = useState(60);
+
+  useEffect(() => {
+    if (initialOtp && !otp) {
+      setOtp(initialOtp);
+    }
+  }, [initialOtp]);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -47,10 +53,15 @@ export default function OtpVerificationForm({ email, onSuccess, onBack }) {
     setError('');
     setResending(true);
     try {
-      await resendOtp(email);
-      toast.success('A new 6-digit code has been sent to your email.');
+      const res = await resendOtp(email);
+      const newDevOtp = res?.data?.devOtp;
+      if (newDevOtp) {
+        setOtp(newDevOtp);
+        toast.success(`Verification code: ${newDevOtp}`);
+      } else {
+        toast.success('A new 6-digit code has been sent to your email.');
+      }
       setCooldown(60);
-      setOtp('');
     } catch (err) {
       const msg = err.response?.data?.message || 'Failed to resend code. Please try again later.';
       setError(msg);
@@ -79,6 +90,13 @@ export default function OtpVerificationForm({ email, onSuccess, onBack }) {
         <div className="card-body">
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && <Alert type="error">{error}</Alert>}
+
+            {initialOtp && (
+              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-[var(--accent-tint)] border border-[#0E7490]/30 text-xs text-[#0E7490]">
+                <Info size={14} className="shrink-0" />
+                <span>Sandbox mode: Code <strong>{initialOtp}</strong> pre-filled for testing.</span>
+              </div>
+            )}
 
             <div>
               <label className="label">Verification Code (6 digits)</label>

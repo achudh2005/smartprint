@@ -73,7 +73,7 @@ const register = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
     const result = await authService.register({ name, email, password });
-    // Returns { requiresVerification: true, email } – no tokens yet
+    // Returns { requiresVerification: true, email, devOtp } – no tokens yet
     return sendCreated(res, result, 'Account created! Please check your email for a verification code.');
   } catch (error) {
     next(error);
@@ -97,8 +97,8 @@ const verifyOtp = async (req, res, next) => {
 const resendOtp = async (req, res, next) => {
   try {
     const { email } = req.body;
-    await authService.resendOtp({ email });
-    return sendSuccess(res, {}, 'A new verification code has been sent to your email address.');
+    const result = await authService.resendOtp({ email });
+    return sendSuccess(res, result, 'A new verification code has been generated.');
   } catch (error) {
     next(error);
   }
@@ -121,6 +121,7 @@ const login = async (req, res, next) => {
         message: error.message,
         code: 'EMAIL_NOT_VERIFIED',
         email: error.email,
+        devOtp: error.devOtp,
       });
     }
     next(error);

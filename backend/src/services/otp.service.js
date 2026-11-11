@@ -136,7 +136,9 @@ async function createAndSendOtp(user, purpose = OTP_PURPOSE) {
     },
   });
 
-  logger.info(`[OTP] Created OTP for user ${user.id} (purpose: ${purpose})`);
+  logger.info(`═══════════════════════════════════════════════════════════`);
+  logger.info(`🔑 [OTP] User: ${user.email} (ID: ${user.id}) | Code: ${otp}`);
+  logger.info(`═══════════════════════════════════════════════════════════`);
 
   const html = buildOtpEmail(user.name, otp);
   await sendMail({
@@ -146,6 +148,7 @@ async function createAndSendOtp(user, purpose = OTP_PURPOSE) {
   });
 
   logger.info(`[OTP] Verification email sent to ${user.email}`);
+  return { otp, expiresAt };
 }
 
 /**
