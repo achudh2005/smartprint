@@ -121,7 +121,6 @@ const login = async (req, res, next) => {
         message: error.message,
         code: 'EMAIL_NOT_VERIFIED',
         email: error.email,
-        devOtp: error.devOtp,
       });
     }
     next(error);

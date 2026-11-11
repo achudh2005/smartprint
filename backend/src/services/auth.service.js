@@ -111,17 +111,12 @@ async function register({ name, email, password }) {
 
   logger.info(`[Auth] New user registered (unverified): ${email} (ID: ${user.id})`);
 
-  // Send OTP — do NOT issue tokens yet
-  const { otp } = await otpService.createAndSendOtp(user);
-  const configured = isEmailConfigured();
+  // Send unique verification code to Gmail — do NOT return OTP in response or issue tokens
+  await otpService.createAndSendOtp(user);
 
   return {
     requiresVerification: true,
     email: user.email,
-    devOtp: configured ? undefined : otp,
-    message: configured
-      ? 'Registration successful. A 6-digit verification code has been sent to your email.'
-      : `Registration successful. (Code: ${otp})`,
   };
 }
 
@@ -202,13 +197,9 @@ async function resendOtp({ email }) {
     throw err;
   }
 
-  const { otp } = await otpService.createAndSendOtp(user);
-  const configured = isEmailConfigured();
+  await otpService.createAndSendOtp(user);
   logger.info(`[Auth] OTP resent to ${email}`);
-  return {
-    sent: true,
-    devOtp: configured ? undefined : otp,
-  };
+  return { sent: true };
 }
 
 // ── Login ─────────────────────────────────────────────────
@@ -255,17 +246,13 @@ async function login({ email, password }) {
 
   // ── Email verification gate ──────────────────────────────
   if (!user.emailVerified) {
-    let sentOtp;
     try {
-      const res = await otpService.createAndSendOtp(user);
-      sentOtp = res.otp;
+      await otpService.createAndSendOtp(user);
     } catch (_) {}
-    const configured = isEmailConfigured();
-    const err = new Error('Please verify your email address before logging in.');
+    const err = new Error('Please verify your email address. A verification code has been sent to your email.');
     err.statusCode = 403;
     err.code = 'EMAIL_NOT_VERIFIED';
     err.email = email;
-    err.devOtp = configured ? undefined : sentOtp;
     throw err;
   }
   // ─────────────────────────────────────────────────────────

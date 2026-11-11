@@ -1,22 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Mail, ArrowLeft, RefreshCw, KeyRound, Info } from 'lucide-react';
+import { Mail, ArrowLeft, RefreshCw, KeyRound } from 'lucide-react';
 import { Button, Alert } from '../ui';
 import { useAuth } from '../../hooks/useAuth';
 import toast from 'react-hot-toast';
 
-export default function OtpVerificationForm({ email, initialOtp = '', onSuccess, onBack }) {
+export default function OtpVerificationForm({ email, onSuccess, onBack }) {
   const { verifyOtp, resendOtp } = useAuth();
-  const [otp, setOtp] = useState(initialOtp || '');
+  const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [error, setError] = useState('');
   const [cooldown, setCooldown] = useState(60);
-
-  useEffect(() => {
-    if (initialOtp && !otp) {
-      setOtp(initialOtp);
-    }
-  }, [initialOtp]);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -30,7 +24,7 @@ export default function OtpVerificationForm({ email, initialOtp = '', onSuccess,
     e.preventDefault();
     const cleanOtp = otp.trim().replace(/\D/g, '');
     if (cleanOtp.length !== 6) {
-      setError('Please enter a 6-digit verification code.');
+      setError('Please enter the 6-digit verification code sent to your email.');
       return;
     }
 
@@ -53,15 +47,10 @@ export default function OtpVerificationForm({ email, initialOtp = '', onSuccess,
     setError('');
     setResending(true);
     try {
-      const res = await resendOtp(email);
-      const newDevOtp = res?.data?.devOtp;
-      if (newDevOtp) {
-        setOtp(newDevOtp);
-        toast.success(`Verification code: ${newDevOtp}`);
-      } else {
-        toast.success('A new 6-digit code has been sent to your email.');
-      }
+      await resendOtp(email);
+      toast.success('A new 6-digit verification code has been sent to your Gmail.');
       setCooldown(60);
+      setOtp('');
     } catch (err) {
       const msg = err.response?.data?.message || 'Failed to resend code. Please try again later.';
       setError(msg);
@@ -76,9 +65,9 @@ export default function OtpVerificationForm({ email, initialOtp = '', onSuccess,
         <div className="inline-flex items-center justify-center w-10 h-10 bg-[#0E7490] rounded-lg mb-4 text-white">
           <KeyRound size={20} strokeWidth={1.75} />
         </div>
-        <h2 className="text-xl font-semibold text-[var(--text)] tracking-tight">Check your email</h2>
+        <h2 className="text-xl font-semibold text-[var(--text)] tracking-tight">Check your Gmail</h2>
         <p className="mt-1 text-sm text-[var(--text-muted)]">
-          We sent a 6-digit confirmation code to:
+          We sent a unique 6-digit verification code to:
         </p>
         <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[var(--surface-hover)] border border-[var(--border)] text-xs font-mono text-[var(--text)]">
           <Mail size={13} className="text-[#0E7490] shrink-0" />
@@ -90,13 +79,6 @@ export default function OtpVerificationForm({ email, initialOtp = '', onSuccess,
         <div className="card-body">
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && <Alert type="error">{error}</Alert>}
-
-            {initialOtp && (
-              <div className="flex items-center gap-2 p-2.5 rounded-lg bg-[var(--accent-tint)] border border-[#0E7490]/30 text-xs text-[#0E7490]">
-                <Info size={14} className="shrink-0" />
-                <span>Sandbox mode: Code <strong>{initialOtp}</strong> pre-filled for testing.</span>
-              </div>
-            )}
 
             <div>
               <label className="label">Verification Code (6 digits)</label>
@@ -112,14 +94,15 @@ export default function OtpVerificationForm({ email, initialOtp = '', onSuccess,
                     setOtp(val);
                     if (error) setError('');
                   }}
-                  placeholder="123456"
+                  placeholder="••••••"
                   autoFocus
                   required
+                  autoComplete="one-time-code"
                   className="input font-mono text-center text-2xl tracking-[0.4em] font-semibold py-2.5"
                 />
               </div>
               <p className="text-xs text-[var(--text-muted)] mt-1.5 text-center">
-                Enter the 6-digit number from the email
+                Enter the 6-digit code received in your inbox or spam folder
               </p>
             </div>
 

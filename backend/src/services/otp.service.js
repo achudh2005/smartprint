@@ -136,18 +136,16 @@ async function createAndSendOtp(user, purpose = OTP_PURPOSE) {
     },
   });
 
-  logger.info(`═══════════════════════════════════════════════════════════`);
-  logger.info(`🔑 [OTP] User: ${user.email} (ID: ${user.id}) | Code: ${otp}`);
-  logger.info(`═══════════════════════════════════════════════════════════`);
+  logger.info(`[OTP] Generated unique verification code for user ${user.id} (${user.email})`);
 
   const html = buildOtpEmail(user.name, otp);
   await sendMail({
     to: user.email,
-    subject: `${otp} – Your SmartPrint verification code`,
+    subject: `${otp} is your SmartPrint verification code`,
     html,
   });
 
-  logger.info(`[OTP] Verification email sent to ${user.email}`);
+  logger.info(`[OTP] Verification email dispatched to ${user.email}`);
   return { otp, expiresAt };
 }
 

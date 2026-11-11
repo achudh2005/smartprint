@@ -33,8 +33,6 @@ export function AuthProvider({ children }) {
       return {
         requiresVerification: true,
         email: data.data.email,
-        devOtp: data.data.devOtp,
-        message: data.data.message,
       }
     }
     const { user, accessToken, refreshToken } = data.data

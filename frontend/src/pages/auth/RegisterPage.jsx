@@ -20,7 +20,6 @@ export default function RegisterPage() {
   const [showPass, setShowPass] = useState(false)
   const [apiError, setApiError] = useState('')
   const [pendingVerificationEmail, setPendingVerificationEmail] = useState('')
-  const [initialOtp, setInitialOtp] = useState('')
 
   const { values, errors, loading, setLoading, handleChange, setApiErrors } = useForm({
     name: '', email: '', password: '', confirmPassword: '',
@@ -34,8 +33,7 @@ export default function RegisterPage() {
       const result = await register(values.name, values.email, values.password, values.confirmPassword)
       if (result?.requiresVerification) {
         setPendingVerificationEmail(result.email || values.email)
-        if (result.devOtp) setInitialOtp(result.devOtp)
-        toast.success(result.message || 'Please check your email for the verification code.')
+        toast.success('Verification code sent to your email! Please check your Gmail inbox.')
         return
       }
       toast.success('Account created! Welcome to SmartPrint.')
@@ -54,13 +52,11 @@ export default function RegisterPage() {
     return (
       <OtpVerificationForm
         email={pendingVerificationEmail}
-        initialOtp={initialOtp}
         onSuccess={() => {
           navigate('/shops/new')
         }}
         onBack={() => {
           setPendingVerificationEmail('')
-          setInitialOtp('')
         }}
       />
     )
