@@ -29,11 +29,28 @@ export function AuthProvider({ children }) {
 
   const register = useCallback(async (name, email, password, confirmPassword) => {
     const { data } = await api.post('/auth/register', { name, email, password, confirmPassword })
+    if (data.data?.requiresVerification) {
+      return { requiresVerification: true, email: data.data.email }
+    }
     const { user, accessToken, refreshToken } = data.data
     localStorage.setItem('accessToken', accessToken)
     localStorage.setItem('refreshToken', refreshToken)
     setUser(user)
     return user
+  }, [])
+
+  const verifyOtp = useCallback(async (email, otp) => {
+    const { data } = await api.post('/auth/verify-otp', { email, otp })
+    const { user, accessToken, refreshToken } = data.data
+    localStorage.setItem('accessToken', accessToken)
+    localStorage.setItem('refreshToken', refreshToken)
+    setUser(user)
+    return user
+  }, [])
+
+  const resendOtp = useCallback(async (email) => {
+    const { data } = await api.post('/auth/resend-otp', { email })
+    return data
   }, [])
 
   const logout = useCallback(async () => {
@@ -49,7 +66,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, loading, login, register, verifyOtp, resendOtp, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   )

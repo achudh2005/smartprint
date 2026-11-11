@@ -242,4 +242,11 @@ router.get('/:shopId/analytics/export/csv',
   analyticsController.exportCsv
 );
 
+// Trigger finance report manually (Weekly / Monthly)
+router.post('/:shopId/reports/send-now',
+  requireShopMembership,
+  requireShopOwnerOrManager,
+  shopController.sendReportNow
+);
+
 module.exports = router;

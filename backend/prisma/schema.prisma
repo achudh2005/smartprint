@@ -34,8 +34,29 @@ model User {
   auditLogs       AuditLog[]
   notifications   Notification[]
   refreshTokens   RefreshToken[]
+  emailOtps       EmailOtp[]
 
   @@map("users")
+}
+
+// ============================================================
+// EMAIL OTP (Registration / Ownership Verification)
+// ============================================================
+model EmailOtp {
+  id          Int       @id @default(autoincrement())
+  userId      Int       @map("user_id")
+  otpHash     String    @map("otp_hash") @db.VarChar(512)
+  purpose     String    @default("REGISTRATION") @db.VarChar(32)
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(5) @map("max_attempts")
+  expiresAt   DateTime  @map("expires_at")
+  consumedAt  DateTime? @map("consumed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+  @@map("email_otps")
 }
 
 enum UserRole {

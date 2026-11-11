@@ -1,11 +1,13 @@
 // ============================================================
 // Auth Service – Registration, Login, Token Management
+// Now with mandatory email verification via OTP
 // ============================================================
 const argon2 = require('argon2');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 const { prisma } = require('../database/client');
 const logger = require('../utils/logger');
+const otpService = require('./otp.service');
 
 const ARGON2_OPTIONS = {
   type: argon2.argon2id,
@@ -45,21 +47,55 @@ async function saveRefreshToken(userId, token) {
   });
 }
 
+// Internal helper: issue tokens and return the standard login payload.
+async function issueTokens(user) {
+  const accessToken = generateAccessToken(user);
+  const refreshToken = generateRefreshToken();
+  await saveRefreshToken(user.id, refreshToken);
+  return { user, accessToken, refreshToken };
+}
+
 // ── Registration ──────────────────────────────────────────
 
 async function register({ name, email, password }) {
   // Check for existing email
-  const existing = await prisma.user.findUnique({ where: { email } });
+  const existing = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true, emailVerified: true, lastLoginAt: true },
+  });
+
   if (existing) {
-    const err = new Error('An account with this email address already exists.');
-    err.statusCode = 409;
-    throw err;
+    // If the existing account is VERIFIED — hard conflict
+    if (existing.emailVerified) {
+      const err = new Error('An account with this email address already exists.');
+      err.statusCode = 409;
+      throw err;
+    }
+
+    // If unverified and never logged in → delete the orphan and start fresh
+    // (prevents fake-email squatting; a real user would have verified already)
+    if (!existing.emailVerified && !existing.lastLoginAt) {
+      logger.info(`[Auth] Deleting unverified orphan account for ${email} (id: ${existing.id}) and re-registering.`);
+      await prisma.user.delete({ where: { id: existing.id } });
+    } else {
+      // Edge-case: unverified but has logged in somehow — still a conflict
+      const err = new Error('An account with this email address already exists.');
+      err.statusCode = 409;
+      throw err;
+    }
   }
 
   const passwordHash = await argon2.hash(password, ARGON2_OPTIONS);
 
   const user = await prisma.user.create({
-    data: { name, email, passwordHash, role: 'OWNER', status: 'ACTIVE' },
+    data: {
+      name,
+      email,
+      passwordHash,
+      role: 'OWNER',
+      status: 'ACTIVE',
+      emailVerified: false,
+    },
     select: {
       id: true,
       publicId: true,
@@ -67,17 +103,99 @@ async function register({ name, email, password }) {
       email: true,
       role: true,
       status: true,
+      emailVerified: true,
       createdAt: true,
     },
   });
 
-  logger.info(`New user registered: ${email} (ID: ${user.id})`);
+  logger.info(`[Auth] New user registered (unverified): ${email} (ID: ${user.id})`);
 
-  const accessToken = generateAccessToken(user);
-  const refreshToken = generateRefreshToken();
-  await saveRefreshToken(user.id, refreshToken);
+  // Send OTP — do NOT issue tokens yet
+  await otpService.createAndSendOtp(user);
 
-  return { user, accessToken, refreshToken };
+  return { requiresVerification: true, email: user.email };
+}
+
+// ── Verify OTP → issue tokens ──────────────────────────────
+
+async function verifyEmailOtp({ email, otp }) {
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: {
+      id: true,
+      publicId: true,
+      name: true,
+      email: true,
+      role: true,
+      status: true,
+      emailVerified: true,
+    },
+  });
+
+  if (!user) {
+    const err = new Error('Account not found. Please register first.');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  if (user.status === 'SUSPENDED') {
+    const err = new Error('Your account has been suspended. Please contact support.');
+    err.statusCode = 403;
+    throw err;
+  }
+
+  // Allow re-verification for already-verified accounts (idempotent — just log in)
+  if (user.emailVerified) {
+    // Already verified — just issue tokens
+    logger.info(`[Auth] Email already verified for ${email}; issuing tokens.`);
+    return issueTokens(user);
+  }
+
+  // Verify the OTP (throws on failure, tracks attempts)
+  await otpService.verifyOtp(user, otp);
+
+  // Mark email as verified
+  const updatedUser = await prisma.user.update({
+    where: { id: user.id },
+    data: { emailVerified: true, lastLoginAt: new Date() },
+    select: {
+      id: true,
+      publicId: true,
+      name: true,
+      email: true,
+      role: true,
+      status: true,
+      emailVerified: true,
+    },
+  });
+
+  logger.info(`[Auth] Email verified for ${email} (ID: ${user.id})`);
+  return issueTokens(updatedUser);
+}
+
+// ── Resend OTP ────────────────────────────────────────────
+
+async function resendOtp({ email }) {
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true, name: true, email: true, emailVerified: true },
+  });
+
+  if (!user) {
+    // Don't leak whether the email exists — return generic success
+    logger.warn(`[Auth] Resend OTP requested for non-existent email: ${email}`);
+    return { sent: true };
+  }
+
+  if (user.emailVerified) {
+    const err = new Error('This email address is already verified.');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  await otpService.createAndSendOtp(user);
+  logger.info(`[Auth] OTP resent to ${email}`);
+  return { sent: true };
 }
 
 // ── Login ─────────────────────────────────────────────────
@@ -93,6 +211,7 @@ async function login({ email, password }) {
       passwordHash: true,
       role: true,
       status: true,
+      emailVerified: true,
     },
   });
 
@@ -120,6 +239,16 @@ async function login({ email, password }) {
     err.statusCode = 401;
     throw err;
   }
+
+  // ── Email verification gate ──────────────────────────────
+  if (!user.emailVerified) {
+    const err = new Error('Please verify your email address before logging in.');
+    err.statusCode = 403;
+    err.code = 'EMAIL_NOT_VERIFIED';
+    err.email = email;
+    throw err;
+  }
+  // ─────────────────────────────────────────────────────────
 
   // Update last login
   await prisma.user.update({
@@ -185,4 +314,4 @@ async function logoutAll(userId) {
   });
 }
 
-module.exports = { register, login, refreshAccessToken, logout, logoutAll };
+module.exports = { register, login, verifyEmailOtp, resendOtp, refreshAccessToken, logout, logoutAll };

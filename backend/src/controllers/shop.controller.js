@@ -5,6 +5,7 @@ const path = require('path');
 const { body, param } = require('express-validator');
 const { prisma } = require('../database/client');
 const shopService = require('../services/shop.service');
+const reportService = require('../services/report.service');
 const { sendSuccess, sendCreated, sendError } = require('../utils/response');
 const { validate } = require('../middleware/validate');
 
@@ -487,6 +488,20 @@ const getShopPayments = async (req, res, next) => {
   }
 };
 
+const sendReportNow = async (req, res, next) => {
+  try {
+    const shopId = parseInt(req.params.shopId, 10);
+    const { period = 'weekly' } = req.body;
+    if (!['weekly', 'monthly'].includes((period || '').toLowerCase())) {
+      return sendError(res, 'period must be "weekly" or "monthly"', 400);
+    }
+    const result = await reportService.sendReportForSingleShop(shopId, period);
+    return sendSuccess(res, result, `${result.period} finance report generated and sent successfully.`);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createShopValidation,
   updateShopValidation,
@@ -519,4 +534,5 @@ module.exports = {
   getOrderExpiryLogs,
   recordCounterPayment,
   getShopPayments,
+  sendReportNow,
 };

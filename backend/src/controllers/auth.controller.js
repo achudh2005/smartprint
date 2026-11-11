@@ -1,5 +1,5 @@
 // ============================================================
-// Auth Controller
+// Auth Controller – includes OTP verify / resend handlers
 // ============================================================
 const { body } = require('express-validator');
 const authService = require('../services/auth.service');
@@ -44,17 +44,61 @@ const loginValidation = [
   validate,
 ];
 
+const verifyOtpValidation = [
+  body('email')
+    .trim()
+    .notEmpty().withMessage('Email address is required.')
+    .isEmail().withMessage('Please enter a valid email address.')
+    .normalizeEmail(),
+  body('otp')
+    .trim()
+    .notEmpty().withMessage('Verification code is required.')
+    .isLength({ min: 6, max: 6 }).withMessage('Verification code must be exactly 6 digits.')
+    .isNumeric().withMessage('Verification code must be numeric.'),
+  validate,
+];
+
+const resendOtpValidation = [
+  body('email')
+    .trim()
+    .notEmpty().withMessage('Email address is required.')
+    .isEmail().withMessage('Please enter a valid email address.')
+    .normalizeEmail(),
+  validate,
+];
+
 // ── Handlers ──────────────────────────────────────────────
 
 const register = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
     const result = await authService.register({ name, email, password });
-    return sendCreated(res, {
+    // Returns { requiresVerification: true, email } – no tokens yet
+    return sendCreated(res, result, 'Account created! Please check your email for a verification code.');
+  } catch (error) {
+    next(error);
+  }
+};
+
+const verifyOtp = async (req, res, next) => {
+  try {
+    const { email, otp } = req.body;
+    const result = await authService.verifyEmailOtp({ email, otp });
+    return sendSuccess(res, {
       user: result.user,
       accessToken: result.accessToken,
       refreshToken: result.refreshToken,
-    }, 'Account created successfully. Welcome to SmartPrint!');
+    }, 'Email verified successfully. Welcome to SmartPrint!');
+  } catch (error) {
+    next(error);
+  }
+};
+
+const resendOtp = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    await authService.resendOtp({ email });
+    return sendSuccess(res, {}, 'A new verification code has been sent to your email address.');
   } catch (error) {
     next(error);
   }
@@ -70,6 +114,15 @@ const login = async (req, res, next) => {
       refreshToken: result.refreshToken,
     }, 'Logged in successfully.');
   } catch (error) {
+    // Propagate email-not-verified signal to frontend
+    if (error.code === 'EMAIL_NOT_VERIFIED') {
+      return res.status(403).json({
+        success: false,
+        message: error.message,
+        code: 'EMAIL_NOT_VERIFIED',
+        email: error.email,
+      });
+    }
     next(error);
   }
 };
@@ -111,7 +164,11 @@ const me = async (req, res) => {
 module.exports = {
   registerValidation,
   loginValidation,
+  verifyOtpValidation,
+  resendOtpValidation,
   register,
+  verifyOtp,
+  resendOtp,
   login,
   refresh,
   logout,

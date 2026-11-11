@@ -4,6 +4,7 @@ import { Eye, EyeOff, Printer, CheckCircle2 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { useForm } from '../../hooks/useForm'
 import { Button, Input, Alert } from '../../components/ui'
+import OtpVerificationForm from '../../components/auth/OtpVerificationForm'
 import toast from 'react-hot-toast'
 
 const requirements = [
@@ -18,6 +19,7 @@ export default function RegisterPage() {
   const navigate = useNavigate()
   const [showPass, setShowPass] = useState(false)
   const [apiError, setApiError] = useState('')
+  const [pendingVerificationEmail, setPendingVerificationEmail] = useState('')
 
   const { values, errors, loading, setLoading, handleChange, setApiErrors } = useForm({
     name: '', email: '', password: '', confirmPassword: '',
@@ -28,7 +30,12 @@ export default function RegisterPage() {
     setApiError('')
     setLoading(true)
     try {
-      await register(values.name, values.email, values.password, values.confirmPassword)
+      const result = await register(values.name, values.email, values.password, values.confirmPassword)
+      if (result?.requiresVerification) {
+        setPendingVerificationEmail(result.email || values.email)
+        toast.success('Code sent! Please check your email to verify.')
+        return
+      }
       toast.success('Account created! Welcome to SmartPrint.')
       navigate('/shops/new')
     } catch (err) {
@@ -39,6 +46,18 @@ export default function RegisterPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (pendingVerificationEmail) {
+    return (
+      <OtpVerificationForm
+        email={pendingVerificationEmail}
+        onSuccess={() => {
+          navigate('/shops/new')
+        }}
+        onBack={() => setPendingVerificationEmail('')}
+      />
+    )
   }
 
   return (
