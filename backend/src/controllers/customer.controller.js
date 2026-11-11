@@ -222,6 +222,7 @@ async function previewFile(req, res, next) {
             session: true,
           },
         },
+        fileEncryption: true,
       },
     });
 
@@ -270,7 +271,7 @@ async function previewFile(req, res, next) {
     res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; sandbox");
     res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
 
-    const stream = storageService.getFileStream(file.storagePath);
+    const stream = await storageService.getFileStream(file.storagePath, file.fileEncryption);
     stream.pipe(res);
   } catch (err) {
     next(err);

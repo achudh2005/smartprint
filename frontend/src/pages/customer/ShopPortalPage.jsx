@@ -388,8 +388,8 @@ export default function ShopPortalPage() {
     const sizes = ['B', 'KB', 'MB', 'GB']
     const i = Math.floor(Math.log(n) / Math.log(k))
     if (i < 0 || i >= sizes.length) return `${n} B`
-    const val = n / Math.pow(k, i)
-    return parseFloat(val.toFixed(1)) + ' ' + sizes[i]
+    const val = Number(n / Math.pow(k, i))
+    return (isNaN(val) ? '0' : parseFloat(val.toFixed(1))) + ' ' + sizes[i]
   }
 
   // Safe price formatting

@@ -285,7 +285,7 @@ const downloadFile = async (req, res, next) => {
           { id: !isNaN(Number(filePublicId)) ? Number(filePublicId) : -1 },
         ],
       },
-      include: { order: true },
+      include: { order: true, fileEncryption: true },
     });
 
     if (!file || file.order.shopId !== shopId) {
@@ -302,7 +302,7 @@ const downloadFile = async (req, res, next) => {
     res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
 
     const storageService = require('../services/storage.service');
-    const stream = storageService.getFileStream(file.storagePath);
+    const stream = await storageService.getFileStream(file.storagePath, file.fileEncryption);
     stream.pipe(res);
   } catch (error) {
     next(error);
@@ -321,7 +321,7 @@ const previewFile = async (req, res, next) => {
           { id: !isNaN(Number(filePublicId)) ? Number(filePublicId) : -1 },
         ],
       },
-      include: { order: true },
+      include: { order: true, fileEncryption: true },
     });
 
     if (!file || file.order.shopId !== shopId) {
@@ -338,7 +338,7 @@ const previewFile = async (req, res, next) => {
     res.setHeader('Cache-Control', 'private, no-cache, no-store, must-revalidate');
 
     const storageService = require('../services/storage.service');
-    const stream = storageService.getFileStream(file.storagePath);
+    const stream = await storageService.getFileStream(file.storagePath, file.fileEncryption);
     stream.pipe(res);
   } catch (error) {
     next(error);

@@ -304,15 +304,15 @@ async function uploadFiles(sessionToken, rawFiles) {
       throw new Error(`File "${rawFile.originalname}" exceeds the shop's maximum upload limit of ${shop.shopSettings?.maxUploadSizeMb} MB.`);
     }
 
-    // 3. Save to private storage & verify signatures
+    // 3. Process document (page count & validity) on original PLAINTEXT temp file BEFORE encryption
+    const docInfo = await documentService.processDocument(rawFile.path, rawFile.mimetype, ext);
+
+    // 4. Save to private storage with streaming AES-256-GCM envelope encryption (deletes temp file)
     const stored = await storageService.saveUploadedFile({
       shopId: shop.id,
       sessionToken: session.sessionToken,
       file: rawFile,
     });
-
-    // 4. Process document (page count & validity)
-    const docInfo = await documentService.processDocument(stored.absolutePath, stored.mimeType, stored.extension);
 
     // Initial file lifetime starts immediately upon upload completion
     const { calculateExpiresAt } = require('./expiry.service');
@@ -333,6 +333,22 @@ async function uploadFiles(sessionToken, rawFiles) {
         expiresAt: initialExpiresAt,
       },
     });
+
+    // 6. Persist envelope encryption metadata linked by fileId (1-to-1)
+    if (stored.encryption) {
+      await prisma.fileEncryption.create({
+        data: {
+          fileId: orderFile.id,
+          keyVersion: stored.encryption.keyVersion || 1,
+          wrappedKey: stored.encryption.wrappedKey,
+          keyIv: stored.encryption.keyIv,
+          keyAuthTag: stored.encryption.keyAuthTag,
+          fileIv: stored.encryption.fileIv,
+          fileAuthTag: stored.encryption.fileAuthTag,
+          algorithm: stored.encryption.algorithm || 'aes-256-gcm',
+        },
+      });
+    }
 
     // 6. Create default PrintConfiguration
     const defaultUnitPrice = await pricingService.getPricePerPage(shop.id, {

@@ -268,9 +268,30 @@ model OrderFile {
   printConfiguration  PrintConfiguration?
   printJobs           PrintJob[]
   orderFileServices   OrderFileService[]
+  fileEncryption      FileEncryption?
 
   @@index([orderId])
   @@map("order_files")
+}
+
+// ============================================================
+// FILE ENCRYPTION METADATA (AES-256-GCM Envelope Encryption)
+// ============================================================
+model FileEncryption {
+  id          Int       @id @default(autoincrement())
+  fileId      Int       @unique @map("file_id")
+  keyVersion  Int       @default(1) @map("key_version")
+  wrappedKey  String    @map("wrapped_key") @db.VarChar(512)
+  keyIv       String    @map("key_iv") @db.VarChar(64)
+  keyAuthTag  String    @map("key_auth_tag") @db.VarChar(64)
+  fileIv      String    @map("file_iv") @db.VarChar(64)
+  fileAuthTag String    @map("file_auth_tag") @db.VarChar(64)
+  algorithm   String    @default("aes-256-gcm") @db.VarChar(32)
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  orderFile   OrderFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@map("file_encryptions")
 }
 
 enum OrderFileStatus {

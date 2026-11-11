@@ -145,7 +145,11 @@ const agentDownloadFile = async (req, res, next) => {
 
     const job = await prisma.printJob.findFirst({
       where: { id: jobId, file: { order: { shopId: auth.shopId } } },
-      include: { file: true },
+      include: {
+        file: {
+          include: { fileEncryption: true },
+        },
+      },
     });
 
     if (!job) {
@@ -157,7 +161,7 @@ const agentDownloadFile = async (req, res, next) => {
     res.setHeader('Content-Type', job.file.mimeType);
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(job.file.originalName)}"`);
 
-    const stream = storageService.getFileStream(job.file.storagePath);
+    const stream = await storageService.getFileStream(job.file.storagePath, job.file.fileEncryption);
     stream.pipe(res);
   } catch (err) {
     next(err);

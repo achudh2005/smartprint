@@ -7,11 +7,15 @@ const app = require('./app');
 const logger = require('./utils/logger');
 const { testConnection } = require('./database/client');
 const { initSocket } = require('./socket');
+const { validateMasterKey } = require('./services/encryption.service');
 
 const PORT = process.env.PORT || 5000;
 
 async function start() {
   try {
+    // Validate envelope encryption master key presence and 256-bit length
+    validateMasterKey();
+    logger.info('🔐 AES-256-GCM Envelope Encryption initialized');
     const server = http.createServer(app);
     initSocket(server);
     logger.info('⚡ Real-time Socket.IO engine initialized');

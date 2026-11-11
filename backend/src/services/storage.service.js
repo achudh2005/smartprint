@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const logger = require('../utils/logger');
+const { encryptFileStream, decryptFileStream } = require('./encryption.service');
 
 const STORAGE_ROOT = path.resolve(process.cwd(), process.env.STORAGE_LOCAL_PATH || './uploads');
 
@@ -22,7 +23,7 @@ const MAGIC_SIGNATURES = {
 };
 
 /**
- * Verify file signature against its extension
+ * Verify file signature against its extension on plaintext bytes
  */
 function verifyFileSignature(filePath, extension) {
   try {
@@ -76,36 +77,48 @@ function verifyFileSignature(filePath, extension) {
 }
 
 /**
- * Save an uploaded file to secure shop/session directory
+ * Save an uploaded file to secure shop/session directory with
+ * streaming AES-256-GCM envelope encryption at rest.
+ *
+ * Execution flow:
+ * 1. Verify file signature on the original plaintext temp file FIRST.
+ * 2. Pipe temp file through AES-256-GCM cipher into destination path (streaming).
+ * 3. Delete the original plaintext temporary file.
+ * 4. Return storage path and encryption metadata for FileEncryption record.
  */
 async function saveUploadedFile({ shopId, sessionToken, file }) {
   const shopDir = path.join(STORAGE_ROOT, `shop_${shopId}`, `session_${sessionToken.slice(0, 16)}`);
   await fs.promises.mkdir(shopDir, { recursive: true });
 
   const ext = path.extname(file.originalname).toLowerCase();
+
+  // 1. Verify file signature on the original plaintext temp file FIRST
+  const isValidSignature = verifyFileSignature(file.path, ext);
+  if (!isValidSignature) {
+    await fs.promises.unlink(file.path).catch(() => {});
+    const err = new Error('File validation failed: File content does not match its extension or is corrupted.');
+    err.statusCode = 400;
+    throw err;
+  }
+
   const fileUuid = crypto.randomUUID();
   const safeFilename = `${fileUuid}${ext}`;
   const targetPath = path.join(shopDir, safeFilename);
 
-  // Move temporary file to target location safely (handles cross-device/drive EXDEV)
+  // 2. Stream-encrypt temp file into target location with AES-256-GCM envelope encryption
+  let encryptionInfo;
   try {
-    await fs.promises.rename(file.path, targetPath);
-  } catch (renameErr) {
-    if (renameErr.code === 'EXDEV') {
-      await fs.promises.copyFile(file.path, targetPath);
-      await fs.promises.unlink(file.path).catch(() => {});
-    } else {
-      throw renameErr;
-    }
-  }
-
-  // Verify file signature
-  const isValidSignature = verifyFileSignature(targetPath, ext);
-  if (!isValidSignature) {
+    const readStream = fs.createReadStream(file.path);
+    const writeStream = fs.createWriteStream(targetPath);
+    encryptionInfo = await encryptFileStream(readStream, writeStream);
+  } catch (encErr) {
     await fs.promises.unlink(targetPath).catch(() => {});
-    const err = new Error('File validation failed: File content does not match its extension or is corrupted.');
-    err.statusCode = 400;
-    throw err;
+    await fs.promises.unlink(file.path).catch(() => {});
+    logger.error(`Envelope encryption failed for uploaded file: ${encErr.message}`);
+    throw encErr;
+  } finally {
+    // 3. Delete original plaintext temporary file from multer temp directory
+    await fs.promises.unlink(file.path).catch(() => {});
   }
 
   return {
@@ -116,13 +129,21 @@ async function saveUploadedFile({ shopId, sessionToken, file }) {
     sizeBytes: file.size,
     mimeType: file.mimetype,
     extension: ext,
+    encryption: encryptionInfo,
   };
 }
 
 /**
- * Read file stream or buffer safely
+ * Read file stream safely.
+ * If the file was encrypted at rest with envelope encryption, transparently
+ * decrypts the stream on the fly via AES-256-GCM decipher.
+ * If legacy unencrypted file, returns plain read stream (backward compatible).
+ *
+ * @param {string} relativePath - Relative path in STORAGE_ROOT
+ * @param {object|null} explicitEncryptionInfo - Optional preloaded FileEncryption object
+ * @returns {Promise<import('stream').Readable>}
  */
-function getFileStream(relativePath) {
+async function getFileStream(relativePath, explicitEncryptionInfo = null) {
   const absolutePath = path.resolve(process.cwd(), relativePath);
   const rel = path.relative(STORAGE_ROOT, absolutePath);
   if (rel.startsWith('..') || path.isAbsolute(rel)) {
@@ -133,11 +154,45 @@ function getFileStream(relativePath) {
     err.statusCode = 404;
     throw err;
   }
-  return fs.createReadStream(absolutePath);
+
+  // Look up encryption metadata from database if not explicitly passed
+  let encInfo = explicitEncryptionInfo;
+  if (!encInfo) {
+    try {
+      const { prisma } = require('../database/client');
+      const normalizedPath = relativePath.replace(/\\/g, '/');
+      const windowsPath = relativePath.replace(/\//g, '\\');
+      const orderFile = await prisma.orderFile.findFirst({
+        where: {
+          OR: [
+            { storagePath: relativePath },
+            { storagePath: normalizedPath },
+            { storagePath: windowsPath },
+          ],
+        },
+        include: { fileEncryption: true },
+      });
+      if (orderFile?.fileEncryption) {
+        encInfo = orderFile.fileEncryption;
+      }
+    } catch (dbErr) {
+      logger.warn(`Could not query FileEncryption for ${relativePath}: ${dbErr.message}`);
+    }
+  }
+
+  const fileReadStream = fs.createReadStream(absolutePath);
+
+  // If encrypted, decrypt on the fly via streaming decipher
+  if (encInfo) {
+    return decryptFileStream(fileReadStream, encInfo);
+  }
+
+  // Legacy plaintext fallback: returns plain stream directly
+  return fileReadStream;
 }
 
 /**
- * Delete a stored file
+ * Delete a stored file from storage disk
  */
 async function deleteStoredFile(relativePath) {
   try {

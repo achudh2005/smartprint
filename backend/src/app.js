@@ -21,7 +21,16 @@ const agentRoutes = require('./routes/agent.routes');
 const adminRoutes = require('./routes/admin.routes');
 
 const app = express();
-app.set('trust proxy', 1);
+
+// ── Transport Security & Reverse Proxy Trust ───────────────
+// In production, Nginx terminates HTTPS and forwards X-Forwarded-Proto: https.
+// 'trust proxy: 1' enables Express to honor req.secure, client IP, and secure cookies.
+// Local development runs over plain HTTP on localhost without requiring certificates.
+if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+} else {
+  app.set('trust proxy', 'loopback');
+}
 app.disable('x-powered-by');
 
 // ── Security Headers (Helmet Hardening) ───────────────────

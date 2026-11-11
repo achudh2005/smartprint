@@ -342,7 +342,7 @@ export default function ShopOrdersPage() {
         <div className="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between bg-[var(--surface)]">
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-semibold text-[var(--text)]">
-              Orders List <span className="text-[var(--text-muted)] font-normal">({totalCount} found)</span>
+              Orders List <span className="text-[var(--text-muted)] font-normal">({Math.max(totalCount, orders.length)} found)</span>
             </h2>
             {sortBy === 'createdAt' && sortOrder === 'desc' && (
               <span className="inline-flex items-center gap-0.5 text-[#0E7490] font-semibold normal-case text-[11px] bg-[var(--accent-tint)] px-1.5 py-0.5 rounded">
