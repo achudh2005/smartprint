@@ -27,7 +27,6 @@ const ARGON2_OTP_OPTIONS = {
  * Generate a cryptographically-random 6-digit OTP string.
  */
 function generateOtp() {
-  // crypto.randomInt(min, max) – max is exclusive, so 0–999999
   const n = crypto.randomInt(0, 1_000_000);
   return n.toString().padStart(6, '0');
 }
@@ -73,7 +72,7 @@ function buildOtpEmail(userName, otp) {
       <tr><td style="padding:36px 36px 28px;">
         <p style="margin:0 0 8px;font-size:22px;font-weight:600;color:#18181b;">Verify your email address</p>
         <p style="margin:0 0 24px;font-size:14px;color:#52525b;line-height:1.6;">
-          Hi ${userName},<br/>
+          Hi ${userName || 'there'},<br/>
           Use the code below to complete your SmartPrint account setup.
           This code expires in <strong>${expiryMin} minutes</strong>.
         </p>
@@ -111,7 +110,6 @@ function buildOtpEmail(userName, otp) {
  */
 async function createAndSendOtp(user, purpose = OTP_PURPOSE) {
   // Mark all prior unconsumed OTPs as consumed (via setting attempts = maxAttempts)
-  // so they can no longer be used. We don't delete them so audit trail is preserved.
   await prisma.emailOtp.updateMany({
     where: {
       userId: user.id,
@@ -119,7 +117,7 @@ async function createAndSendOtp(user, purpose = OTP_PURPOSE) {
       consumedAt: null,
       expiresAt: { gt: new Date() },
     },
-    data: { attempts: OTP_MAX_ATTEMPTS }, // locks them out without deletion
+    data: { attempts: OTP_MAX_ATTEMPTS },
   });
 
   const otp = generateOtp();
@@ -137,6 +135,11 @@ async function createAndSendOtp(user, purpose = OTP_PURPOSE) {
   });
 
   logger.info(`[OTP] Generated unique verification code for user ${user.id} (${user.email})`);
+
+  // Console output for easy monitoring
+  console.log('\n=============================================================');
+  console.log(`[SmartPrint] Verification code for ${user.email}: ${otp}`);
+  console.log('=============================================================\n');
 
   const html = buildOtpEmail(user.name, otp);
   await sendMail({
@@ -180,7 +183,7 @@ async function verifyOtp(user, submittedCode, purpose = OTP_PURPOSE) {
   }
 
   if (record.attempts >= record.maxAttempts) {
-    const err = new Error('Too many incorrect attempts. Please request a new verification code.');
+    const err = new Error('Too many failed attempts. This code has been locked. Please request a new one.');
     err.statusCode = 429;
     throw err;
   }
@@ -188,29 +191,41 @@ async function verifyOtp(user, submittedCode, purpose = OTP_PURPOSE) {
   const isValid = await verifyOtpHash(submittedCode, record.otpHash);
 
   if (!isValid) {
-    // Increment attempts
+    const newAttempts = record.attempts + 1;
     await prisma.emailOtp.update({
       where: { id: record.id },
-      data: { attempts: { increment: 1 } },
+      data: { attempts: newAttempts },
     });
-    const remaining = record.maxAttempts - (record.attempts + 1);
-    const err = new Error(
-      remaining > 0
-        ? `Incorrect code. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`
-        : 'Too many incorrect attempts. Please request a new verification code.'
-    );
+
+    const remaining = record.maxAttempts - newAttempts;
+    if (remaining <= 0) {
+      const err = new Error('Incorrect code. Maximum attempts reached. Please request a new code.');
+      err.statusCode = 429;
+      throw err;
+    }
+
+    const err = new Error(`Incorrect verification code. ${remaining} attempt${remaining === 1 ? '' : 's'} remaining.`);
     err.statusCode = 400;
     throw err;
   }
 
-  // Mark as consumed
+  // Code is valid: mark consumed
   await prisma.emailOtp.update({
     where: { id: record.id },
     data: { consumedAt: new Date() },
   });
 
-  logger.info(`[OTP] Verified successfully for user ${user.id} (purpose: ${purpose})`);
+  logger.info(`[OTP] Verification code consumed for user ${user.id} (${user.email})`);
   return { success: true };
 }
 
-module.exports = { createAndSendOtp, verifyOtp };
+module.exports = {
+  generateOtp,
+  hashOtp,
+  verifyOtpHash,
+  buildOtpEmail,
+  createAndSendOtp,
+  verifyOtp,
+  OTP_EXPIRY_MINUTES,
+  OTP_MAX_ATTEMPTS,
+};

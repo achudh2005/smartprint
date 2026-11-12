@@ -8,7 +8,7 @@ const { v4: uuidv4 } = require('uuid');
 const { prisma } = require('../database/client');
 const logger = require('../utils/logger');
 const otpService = require('./otp.service');
-const { isEmailConfigured } = require('./email.service');
+const { getEmailProvider } = require('./email.service');
 
 const ARGON2_OPTIONS = {
   type: argon2.argon2id,
@@ -65,51 +65,62 @@ async function register({ name, email, password }) {
     select: { id: true, emailVerified: true, lastLoginAt: true },
   });
 
-  if (existing) {
-    // If the existing account is VERIFIED — hard conflict
-    if (existing.emailVerified) {
-      const err = new Error('An account with this email address already exists.');
-      err.statusCode = 409;
-      throw err;
-    }
-
-    // If unverified and never logged in → delete the orphan and start fresh
-    // (prevents fake-email squatting; a real user would have verified already)
-    if (!existing.emailVerified && !existing.lastLoginAt) {
-      logger.info(`[Auth] Deleting unverified orphan account for ${email} (id: ${existing.id}) and re-registering.`);
-      await prisma.user.delete({ where: { id: existing.id } });
-    } else {
-      // Edge-case: unverified but has logged in somehow — still a conflict
-      const err = new Error('An account with this email address already exists.');
-      err.statusCode = 409;
-      throw err;
-    }
-  }
-
   const passwordHash = await argon2.hash(password, ARGON2_OPTIONS);
+  let user;
 
-  const user = await prisma.user.create({
-    data: {
-      name,
-      email,
-      passwordHash,
-      role: 'OWNER',
-      status: 'ACTIVE',
-      emailVerified: false,
-    },
-    select: {
-      id: true,
-      publicId: true,
-      name: true,
-      email: true,
-      role: true,
-      status: true,
-      emailVerified: true,
-      createdAt: true,
-    },
-  });
+  if (existing) {
+    // If the existing account is already VERIFIED — hard conflict
+    if (existing.emailVerified) {
+      const err = new Error('An account with this email address already exists. Please sign in.');
+      err.statusCode = 409;
+      throw err;
+    }
 
-  logger.info(`[Auth] New user registered (unverified): ${email} (ID: ${user.id})`);
+    // Unverified account from a previous attempt:
+    // Update credentials and name in-place safely without risking foreign key constraints
+    user = await prisma.user.update({
+      where: { id: existing.id },
+      data: {
+        name,
+        passwordHash,
+        status: 'ACTIVE',
+        emailVerified: false,
+      },
+      select: {
+        id: true,
+        publicId: true,
+        name: true,
+        email: true,
+        role: true,
+        status: true,
+        emailVerified: true,
+        createdAt: true,
+      },
+    });
+    logger.info(`[Auth] Existing unverified account updated for ${email} (id: ${user.id})`);
+  } else {
+    user = await prisma.user.create({
+      data: {
+        name,
+        email,
+        passwordHash,
+        role: 'OWNER',
+        status: 'ACTIVE',
+        emailVerified: false,
+      },
+      select: {
+        id: true,
+        publicId: true,
+        name: true,
+        email: true,
+        role: true,
+        status: true,
+        emailVerified: true,
+        createdAt: true,
+      },
+    });
+    logger.info(`[Auth] New user registered (unverified): ${email} (ID: ${user.id})`);
+  }
 
   // Send unique verification code to Gmail — do NOT return OTP in response or issue tokens
   await otpService.createAndSendOtp(user);
@@ -150,7 +161,6 @@ async function verifyEmailOtp({ email, otp }) {
 
   // Allow re-verification for already-verified accounts (idempotent — just log in)
   if (user.emailVerified) {
-    // Already verified — just issue tokens
     logger.info(`[Auth] Email already verified for ${email}; issuing tokens.`);
     return issueTokens(user);
   }
@@ -186,7 +196,6 @@ async function resendOtp({ email }) {
   });
 
   if (!user) {
-    // Don't leak whether the email exists — return generic success
     logger.warn(`[Auth] Resend OTP requested for non-existent email: ${email}`);
     return { sent: true };
   }

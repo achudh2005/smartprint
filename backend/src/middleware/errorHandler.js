@@ -4,9 +4,9 @@
 const logger = require('../utils/logger');
 
 const errorHandler = (err, req, res, next) => {
-  logger.error(`${err.name}: ${err.message}`, { stack: err.stack, url: req.url, method: req.method });
+  logger.error(`${err.name || 'Error'}: ${err.message}`, { stack: err.stack, url: req.url, method: req.method });
 
-  // Prisma errors
+  // Prisma unique violation
   if (err.code === 'P2002') {
     const field = err.meta?.target?.join(', ') || 'field';
     return res.status(409).json({
@@ -15,6 +15,15 @@ const errorHandler = (err, req, res, next) => {
     });
   }
 
+  // Prisma foreign key conflict
+  if (err.code === 'P2003') {
+    return res.status(409).json({
+      success: false,
+      message: 'Operation conflict with existing related records.',
+    });
+  }
+
+  // Prisma record not found
   if (err.code === 'P2025') {
     return res.status(404).json({
       success: false,
