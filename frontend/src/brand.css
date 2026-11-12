@@ -1,0 +1,137 @@
+/* ═══════════════════════════════════════════════════════════════
+   SMARTPRINT BRAND IDENTITY & DESIGN SYSTEM
+   Enterprise-Grade SaaS Aesthetics: Linear / Stripe / Vercel level
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Depth & Elevation System (Light Mode) ── */
+  --shadow-resting: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.03);
+  --shadow-raised:  0 4px 10px -2px rgba(0, 0, 0, 0.06), 0 2px 4px -2px rgba(0, 0, 0, 0.03);
+  --shadow-modal:   0 14px 32px -4px rgba(0, 0, 0, 0.12), 0 4px 8px -2px rgba(0, 0, 0, 0.04);
+}
+
+html.dark {
+  /* ── Depth & Elevation System (Dark Mode) ── */
+  /* Dark mode relies on border highlights + dark ambient absorption */
+  --shadow-resting: 0 1px 2px 0 rgba(0, 0, 0, 0.5);
+  --shadow-raised:  0 4px 12px -2px rgba(0, 0, 0, 0.65), 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-modal:   0 16px 36px -4px rgba(0, 0, 0, 0.85), 0 4px 10px rgba(0, 0, 0, 0.6);
+}
+
+/* ── Typography Display Heading Class ── */
+.font-display {
+  font-family: 'Space Grotesk', Inter, system-ui, -apple-system, sans-serif;
+  letter-spacing: -0.03em;
+}
+
+/* ── Brand Visual Motif: Subtle Dot-Grid Texture ── */
+/* Used sparingly on Auth Hero Panel and Empty States */
+.motif-dot-grid {
+  background-image: radial-gradient(circle, currentColor 1px, transparent 1px);
+  background-size: 16px 16px;
+  background-position: 0 0;
+}
+
+/* ── Brand Visual Motif: Print Registration Corner Crop Marks ── */
+.motif-crop-marks {
+  position: relative;
+}
+.motif-crop-marks::before,
+.motif-crop-marks::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  pointer-events: none;
+  opacity: 0.35;
+}
+.motif-crop-marks::before {
+  top: 10px;
+  left: 10px;
+  border-top: 1.5px solid currentColor;
+  border-left: 1.5px solid currentColor;
+}
+.motif-crop-marks::after {
+  bottom: 10px;
+  right: 10px;
+  border-bottom: 1.5px solid currentColor;
+  border-right: 1.5px solid currentColor;
+}
+
+/* ── Motion Details (Clean, 150-200ms ease-out, zero bounce) ── */
+.btn:active,
+button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Subtle Card & Row Hover */
+.card-interactive {
+  transition: background-color 150ms ease-out, border-color 150ms ease-out, box-shadow 150ms ease-out;
+}
+.card-interactive:hover {
+  box-shadow: var(--shadow-raised);
+}
+
+/* ── Page Container Entrance (Pure CSS, 200ms ease-out) ── */
+@keyframes pageFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-enter {
+  animation: pageFadeIn 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* ── Animated Confirmation Checkmark ── */
+@keyframes checkmarkDraw {
+  from {
+    stroke-dashoffset: 48;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-draw-check {
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  animation: checkmarkDraw 400ms cubic-bezier(0.16, 1, 0.3, 1) 100ms forwards;
+}
+
+/* ── Polished Shimmer Skeleton ── */
+@keyframes shimmerSweep {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(228, 228, 231, 0.4) 0%,
+    rgba(228, 228, 231, 0.8) 50%,
+    rgba(228, 228, 231, 0.4) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmerSweep 1.5s ease-in-out infinite;
+}
+
+html.dark .skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(39, 39, 42, 0.4) 0%,
+    rgba(63, 63, 70, 0.6) 50%,
+    rgba(39, 39, 42, 0.4) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmerSweep 1.5s ease-in-out infinite;
+}

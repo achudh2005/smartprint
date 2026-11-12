@@ -61,6 +61,7 @@ export default {
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        display: ['"Space Grotesk"', 'Inter', 'system-ui', 'sans-serif'],
       },
       borderRadius: {
         DEFAULT: '8px',
@@ -72,13 +73,15 @@ export default {
       },
       boxShadow: {
         xs: '0 1px 2px 0 rgba(0, 0, 0, 0.04)',
-        sm: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-        card: '0 1px 3px 0 rgba(0, 0, 0, 0.03), 0 1px 2px -1px rgba(0, 0, 0, 0.02)',
-        'card-hover': '0 3px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.03)',
+        sm: 'var(--shadow-resting, 0 1px 2px 0 rgba(0, 0, 0, 0.05))',
+        card: 'var(--shadow-resting, 0 1px 3px 0 rgba(0, 0, 0, 0.03))',
+        'card-hover': 'var(--shadow-raised, 0 4px 8px -1px rgba(0, 0, 0, 0.06))',
+        modal: 'var(--shadow-modal, 0 12px 28px -4px rgba(0, 0, 0, 0.12))',
       },
       transitionDuration: {
         DEFAULT: '150ms',
         150: '150ms',
+        200: '200ms',
       },
     },
   },

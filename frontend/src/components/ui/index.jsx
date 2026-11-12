@@ -201,14 +201,18 @@ export function PageHeader({ title, description, action, className, ...props }) 
 }
 
 // ── Empty State ───────────────────────────────────────────
-export function EmptyState({ icon: Icon, title, description, action, className, ...props }) {
+export function EmptyState({ icon: Icon, illustration: Illustration, title, description, action, className, ...props }) {
   return (
     <div className={clsx('flex flex-col items-center justify-center py-12 px-4 text-center', className)} {...props}>
-      {Icon && (
+      {Illustration ? (
+        <div className="mb-4 flex items-center justify-center">
+          <Illustration size={96} />
+        </div>
+      ) : Icon ? (
         <div className="w-10 h-10 rounded-lg bg-[#F4F4F5] dark:bg-[#18181B] border border-[#E4E4E7] dark:border-[#27272A] flex items-center justify-center mb-3 text-[#71717A] dark:text-[#A1A1AA]">
           <Icon size={18} strokeWidth={1.75} />
         </div>
-      )}
+      ) : null}
       <h3 className="text-sm font-semibold text-[#18181B] dark:text-[#FAFAFA]">{title}</h3>
       {description && (
         <p className="mt-1 text-xs text-[#71717A] dark:text-[#A1A1AA] max-w-sm">
@@ -433,3 +437,8 @@ export function TableCell({ children, className, ...props }) {
 
 // Re-export ThemeToggle
 export { default as ThemeToggle } from './ThemeToggle'
+
+
+// Brand Identity Components
+export { BrandMark } from './BrandMark'
+export { Wordmark } from './Wordmark'
