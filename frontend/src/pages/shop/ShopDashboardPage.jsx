@@ -266,7 +266,7 @@ function DashStatCard({ icon: Icon, label, value, money = false, pulse = false }
           )}
         </div>
         <div>
-          <span className={`text-xl font-bold text-[var(--text)] block tracking-tight leading-tight ${money ? 'tabular-nums' : ''}`}>{value}</span>
+          <span className="font-display text-xl font-bold text-[var(--text)] block tracking-tight leading-tight tabular-nums">{value}</span>
           <span className="text-[11px] text-[var(--text-muted)] font-medium block truncate mt-0.5">{label}</span>
         </div>
       </CardBody>

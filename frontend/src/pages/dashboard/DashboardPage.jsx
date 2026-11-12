@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Store, Plus, Printer, ShoppingBag, Settings, AlertCircle, QrCode, DollarSign } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { PageHeader, Card, CardBody, EmptyState, Badge, Button, Spinner, Alert } from '../../components/ui'
+import { DocumentStackIllustration } from '../../components/illustrations'
 import api from '../../lib/api'
 
 export default function DashboardPage() {
@@ -56,7 +57,7 @@ export default function DashboardPage() {
         <Card>
           <CardBody>
             <EmptyState
-              icon={Store}
+              illustration={DocumentStackIllustration}
               title="No shops yet"
               description="Create your first print shop to get started managing orders, pricing and printers."
               action={
@@ -97,7 +98,7 @@ function StatCard({ icon: Icon, label, value }) {
           <Icon size={18} strokeWidth={1.75} className="text-[var(--text-muted)]" />
         </div>
         <div>
-          <p className="text-2xl font-bold text-[var(--text)] tabular-nums leading-tight">{value}</p>
+          <p className="font-display text-2xl font-bold text-[var(--text)] tabular-nums leading-tight">{value}</p>
           <p className="text-xs text-[var(--text-muted)] mt-0.5">{label}</p>
         </div>
       </CardBody>

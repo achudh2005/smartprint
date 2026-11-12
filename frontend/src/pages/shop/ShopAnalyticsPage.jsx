@@ -82,7 +82,7 @@ export default function ShopAnalyticsPage() {
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 print:hidden">
         <div>
-          <h1 className="text-xl font-semibold text-[var(--text)] tracking-tight flex items-center gap-2">
+          <h1 className="font-display text-2xl font-bold text-[var(--text)] tracking-tight flex items-center gap-2">
             <BarChart3 size={18} strokeWidth={1.75} className="text-[#0E7490]" />
             Business Reports & Analytics
           </h1>
@@ -154,7 +154,7 @@ export default function ShopAnalyticsPage() {
               <TrendingUp size={13} strokeWidth={1.75} className="text-[var(--text-muted)]" />
             </div>
           </div>
-          <div className="text-2xl font-bold text-[var(--text)] tracking-tight tabular-nums">
+          <div className="font-display text-2xl font-bold text-[var(--text)] tracking-tight tabular-nums">
             ₹{kpis.period?.totalRevenue || 0}
           </div>
           <div className="text-xs text-[var(--text-muted)] mt-2 flex items-center justify-between">

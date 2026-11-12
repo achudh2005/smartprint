@@ -49,7 +49,7 @@ export default function AdminOverviewPage() {
     <div className="max-w-6xl mx-auto space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-[var(--text)] tracking-tight">Platform Control Center</h1>
+          <h1 className="font-display text-2xl font-bold text-[var(--text)] tracking-tight">Platform Control Center</h1>
           <p className="text-sm text-[var(--text-muted)] mt-0.5">
             Global metrics, tenant health, storage allocation, and platform-wide activity.
           </p>

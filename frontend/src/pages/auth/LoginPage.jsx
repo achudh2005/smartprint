@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Eye, EyeOff, Printer } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { useForm } from '../../hooks/useForm'
-import { Button, Input, Alert } from '../../components/ui'
+import { Button, Input, Alert, BrandMark } from '../../components/ui'
 import OtpVerificationForm from '../../components/auth/OtpVerificationForm'
 import toast from 'react-hot-toast'
 
@@ -61,10 +61,8 @@ export default function LoginPage() {
     <div>
       {/* Heading */}
       <div className="mb-8">
-        <div className="inline-flex items-center justify-center w-10 h-10 bg-[#0E7490] rounded-lg mb-5">
-          <Printer size={18} className="text-white" strokeWidth={1.75} />
-        </div>
-        <h1 className="text-2xl font-semibold text-[var(--text)] tracking-tight">Welcome back</h1>
+        <BrandMark size={32} className="mb-4 text-[#0E7490]" />
+        <h1 className="font-display text-2xl font-bold text-[var(--text)] tracking-tight">Welcome back</h1>
         <p className="mt-1.5 text-sm text-[var(--text-muted)]">Sign in to your SmartPrint account</p>
       </div>
 

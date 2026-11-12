@@ -27,6 +27,7 @@ import {
   Cpu
 } from 'lucide-react'
 import ThemeToggle from '../components/ui/ThemeToggle'
+import { Wordmark } from '../components/ui'
 import { useAuth } from '../hooks/useAuth'
 
 export default function AboutPage() {
@@ -165,13 +166,8 @@ export default function AboutPage() {
 
             <div className="h-4 w-px bg-[var(--border)] hidden sm:block" />
 
-            <Link to={user ? "/dashboard" : "/login"} className="inline-flex items-center gap-2.5">
-              <div className="w-7 h-7 bg-[#0E7490] rounded-lg flex items-center justify-center text-white shrink-0">
-                <Printer size={14} strokeWidth={1.75} />
-              </div>
-              <span className="font-bold text-base tracking-tight text-[var(--text)]">
-                SmartPrint
-              </span>
+            <Link to={user ? "/dashboard" : "/login"} className="inline-flex items-center">
+              <Wordmark size="md" showMark={true} />
             </Link>
           </div>
 
