@@ -217,19 +217,19 @@ export default function ShopPrintersPage() {
         </h2>
 
         {printers.length === 0 ? (
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-10 text-center">
-            <Printer className="mx-auto text-[var(--border)] mb-3" size={40} />
-            <h3 className="text-sm font-bold text-[var(--text)]">No Printers Connected</h3>
-            <p className="text-xs text-[var(--text-muted)] max-w-md mx-auto mt-1 mb-4">
-              Launch the Windows Print Agent on your computer to auto-discover installed printers, or add one manually.
-            </p>
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="btn btn-primary"
-            >
-              <Plus size={14} />
-              Add Printer
-            </button>
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-xs">
+            <EmptyState
+              illustration={EmptyPrintersIllustration}
+              title="No Printers Connected"
+              description="Launch the Windows Print Agent on your computer to auto-discover installed printers, or add one manually."
+              action={
+                <Button variant="primary" size="sm" onClick={() => setShowAddModal(true)}>
+                  <Plus size={14} strokeWidth={1.75} />
+                  Add Printer
+                </Button>
+              }
+              className="py-12"
+            />
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">

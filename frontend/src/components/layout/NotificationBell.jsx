@@ -102,9 +102,12 @@ export default function NotificationBell({ shopId }) {
           {/* Body */}
           <div className="max-h-80 overflow-y-auto divide-y divide-[var(--border)]">
             {notifications.length === 0 ? (
-              <div className="py-10 text-center text-sm text-[var(--text-muted)]">
-                No notifications yet.
-              </div>
+              <EmptyState
+                illustration={NoNotificationsIllustration}
+                title="All caught up"
+                description="You'll be notified when new orders arrive or print jobs complete."
+                className="py-8"
+              />
             ) : (
               notifications.map((n) => (
                 <div

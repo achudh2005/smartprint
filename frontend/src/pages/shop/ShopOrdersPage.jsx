@@ -362,13 +362,23 @@ export default function ShopOrdersPage() {
             <p className="text-sm">Fetching orders...</p>
           </div>
         ) : orders.length === 0 ? (
-          <div className="py-20 text-center">
-            <ShoppingBag size={32} strokeWidth={1.5} className="text-[var(--border)] mx-auto mb-3" />
-            <p className="text-base font-semibold text-[var(--text)]">No orders found</p>
-            <p className="text-sm text-[var(--text-muted)] mt-1 max-w-sm mx-auto">
-              There are no orders matching your current filter criteria or status tab.
-            </p>
-          </div>
+          <EmptyState
+            illustration={search ? NoSearchResultsIllustration : EmptyOrdersIllustration}
+            title={search ? 'No matching orders found' : 'No orders in queue'}
+            description={
+              search
+                ? 'No orders matched your current search query or filter. Try clearing your filters.'
+                : 'Incoming customer print jobs will appear here live in real time.'
+            }
+            action={
+              search && (
+                <Button variant="secondary" size="sm" onClick={() => { setSearch(''); setStatusFilter('ALL'); }}>
+                  Clear Search Filters
+                </Button>
+              )
+            }
+            className="py-16"
+          />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm text-[var(--text)]">

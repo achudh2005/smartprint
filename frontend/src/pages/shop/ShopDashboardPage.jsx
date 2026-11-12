@@ -210,9 +210,12 @@ export default function ShopDashboardPage() {
         </CardHeader>
         <CardBody className="p-0 divide-y divide-[var(--border)]">
           {stats?.recentOrders?.length === 0 ? (
-            <div className="py-10 text-center text-sm text-[var(--text-muted)]">
-              No orders received yet today.
-            </div>
+            <EmptyState
+              illustration={EmptyOrdersIllustration}
+              title="No orders received yet today"
+              description="Incoming customer print jobs will appear here in real time."
+              className="py-8"
+            />
           ) : (
             stats?.recentOrders?.map((ord) => (
               <div key={ord.id} className="px-5 py-3 flex items-center justify-between gap-4 hover:bg-[var(--surface-hover)] transition-colors duration-150">

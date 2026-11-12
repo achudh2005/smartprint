@@ -9,6 +9,7 @@ import { Card, CardHeader, CardBody, Button, Badge, Spinner, Alert, ThemeToggle 
 import api from '../../lib/api'
 import { openRazorpayCheckout } from '../../lib/razorpay'
 import toast from 'react-hot-toast'
+import { OrderSuccessCheckmark } from '../../components/illustrations'
 
 export default function OrderConfirmationPage() {
   const { orderNumber } = useParams()
@@ -186,12 +187,12 @@ export default function OrderConfirmationPage() {
 
         {/* Success Banner */}
         <div className="bg-[var(--surface)] rounded-xl p-6 sm:p-8 text-center border border-[var(--border)] shadow-xs space-y-4">
-          <div className="w-12 h-12 bg-green-50 dark:bg-green-950/40 text-green-600 dark:text-green-400 rounded-full flex items-center justify-center mx-auto border border-green-200 dark:border-green-900/50">
-            <CheckCircle2 size={24} strokeWidth={1.75} />
+          <div className="flex items-center justify-center mx-auto">
+            <OrderSuccessCheckmark size={64} className="mx-auto" />
           </div>
 
           <div>
-            <h1 className="text-xl sm:text-2xl font-semibold text-[var(--text)]">Print Request Confirmed</h1>
+            <h1 className="font-display text-xl sm:text-2xl font-bold text-[var(--text)] tracking-tight">Print Request Confirmed</h1>
             <p className="text-xs text-[var(--text-muted)] mt-1 max-w-md mx-auto">
               Show this token number at the print shop counter when collecting your printed sheets.
             </p>

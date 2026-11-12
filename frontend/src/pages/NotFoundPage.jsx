@@ -1,21 +1,40 @@
 import { Link } from 'react-router-dom'
-import { Printer } from 'lucide-react'
 import { Button } from '../components/ui'
+import { NotFoundIllustration } from '../components/illustrations'
 
 export default function NotFoundPage() {
   return (
-    <div className="min-h-screen bg-[var(--bg)] flex flex-col items-center justify-center px-4 text-center">
-      <div className="w-12 h-12 rounded-xl bg-[var(--accent-tint)] border border-[var(--border)] flex items-center justify-center mb-6">
-        <Printer size={22} strokeWidth={1.75} className="text-[#0E7490]" />
+    <div className="min-h-screen bg-[var(--bg)] flex flex-col items-center justify-center px-4 text-center page-enter">
+      <div className="relative p-8 rounded-2xl bg-[var(--surface)] border border-[var(--border)] shadow-[var(--shadow-raised)] max-w-md w-full motif-crop-marks">
+        <div className="flex items-center justify-center mb-6">
+          <NotFoundIllustration size={120} />
+        </div>
+
+        <span className="font-mono text-xs font-semibold text-[#0E7490] uppercase tracking-wider">
+          Error 404 • Missing Target
+        </span>
+
+        <h1 className="font-display text-2xl font-bold text-[var(--text)] mt-2 mb-2 tracking-tight">
+          Page Not Found
+        </h1>
+
+        <p className="text-xs text-[var(--text-muted)] mb-6 leading-relaxed max-w-sm mx-auto">
+          The requested coordinate or document route does not exist, has expired, or has been relocated to another workspace.
+        </p>
+
+        <div className="flex items-center justify-center gap-3">
+          <Link to="/dashboard">
+            <Button variant="primary" size="md">
+              Return to Dashboard
+            </Button>
+          </Link>
+          <Link to="/">
+            <Button variant="secondary" size="md">
+              Home
+            </Button>
+          </Link>
+        </div>
       </div>
-      <h1 className="text-4xl font-bold text-[var(--text)] mb-2 tracking-tight">404</h1>
-      <h2 className="text-lg font-semibold text-[var(--text)] mb-2">Page not found</h2>
-      <p className="text-sm text-[var(--text-muted)] mb-8 max-w-sm">
-        The page you're looking for doesn't exist or has been moved.
-      </p>
-      <Link to="/dashboard">
-        <Button variant="primary">Back to Dashboard</Button>
-      </Link>
     </div>
   )
 }
