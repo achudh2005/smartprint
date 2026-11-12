@@ -276,7 +276,7 @@ export function Toggle({ checked, onChange, label, description, className, disab
 export function Skeleton({ className, ...props }) {
   return (
     <div
-      className={clsx('animate-pulse rounded-md bg-[#E4E4E7]/70 dark:bg-[#27272A]/70', className)}
+      className={clsx('skeleton-shimmer rounded-md', className)}
       {...props}
     />
   )
@@ -313,7 +313,7 @@ export function StatCard({
       </div>
 
       <div className="mt-3">
-        <div className="text-2xl font-semibold tracking-tight text-[#18181B] dark:text-[#FAFAFA] tabular-nums">
+        <div className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-[#18181B] dark:text-[#FAFAFA] tabular-nums">
           {value}
         </div>
         {(change || description) && (

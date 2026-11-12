@@ -7,7 +7,7 @@ export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   return (
-    <div className="flex h-screen overflow-hidden bg-surface-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-colors duration-200">
+    <div className="flex h-screen overflow-hidden bg-[var(--bg)] text-[var(--text)] transition-colors duration-150">
       {/* Sidebar */}
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
@@ -22,7 +22,7 @@ export default function DashboardLayout() {
       {/* Main content */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
         <Header onMenuClick={() => setSidebarOpen(true)} />
-        <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8">
+        <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8 page-enter">
           <Outlet />
         </main>
       </div>

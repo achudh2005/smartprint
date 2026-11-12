@@ -6,6 +6,7 @@ import {
 import { useAuth } from '../../hooks/useAuth'
 import toast from 'react-hot-toast'
 import clsx from 'clsx'
+import { Wordmark } from '../ui'
 
 const navItems = [
   { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -56,11 +57,8 @@ export default function Sidebar({ open, onClose }) {
 
 function LogoMark() {
   return (
-    <Link to="/dashboard" className="inline-flex items-center gap-2.5">
-      <div className="w-7 h-7 bg-[#0E7490] rounded-lg flex items-center justify-center shrink-0">
-        <Printer size={14} className="text-white" strokeWidth={1.75} />
-      </div>
-      <span className="text-base font-bold text-[var(--text)] tracking-tight">SmartPrint</span>
+    <Link to="/dashboard" className="inline-flex items-center">
+      <Wordmark size="md" showMark={true} />
     </Link>
   )
 }
