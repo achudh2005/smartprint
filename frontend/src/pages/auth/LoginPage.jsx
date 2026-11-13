@@ -4,7 +4,6 @@ import { Eye, EyeOff, Printer } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { useForm } from '../../hooks/useForm'
 import { Button, Input, Alert, BrandMark } from '../../components/ui'
-import OtpVerificationForm from '../../components/auth/OtpVerificationForm'
 import toast from 'react-hot-toast'
 
 export default function LoginPage() {
@@ -12,8 +11,6 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const [showPass, setShowPass] = useState(false)
   const [apiError, setApiError] = useState('')
-  const [pendingVerificationEmail, setPendingVerificationEmail] = useState('')
-
   const { values, errors, loading, setLoading, handleChange, setApiErrors } = useForm({
     email: '',
     password: '',
@@ -28,12 +25,6 @@ export default function LoginPage() {
       toast.success('Welcome back!')
       navigate('/dashboard')
     } catch (err) {
-      if (err.response?.data?.code === 'EMAIL_NOT_VERIFIED') {
-        const unverifiedEmail = err.response.data.email || values.email
-        setPendingVerificationEmail(unverifiedEmail)
-        toast.error('Email not verified. A verification code was sent to your Gmail.')
-        return
-      }
       const msg = err.response?.data?.message || 'Login failed. Please try again.'
       const errs = err.response?.data?.errors
       if (errs) setApiErrors(errs)
@@ -41,20 +32,6 @@ export default function LoginPage() {
     } finally {
       setLoading(false)
     }
-  }
-
-  if (pendingVerificationEmail) {
-    return (
-      <OtpVerificationForm
-        email={pendingVerificationEmail}
-        onSuccess={() => {
-          navigate('/dashboard')
-        }}
-        onBack={() => {
-          setPendingVerificationEmail('')
-        }}
-      />
-    )
   }
 
   return (

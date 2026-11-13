@@ -62,73 +62,42 @@ async function register({ name, email, password }) {
   // Check for existing email
   const existing = await prisma.user.findUnique({
     where: { email },
-    select: { id: true, emailVerified: true, lastLoginAt: true },
+    select: { id: true },
   });
 
-  const passwordHash = await argon2.hash(password, ARGON2_OPTIONS);
-  let user;
-
   if (existing) {
-    // If the existing account is already VERIFIED — hard conflict
-    if (existing.emailVerified) {
-      const err = new Error('An account with this email address already exists. Please sign in.');
-      err.statusCode = 409;
-      throw err;
-    }
-
-    // Unverified account from a previous attempt:
-    // Update credentials and name in-place safely without risking foreign key constraints
-    user = await prisma.user.update({
-      where: { id: existing.id },
-      data: {
-        name,
-        passwordHash,
-        status: 'ACTIVE',
-        emailVerified: false,
-      },
-      select: {
-        id: true,
-        publicId: true,
-        name: true,
-        email: true,
-        role: true,
-        status: true,
-        emailVerified: true,
-        createdAt: true,
-      },
-    });
-    logger.info(`[Auth] Existing unverified account updated for ${email} (id: ${user.id})`);
-  } else {
-    user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        passwordHash,
-        role: 'OWNER',
-        status: 'ACTIVE',
-        emailVerified: false,
-      },
-      select: {
-        id: true,
-        publicId: true,
-        name: true,
-        email: true,
-        role: true,
-        status: true,
-        emailVerified: true,
-        createdAt: true,
-      },
-    });
-    logger.info(`[Auth] New user registered (unverified): ${email} (ID: ${user.id})`);
+    const err = new Error('An account with this email address already exists. Please sign in.');
+    err.statusCode = 409;
+    throw err;
   }
 
-  // Send unique verification code to Gmail — do NOT return OTP in response or issue tokens
-  await otpService.createAndSendOtp(user);
+  const passwordHash = await argon2.hash(password, ARGON2_OPTIONS);
 
-  return {
-    requiresVerification: true,
-    email: user.email,
-  };
+  const user = await prisma.user.create({
+    data: {
+      name,
+      email,
+      passwordHash,
+      role: 'OWNER',
+      status: 'ACTIVE',
+      emailVerified: true,
+    },
+    select: {
+      id: true,
+      publicId: true,
+      name: true,
+      email: true,
+      role: true,
+      status: true,
+      emailVerified: true,
+      createdAt: true,
+    },
+  });
+
+  logger.info(`[Auth] New user registered directly: ${email} (ID: ${user.id})`);
+
+  // Direct login & token generation — no OTP required
+  return issueTokens(user);
 }
 
 // ── Verify OTP → issue tokens ──────────────────────────────
@@ -253,18 +222,6 @@ async function login({ email, password }) {
     throw err;
   }
 
-  // ── Email verification gate ──────────────────────────────
-  if (!user.emailVerified) {
-    try {
-      await otpService.createAndSendOtp(user);
-    } catch (_) {}
-    const err = new Error('Please verify your email address. A verification code has been sent to your email.');
-    err.statusCode = 403;
-    err.code = 'EMAIL_NOT_VERIFIED';
-    err.email = email;
-    throw err;
-  }
-  // ─────────────────────────────────────────────────────────
 
   // Update last login
   await prisma.user.update({

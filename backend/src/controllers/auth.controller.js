@@ -73,8 +73,11 @@ const register = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
     const result = await authService.register({ name, email, password });
-    // Returns { requiresVerification: true, email, devOtp } – no tokens yet
-    return sendCreated(res, result, 'Account created! Please check your email for a verification code.');
+    return sendCreated(res, {
+      user: result.user,
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+    }, 'Account created successfully. Welcome to SmartPrint!');
   } catch (error) {
     next(error);
   }
@@ -114,15 +117,6 @@ const login = async (req, res, next) => {
       refreshToken: result.refreshToken,
     }, 'Logged in successfully.');
   } catch (error) {
-    // Propagate email-not-verified signal to frontend
-    if (error.code === 'EMAIL_NOT_VERIFIED') {
-      return res.status(403).json({
-        success: false,
-        message: error.message,
-        code: 'EMAIL_NOT_VERIFIED',
-        email: error.email,
-      });
-    }
     next(error);
   }
 };

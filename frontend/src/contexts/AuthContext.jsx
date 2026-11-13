@@ -29,12 +29,6 @@ export function AuthProvider({ children }) {
 
   const register = useCallback(async (name, email, password, confirmPassword) => {
     const { data } = await api.post('/auth/register', { name, email, password, confirmPassword })
-    if (data.data?.requiresVerification) {
-      return {
-        requiresVerification: true,
-        email: data.data.email,
-      }
-    }
     const { user, accessToken, refreshToken } = data.data
     localStorage.setItem('accessToken', accessToken)
     localStorage.setItem('refreshToken', refreshToken)
