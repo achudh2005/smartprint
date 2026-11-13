@@ -40,9 +40,13 @@ async function testConnection() {
   } catch (err) {
     logger.warn(`[Database] MySQL server unreachable (${err.message}).`);
     logger.info(`[Database] Initializing zero-config persistence store.`);
+    const prevPrisma = activePrisma;
     const mock = new InMemoryPrisma();
     await seedInMemory(mock);
     activePrisma = mock;
+    if (prevPrisma && typeof prevPrisma.$disconnect === 'function') {
+      prevPrisma.$disconnect().catch(() => {});
+    }
   }
 }
 

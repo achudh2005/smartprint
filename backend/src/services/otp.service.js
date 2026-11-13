@@ -182,7 +182,10 @@ async function verifyOtp(user, submittedCode, purpose = OTP_PURPOSE) {
     throw err;
   }
 
-  if (record.attempts >= record.maxAttempts) {
+  const currentAttempts = Number(record.attempts) || 0;
+  const maxAttempts = Number(record.maxAttempts) || OTP_MAX_ATTEMPTS;
+
+  if (currentAttempts >= maxAttempts) {
     const err = new Error('Too many failed attempts. This code has been locked. Please request a new one.');
     err.statusCode = 429;
     throw err;
@@ -191,13 +194,13 @@ async function verifyOtp(user, submittedCode, purpose = OTP_PURPOSE) {
   const isValid = await verifyOtpHash(submittedCode, record.otpHash);
 
   if (!isValid) {
-    const newAttempts = record.attempts + 1;
+    const newAttempts = currentAttempts + 1;
     await prisma.emailOtp.update({
       where: { id: record.id },
       data: { attempts: newAttempts },
     });
 
-    const remaining = record.maxAttempts - newAttempts;
+    const remaining = maxAttempts - newAttempts;
     if (remaining <= 0) {
       const err = new Error('Incorrect code. Maximum attempts reached. Please request a new code.');
       err.statusCode = 429;

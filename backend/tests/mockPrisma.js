@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const STORE_PATH = path.resolve(process.cwd(), 'data', 'smartprint_store.json');
+const STORE_PATH = path.resolve(__dirname, '../../data', 'smartprint_store.json');
 
 /**
  * In-Memory & File-Persistent Prisma Mock
@@ -29,6 +29,8 @@ class InMemoryPrisma {
     this.printers = [];
     this.auditLogs = [];
     this.refreshTokens = [];
+    this.emailOtps = [];
+    this.fileEncryptions = [];
     this.seq = 1;
 
     this._loadFromDisk();
@@ -52,6 +54,8 @@ class InMemoryPrisma {
     this.expiryLog = this._createCollection('expiryLogs');
     this.printer = this._createCollection('printers');
     this.auditLog = this._createCollection('auditLogs');
+    this.emailOtp = this._createCollection('emailOtps');
+    this.fileEncryption = this._createCollection('fileEncryptions');
     this.prisma = this;
 
     return new Proxy(this, {
@@ -86,7 +90,8 @@ class InMemoryPrisma {
         const data = JSON.parse(raw);
         for (const [key, val] of Object.entries(data)) {
           if (Array.isArray(val)) {
-            this[key] = val.map(item => {
+            const targetKey = key === '_dyn_emailOtp' ? 'emailOtps' : (key === '_dyn_fileEncryption' ? 'fileEncryptions' : key);
+            this[targetKey] = val.map(item => {
               const parsed = { ...item };
               for (const [k, v] of Object.entries(parsed)) {
                 if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(v)) {
@@ -95,9 +100,10 @@ class InMemoryPrisma {
               }
               return parsed;
             });
-          } else {
-            this[key] = val;
+          } else if (key === 'seq' && typeof val === 'number') {
+            this.seq = val;
           }
+          // Never assign plain objects or collections to this[key] during disk loading
         }
         if (!this.seq || this.seq < 100) this.seq = 100;
       }
@@ -112,10 +118,9 @@ class InMemoryPrisma {
       if (!fs.existsSync(dataDir)) {
         fs.mkdirSync(dataDir, { recursive: true });
       }
-      const snapshot = {};
-      const ignore = new Set(['user', 'refreshToken', 'shop', 'shopUser', 'shopSettings', 'customerSession', 'order', 'orderFile', 'printConfiguration', 'orderFileService', 'additionalService', 'pricingRule', 'printJob', 'orderStatusLog', 'notification', 'payment', 'expiryLog', 'printer', 'auditLog', 'prisma']);
+      const snapshot = { seq: this.seq };
       for (const [key, val] of Object.entries(this)) {
-        if (!ignore.has(key) && !key.startsWith('_create') && typeof val !== 'function') {
+        if (Array.isArray(val)) {
           snapshot[key] = val;
         }
       }
@@ -140,6 +145,8 @@ class InMemoryPrisma {
           createdAt: new Date(),
           updatedAt: new Date(),
           ...(name === 'notifications' ? { isRead: false } : {}),
+          ...(name === 'emailOtps' || name === '_dyn_emailOtp' ? { attempts: 0, maxAttempts: 5, consumedAt: null } : {}),
+          ...(name === 'users' ? { emailVerified: false, status: 'ACTIVE', role: 'OWNER' } : {}),
           ...data,
         };
         list.push(item);
@@ -154,6 +161,8 @@ class InMemoryPrisma {
             createdAt: new Date(),
             updatedAt: new Date(),
             ...(name === 'notifications' ? { isRead: false } : {}),
+          ...(name === 'emailOtps' || name === '_dyn_emailOtp' ? { attempts: 0, maxAttempts: 5, consumedAt: null } : {}),
+          ...(name === 'users' ? { emailVerified: false, status: 'ACTIVE', role: 'OWNER' } : {}),
             ...d,
           };
           list.push(item);
@@ -166,7 +175,17 @@ class InMemoryPrisma {
         return self._findItem(list, where, include);
       },
       findFirst: async ({ where, include, orderBy } = {}) => {
-        return self._findItem(list, where, include);
+        let items = list;
+        if (orderBy) {
+          const [field, dir] = Object.entries(orderBy)[0];
+          items = [...list].sort((a, b) => {
+            const va = a[field] instanceof Date ? a[field].getTime() : a[field];
+            const vb = b[field] instanceof Date ? b[field].getTime() : b[field];
+            if (dir === 'desc') return (vb > va ? 1 : (vb < va ? -1 : 0));
+            return (va > vb ? 1 : (va < vb ? -1 : 0));
+          });
+        }
+        return self._findItem(items, where, include);
       },
       upsert: async ({ where, create, update } = {}) => {
         const existing = self._findItem(list, where);
@@ -181,6 +200,8 @@ class InMemoryPrisma {
           createdAt: new Date(),
           updatedAt: new Date(),
           ...(name === 'notifications' ? { isRead: false } : {}),
+          ...(name === 'emailOtps' || name === '_dyn_emailOtp' ? { attempts: 0, maxAttempts: 5, consumedAt: null } : {}),
+          ...(name === 'users' ? { emailVerified: false, status: 'ACTIVE', role: 'OWNER' } : {}),
           ...create,
         };
         list.push(item);
@@ -303,11 +324,23 @@ class InMemoryPrisma {
         if (item.publicId === String(val)) continue;
         return false;
       }
+      if (val instanceof Date) {
+        const itemVal = item[key] instanceof Date ? item[key] : new Date(item[key]);
+        if (itemVal.getTime() !== val.getTime()) return false;
+        continue;
+      }
       if (val && typeof val === 'object') {
         if (val.in && !val.in.includes(item[key])) return false;
         if (val.notIn && val.notIn.includes(item[key])) return false;
-        if (val.gte && item[key] < val.gte) return false;
-        if (val.lte && item[key] > val.lte) return false;
+        if (val.gte && (item[key] < val.gte)) return false;
+        if (val.lte && (item[key] > val.lte)) return false;
+        if (val.gt && (item[key] <= val.gt)) return false;
+        if (val.lt && (item[key] >= val.lt)) return false;
+        if (val.not !== undefined && item[key] === val.not) return false;
+        continue;
+      }
+      if (val === null) {
+        if (item[key] !== null && item[key] !== undefined) return false;
         continue;
       }
       if (item[key] !== val) return false;
