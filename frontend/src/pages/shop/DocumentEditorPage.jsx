@@ -10,7 +10,8 @@ import api from '../../lib/api';
 import toast from 'react-hot-toast';
 
 import {
-  loadPdfDocument, renderPdfPage, detectFormFields, bakeFinalPdf
+  loadPdfDocument, renderPdfPage, renderPdfThumbnail, detectFormFields, bakeFinalPdf,
+  insertBlankPageInPdf, duplicatePageInPdf, deletePageInPdf, reorderPagesInPdf, mergePdfBytes
 } from '../../components/editor/pdfEngine';
 import {
   saveEditSession, getEditSession, clearEditSession
@@ -458,26 +459,60 @@ export default function DocumentEditorPage() {
   };
 
   // 8. Page Manipulation Handlers
-  const handleInsertBlankPage = () => {
-    setTotalPages((prev) => prev + 1);
-    toast.success('Blank page inserted.');
+  const handleInsertBlankPage = async () => {
+    if (!rawPdfBytes) return;
+    try {
+      const res = await insertBlankPageInPdf(rawPdfBytes, 'AFTER_CURRENT', currentPage);
+      setRawPdfBytes(res.bytes);
+      setTotalPages(res.pageCount);
+      setCurrentPage(res.newCurrentPage);
+      toast.success('Blank page inserted.');
+    } catch (err) {
+      toast.error('Failed to insert blank page: ' + err.message);
+    }
   };
 
-  const handleDuplicatePage = (targetPage = currentPage) => {
-    setTotalPages((prev) => prev + 1);
-    toast.success(`Page ${targetPage} duplicated.`);
+  const handleDuplicatePage = async (targetPage = currentPage) => {
+    if (!rawPdfBytes) return;
+    try {
+      const res = await duplicatePageInPdf(rawPdfBytes, targetPage);
+      setRawPdfBytes(res.bytes);
+      setTotalPages(res.pageCount);
+      setCurrentPage(res.newCurrentPage);
+      toast.success(`Page ${targetPage} duplicated.`);
+    } catch (err) {
+      toast.error('Failed to duplicate page: ' + err.message);
+    }
   };
 
-  const handleDeletePage = (targetPage = currentPage) => {
+  const handleDeletePage = async (targetPage = currentPage) => {
+    if (!rawPdfBytes) return;
     if (totalPages <= 1) {
       toast.error('Cannot delete the only page in the document.');
       return;
     }
-    setTotalPages((prev) => prev - 1);
-    if (currentPage > 1 && currentPage === totalPages) {
-      setCurrentPage((prev) => prev - 1);
+    try {
+      const res = await deletePageInPdf(rawPdfBytes, targetPage);
+      setRawPdfBytes(res.bytes);
+      setTotalPages(res.pageCount);
+      setCurrentPage(res.newCurrentPage);
+      toast.success(`Page ${targetPage} removed.`);
+    } catch (err) {
+      toast.error('Failed to delete page: ' + err.message);
     }
-    toast.success(`Page ${targetPage} removed.`);
+  };
+
+  const handleReorderPages = async (fromIndex, toIndex) => {
+    if (!rawPdfBytes || fromIndex === toIndex) return;
+    try {
+      const res = await reorderPagesInPdf(rawPdfBytes, fromIndex, toIndex);
+      setRawPdfBytes(res.bytes);
+      setTotalPages(res.pageCount);
+      setCurrentPage(res.newCurrentPage);
+      toast.success(`Page moved from ${fromIndex + 1} to ${toIndex + 1}.`);
+    } catch (err) {
+      toast.error('Failed to reorder pages: ' + err.message);
+    }
   };
 
   const handleRotatePage = (angle = 90, targetPage = currentPage) => {
@@ -886,10 +921,9 @@ export default function DocumentEditorPage() {
           <PageThumbnailsSidebar
             totalPages={totalPages}
             currentPage={currentPage}
+            pdfBytes={rawPdfBytes}
             onSelectPage={setCurrentPage}
-            onReorderPages={(from, to) => {
-              toast.success(`Page ${from + 1} moved to position ${to + 1}`);
-            }}
+            onReorderPages={handleReorderPages}
             onDuplicatePage={handleDuplicatePage}
             onDeletePage={handleDeletePage}
             onRotatePage={(pg, deg) => handleRotatePage(deg, pg)}
@@ -914,6 +948,13 @@ export default function DocumentEditorPage() {
             canvasTheme === 'dark' ? 'bg-slate-900' : 'bg-slate-100 dark:bg-slate-950'
           }`}
         >
+          {loadingDoc && (
+            <div className="absolute inset-0 bg-white/60 dark:bg-slate-950/60 backdrop-blur-xs flex flex-col items-center justify-center z-30">
+              <Loader2 className="animate-spin text-[#0E7490] mb-2" size={36} />
+              <p className="text-sm font-medium text-[var(--text)]">Loading document...</p>
+            </div>
+          )}
+
           <div
             className="relative shadow-2xl rounded-sm transition-all bg-white"
             style={{
@@ -1245,11 +1286,20 @@ export default function DocumentEditorPage() {
       />
 
       <MergePdfModal
-        isOpen={isMergePdfModalOpen => setIsMergeModalOpen(isMergePdfModalOpen)}
+        isOpen={isMergeModalOpen}
         onClose={() => setIsMergeModalOpen(false)}
         currentPage={currentPage}
         onMergePdf={async (otherBytes, position) => {
-          setTotalPages((prev) => prev + 1);
+          if (!rawPdfBytes) return;
+          try {
+            const res = await mergePdfBytes(rawPdfBytes, otherBytes, position, currentPage);
+            setRawPdfBytes(res.bytes);
+            setTotalPages(res.pageCount);
+            setCurrentPage(res.newCurrentPage);
+            toast.success(`Merged ${res.insertedCount} page(s) successfully.`);
+          } catch (err) {
+            toast.error('Merge failed: ' + err.message);
+          }
         }}
       />
 

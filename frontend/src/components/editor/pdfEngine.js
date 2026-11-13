@@ -1,13 +1,35 @@
 import { PDFDocument, rgb, degrees, StandardFonts } from 'pdf-lib';
-import * as pdfjsLib from 'pdfjs-dist/build/pdf.mjs';
+import * as pdfjsLib from 'pdfjs-dist';
+import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
-// Setup pdf.js worker using unpkg or cdnjs bundle matching installed version
-try {
-  if (typeof window !== 'undefined') {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
+// Setup same-origin pdf.js worker URL to avoid CORS/CSP issues in production
+if (typeof window !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+}
+
+// Track cached PDF.js document to avoid re-parsing 50+ page PDFs on every click
+let cachedPdfDoc = null;
+let cachedPdfBytes = null;
+let currentRenderTask = null;
+
+export async function getPdfJsDocument(pdfBytes) {
+  if (cachedPdfDoc && cachedPdfBytes === pdfBytes) {
+    return cachedPdfDoc;
   }
-} catch (e) {
-  console.warn('[PDF.js] Worker setup warning:', e);
+  const data = pdfBytes instanceof Uint8Array ? pdfBytes : new Uint8Array(pdfBytes);
+  const loadingTask = pdfjsLib.getDocument({
+    data,
+    cMapUrl: 'https://unpkg.com/pdfjs-dist@6.5.438/cmaps/',
+    cMapPacked: true,
+  });
+  cachedPdfDoc = await loadingTask.promise;
+  cachedPdfBytes = pdfBytes;
+  return cachedPdfDoc;
+}
+
+export function invalidatePdfJsCache() {
+  cachedPdfDoc = null;
+  cachedPdfBytes = null;
 }
 
 /**
@@ -15,6 +37,7 @@ try {
  * If it's an image, wraps it into a 1-page PDF
  */
 export async function loadPdfDocument(arrayBuffer, mimeType = 'application/pdf') {
+  invalidatePdfJsCache();
   if (mimeType.startsWith('image/')) {
     const pdfDoc = await PDFDocument.create();
     let embeddedImg;
@@ -52,13 +75,23 @@ export async function loadPdfDocument(arrayBuffer, mimeType = 'application/pdf')
  * Render a single page via pdf.js onto a target canvas and extract its text items
  */
 export async function renderPdfPage(pdfBytes, pageNumber, canvas, scale = 1.0) {
-  const loadingTask = pdfjsLib.getDocument({ data: pdfBytes });
-  const pdf = await loadingTask.promise;
-  const page = await pdf.getPage(pageNumber);
+  if (!canvas || !pdfBytes) return null;
+
+  // Cancel in-flight render to avoid "Cannot use the same canvas during multiple render() operations"
+  if (currentRenderTask) {
+    try {
+      await currentRenderTask.cancel();
+    } catch (_) {}
+    currentRenderTask = null;
+  }
+
+  const pdf = await getPdfJsDocument(pdfBytes);
+  const safePageNum = Math.min(Math.max(1, pageNumber), pdf.numPages);
+  const page = await pdf.getPage(safePageNum);
 
   const viewport = page.getViewport({ scale });
-  canvas.width = viewport.width;
-  canvas.height = viewport.height;
+  canvas.width = Math.floor(viewport.width);
+  canvas.height = Math.floor(viewport.height);
 
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -68,7 +101,22 @@ export async function renderPdfPage(pdfBytes, pageNumber, canvas, scale = 1.0) {
     viewport: viewport,
   };
 
-  await page.render(renderContext).promise;
+  const renderTask = page.render(renderContext);
+  currentRenderTask = renderTask;
+
+  try {
+    await renderTask.promise;
+  } catch (err) {
+    if (err?.name === 'RenderingCancelledException') {
+      return null;
+    }
+    console.error('[pdfEngine] Page render error:', err);
+    throw err;
+  } finally {
+    if (currentRenderTask === renderTask) {
+      currentRenderTask = null;
+    }
+  }
 
   // Extract text layer with bounding boxes for click-to-edit, markup snapping, and search
   const textContent = await page.getTextContent();
@@ -101,6 +149,30 @@ export async function renderPdfPage(pdfBytes, pageNumber, canvas, scale = 1.0) {
     originalWidth: viewport.width / scale,
     originalHeight: viewport.height / scale,
   };
+}
+
+/**
+ * Render a small thumbnail of a PDF page onto a thumbnail canvas
+ */
+export async function renderPdfThumbnail(pdfBytes, pageNumber, canvas) {
+  if (!canvas || !pdfBytes) return;
+  try {
+    const pdf = await getPdfJsDocument(pdfBytes);
+    if (pageNumber > pdf.numPages || pageNumber < 1) return;
+    const page = await pdf.getPage(pageNumber);
+    const unscaled = page.getViewport({ scale: 1.0 });
+    const targetW = 96;
+    const scale = targetW / unscaled.width;
+    const viewport = page.getViewport({ scale });
+
+    canvas.width = Math.floor(viewport.width);
+    canvas.height = Math.floor(viewport.height);
+
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    await page.render({ canvasContext: ctx, viewport }).promise;
+  } catch (_) {}
 }
 
 /**
@@ -525,3 +597,127 @@ export async function bakeFinalPdf(originalBytes, editSession) {
   const finalBytes = await pdfDoc.save();
   return finalBytes;
 }
+
+/**
+ * Insert a blank page into the PDF at the given position
+ */
+export async function insertBlankPageInPdf(pdfBytes, position = 'AFTER_CURRENT', currentPage = 1) {
+  invalidatePdfJsCache();
+  const pdfDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
+  const pageCount = pdfDoc.getPageCount();
+  const insertIndex = position === 'BEFORE_CURRENT' ? Math.max(0, currentPage - 1) : Math.min(pageCount, currentPage);
+
+  let width = 595.28;
+  let height = 841.89;
+  if (pageCount > 0) {
+    const refPage = pdfDoc.getPage(Math.min(currentPage - 1, pageCount - 1));
+    const size = refPage.getSize();
+    width = size.width;
+    height = size.height;
+  }
+
+  pdfDoc.insertPage(insertIndex, [width, height]);
+  const newBytes = await pdfDoc.save();
+  return {
+    bytes: newBytes,
+    pageCount: pdfDoc.getPageCount(),
+    newCurrentPage: insertIndex + 1,
+  };
+}
+
+/**
+ * Duplicate a specific page in the PDF
+ */
+export async function duplicatePageInPdf(pdfBytes, pageNumber = 1) {
+  invalidatePdfJsCache();
+  const pdfDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
+  const pageIndex = Math.max(0, Math.min(pdfDoc.getPageCount() - 1, pageNumber - 1));
+  const [copiedPage] = await pdfDoc.copyPages(pdfDoc, [pageIndex]);
+  pdfDoc.insertPage(pageIndex + 1, copiedPage);
+  const newBytes = await pdfDoc.save();
+  return {
+    bytes: newBytes,
+    pageCount: pdfDoc.getPageCount(),
+    newCurrentPage: pageIndex + 2,
+  };
+}
+
+/**
+ * Delete a specific page from the PDF
+ */
+export async function deletePageInPdf(pdfBytes, pageNumber = 1) {
+  invalidatePdfJsCache();
+  const pdfDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
+  if (pdfDoc.getPageCount() <= 1) {
+    throw new Error('Cannot delete the only page in the document.');
+  }
+  const pageIndex = Math.max(0, Math.min(pdfDoc.getPageCount() - 1, pageNumber - 1));
+  pdfDoc.removePage(pageIndex);
+  const newBytes = await pdfDoc.save();
+  const newPageCount = pdfDoc.getPageCount();
+  const newCurrentPage = Math.min(pageNumber, newPageCount);
+  return {
+    bytes: newBytes,
+    pageCount: newPageCount,
+    newCurrentPage,
+  };
+}
+
+/**
+ * Reorder pages by moving fromIndex to toIndex
+ */
+export async function reorderPagesInPdf(pdfBytes, fromIndex, toIndex) {
+  invalidatePdfJsCache();
+  const pdfDoc = await PDFDocument.load(pdfBytes, { ignoreEncryption: true });
+  const pageCount = pdfDoc.getPageCount();
+  if (fromIndex < 0 || fromIndex >= pageCount || toIndex < 0 || toIndex >= pageCount) {
+    return { bytes: pdfBytes, pageCount, newCurrentPage: fromIndex + 1 };
+  }
+  const newDoc = await PDFDocument.create();
+  const indices = Array.from({ length: pageCount }, (_, i) => i);
+  const [moved] = indices.splice(fromIndex, 1);
+  indices.splice(toIndex, 0, moved);
+
+  const copiedPages = await newDoc.copyPages(pdfDoc, indices);
+  for (const page of copiedPages) {
+    newDoc.addPage(page);
+  }
+  const newBytes = await newDoc.save();
+  return {
+    bytes: newBytes,
+    pageCount: newDoc.getPageCount(),
+    newCurrentPage: toIndex + 1,
+  };
+}
+
+/**
+ * Merge secondary PDF bytes into base PDF bytes
+ */
+export async function mergePdfBytes(basePdfBytes, secondaryPdfBytes, position = 'AFTER_CURRENT', currentPage = 1) {
+  invalidatePdfJsCache();
+  const baseDoc = await PDFDocument.load(basePdfBytes, { ignoreEncryption: true });
+  const otherDoc = await PDFDocument.load(secondaryPdfBytes, { ignoreEncryption: true });
+
+  const copiedPages = await baseDoc.copyPages(otherDoc, otherDoc.getPageIndices());
+  let insertIndex;
+  if (position === 'BEFORE_CURRENT') {
+    insertIndex = Math.max(0, currentPage - 1);
+  } else if (position === 'AFTER_CURRENT') {
+    insertIndex = Math.min(baseDoc.getPageCount(), currentPage);
+  } else {
+    insertIndex = baseDoc.getPageCount();
+  }
+
+  for (let i = 0; i < copiedPages.length; i++) {
+    baseDoc.insertPage(insertIndex + i, copiedPages[i]);
+  }
+
+  const newBytes = await baseDoc.save();
+  return {
+    bytes: newBytes,
+    pageCount: baseDoc.getPageCount(),
+    insertedCount: copiedPages.length,
+    newCurrentPage: insertIndex + 1,
+  };
+}
+
