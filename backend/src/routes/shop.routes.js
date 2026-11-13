@@ -118,6 +118,12 @@ router.patch('/:shopId/orders/:orderId/status',
 );
 
 // Manual Printing endpoint (record print attempt)
+router.post('/:shopId/orders/:orderId/files/:fileId/edited',
+  requireShopMembership,
+  upload.single('file'),
+  shopController.uploadEditedFile
+);
+
 router.post('/:shopId/orders/:orderId/files/:fileId/print-job',
   requireShopMembership,
   shopController.recordPrintJob

@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './contexts/AuthContext'
 import { ThemeProvider } from './contexts/ThemeContext'
@@ -21,6 +22,7 @@ import ShopPricingPage from './pages/shop/ShopPricingPage'
 import ShopPaymentsPage from './pages/shop/ShopPaymentsPage'
 import ShopOrdersPage from './pages/shop/ShopOrdersPage'
 import OrderDetailPage from './pages/shop/OrderDetailPage'
+const DocumentEditorPage = lazy(() => import('./pages/shop/DocumentEditorPage'))
 import ShopPrintersPage from './pages/shop/ShopPrintersPage'
 import ShopAnalyticsPage from './pages/shop/ShopAnalyticsPage'
 
@@ -99,6 +101,29 @@ export default function App() {
             <Route path="/shops/:shopId/analytics" element={<ShopAnalyticsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
           </Route>
+
+          
+          {/* Document In-App Editor (Standalone full-screen window) */}
+          <Route
+            path="/shops/:shopId/orders/:orderId/files/:filePublicId/edit"
+            element={
+              <ProtectedRoute>
+                <Suspense fallback={<PageLoader />}>
+                  <DocumentEditorPage />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/shop/orders/:orderId/files/:filePublicId/edit"
+            element={
+              <ProtectedRoute>
+                <Suspense fallback={<PageLoader />}>
+                  <DocumentEditorPage />
+                </Suspense>
+              </ProtectedRoute>
+            }
+          />
 
           {/* Super Admin Protected Routes */}
           <Route

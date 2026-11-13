@@ -506,7 +506,38 @@ const sendReportNow = async (req, res, next) => {
   }
 };
 
+
+const uploadEditedFile = async (req, res, next) => {
+  try {
+    const shopId = parseInt(req.params.shopId, 10);
+    const orderId = parseInt(req.params.orderId, 10);
+    const { fileId } = req.params;
+
+    if (!req.file) {
+      return sendError(res, 'No edited file uploaded.', 400);
+    }
+
+    const result = await shopService.saveEditedOrderFile(
+      shopId,
+      req.user.id,
+      orderId,
+      fileId,
+      req.file,
+      {
+        directPrint: req.body.directPrint === 'true' || req.body.directPrint === true,
+        printerId: req.body.printerId ? parseInt(req.body.printerId, 10) : undefined,
+        pageCount: req.body.pageCount ? parseInt(req.body.pageCount, 10) : 1,
+      }
+    );
+
+    return sendSuccess(res, result, 'Edited file saved and attached to order.', 201);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
+  uploadEditedFile,
   createShopValidation,
   updateShopValidation,
   updateSettingsValidation,

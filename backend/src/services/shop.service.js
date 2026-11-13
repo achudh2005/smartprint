@@ -899,7 +899,121 @@ async function markNotificationsRead(shopId, userId, notificationId = null) {
   return { success: true };
 }
 
+
+async function saveEditedOrderFile(shopId, userId, orderId, fileId, uploadedFile, { directPrint = false, printerId, pageCount = 1 } = {}) {
+  const membership = await prisma.shopUser.findUnique({
+    where: { shopId_userId: { shopId, userId } },
+  });
+  if (!membership || membership.status !== 'ACTIVE') {
+    const err = new Error('Access denied.');
+    err.statusCode = 403;
+    throw err;
+  }
+
+  const order = await prisma.order.findFirst({
+    where: { id: orderId, shopId },
+    include: { session: true },
+  });
+  if (!order) {
+    const err = new Error('Order not found.');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const originalFile = await prisma.orderFile.findFirst({
+    where: {
+      OR: [
+        { id: !isNaN(Number(fileId)) ? Number(fileId) : -1 },
+        { publicId: String(fileId) },
+      ],
+      orderId,
+    },
+    include: { printConfiguration: true },
+  });
+  if (!originalFile) {
+    const err = new Error('Original file not found.');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const sessionToken = order.session?.sessionToken || `order_${order.id}`;
+  const saveResult = await storageService.saveUploadedFile({
+    shopId,
+    sessionToken,
+    file: uploadedFile,
+  });
+
+  const baseName = originalFile.originalName.replace(/^\[(?:Edited|Split[^\]]*)\]\s*/i, '');
+  const prefix = uploadedFile.originalname?.startsWith('[Split') ? '[Split] ' : '[Edited] ';
+  const newName = `${prefix}${baseName.endsWith('.pdf') ? baseName : `${baseName}.pdf`}`;
+
+  const newOrderFile = await prisma.orderFile.create({
+    data: {
+      orderId,
+      originalName: newName,
+      storagePath: saveResult.storagePath,
+      mimeType: 'application/pdf',
+      fileSizeBytes: BigInt(saveResult.sizeBytes),
+      pageCount: parseInt(pageCount, 10) || originalFile.pageCount || 1,
+      status: 'READY',
+      allowDownload: Boolean(originalFile.allowDownload),
+      expiresAt: originalFile.expiresAt,
+    },
+  });
+
+  if (saveResult.encryption) {
+    await prisma.fileEncryption.create({
+      data: {
+        fileId: newOrderFile.id,
+        keyVersion: saveResult.encryption.keyVersion,
+        wrappedKey: saveResult.encryption.wrappedKey,
+        keyIv: saveResult.encryption.keyIv,
+        keyAuthTag: saveResult.encryption.keyAuthTag,
+        fileIv: saveResult.encryption.fileIv,
+        fileAuthTag: saveResult.encryption.fileAuthTag,
+        algorithm: saveResult.encryption.algorithm,
+      },
+    });
+  }
+
+  if (originalFile.printConfiguration) {
+    const origCfg = originalFile.printConfiguration;
+    await prisma.printConfiguration.create({
+      data: {
+        fileId: newOrderFile.id,
+        copies: origCfg.copies || 1,
+        colorMode: origCfg.colorMode || 'BLACK_WHITE',
+        paperSize: origCfg.paperSize || 'A4',
+        paperType: origCfg.paperType || 'NORMAL',
+        orientation: origCfg.orientation || 'PORTRAIT',
+        duplexMode: origCfg.duplexMode || 'SIMPLEX',
+        pageRange: 'ALL',
+        unitPrice: origCfg.unitPrice,
+        calculatedTotal: origCfg.calculatedTotal,
+      },
+    });
+  }
+
+  let printJob = null;
+  if (directPrint === 'true' || directPrint === true || printerId) {
+    printJob = await printerService.dispatchDirectPrint(shopId, userId, {
+      orderId,
+      fileId: newOrderFile.id,
+      printerId: printerId ? parseInt(printerId, 10) : undefined,
+    });
+  }
+
+  return {
+    file: {
+      ...newOrderFile,
+      fileSizeBytes: newOrderFile.fileSizeBytes.toString(),
+    },
+    printJob,
+  };
+}
+
 module.exports = {
+  saveEditedOrderFile,
   createShop,
   getShop,
   listMyShops,

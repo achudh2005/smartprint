@@ -4,7 +4,7 @@ import {
   ArrowLeft, FileText, Printer, CheckCircle2, XCircle, AlertTriangle,
   Download, Eye, Clock, ShieldCheck, User, Copy, Check, X,
   Layers, ChevronRight, RefreshCw, AlertCircle, Trash2, CreditCard, Banknote,
-  PlusCircle, Flame, History, Phone, Lock } from 'lucide-react'
+  PlusCircle, Flame, History, Phone, Lock, Edit3 } from 'lucide-react'
 import { PageHeader, Card, CardHeader, CardBody, Button, Spinner, Badge, Alert } from '../../components/ui'
 import ShopNavTabs from '../../components/shop/ShopNavTabs'
 import api from '../../lib/api'
@@ -911,6 +911,19 @@ export default function OrderDetailPage() {
                           >
                             <Eye size={13} strokeWidth={1.75} /> Preview
                           </Button>
+                          {/* In-App Document Editor Button */}
+                          {(file.mimeType === 'application/pdf' || file.mimeType?.startsWith('image/') || file.originalName?.match(/\.(pdf|jpe?g|png|webp)$/i)) && (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              onClick={() => window.open(`/shops/${shopId}/orders/${orderId}/files/${file.publicId || file.id}/edit`, '_blank')}
+                              className="border-[#0E7490]/30 text-[#0E7490] hover:bg-[var(--accent-tint)] dark:text-[#22D3EE]"
+                              title="Open in Document Editor"
+                            >
+                              <Edit3 size={13} strokeWidth={1.75} /> Edit
+                            </Button>
+                          )}
+
 
                           {/* Download Button: Gated by allowDownload */}
                           {file.allowDownload ? (
@@ -1111,6 +1124,19 @@ export default function OrderDetailPage() {
                 </h3>
               </div>
               <div className="flex items-center gap-2">
+                
+                {/* Document Editor Button */}
+                {(previewFile.mimeType === 'application/pdf' || previewFile.mimeType?.startsWith('image/') || previewFile.originalName?.match(/\.(pdf|jpe?g|png|webp)$/i)) && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => window.open(`/shops/${shopId}/orders/${orderId}/files/${previewFile.publicId || previewFile.id}/edit`, '_blank')}
+                    className="border-[#0E7490]/30 text-[#0E7490] hover:bg-[var(--accent-tint)] dark:text-[#22D3EE]"
+                  >
+                    <Edit3 size={13} strokeWidth={1.75} /> Edit Document
+                  </Button>
+                )}
+
                 {/* Download Button Gated */}
                 {previewFile.allowDownload ? (
                   <Button
