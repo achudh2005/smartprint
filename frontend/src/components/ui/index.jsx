@@ -162,23 +162,133 @@ export function Badge({
 // ── Spinner ───────────────────────────────────────────────
 export function Spinner({ size = 'md', className, ...props }) {
   const sizes = {
-    sm: 'w-4 h-4 border-[1.5px]',
-    md: 'w-6 h-6 border-2',
-    lg: 'w-8 h-8 border-2',
-  }
+    sm: 'w-4 h-4',   // ~16px
+    md: 'w-7 h-7',   // ~28px
+    lg: 'w-10 h-10', // ~40px
+  };
+
+  const isSmall = size === 'sm';
+  const isLarge = size === 'lg';
 
   return (
-    <div
+    <span
       className={clsx(
+        'inline-flex items-center justify-center shrink-0 select-none align-middle',
         sizes[size] || sizes.md,
-        'border-[#E4E4E7] dark:border-[#27272A] border-t-[#0E7490] dark:border-t-[#22D3EE] rounded-full animate-spin',
         className
       )}
       role="status"
       aria-label="Loading"
       {...props}
-    />
-  )
+    >
+      <svg
+        viewBox="0 0 28 28"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-full h-full overflow-visible"
+        aria-hidden="true"
+      >
+        {/* Rear feed tray paper guide */}
+        <rect
+          x="7.5"
+          y="3.5"
+          width="13"
+          height="5"
+          rx="1"
+          className="fill-[#E4E4E7] dark:fill-[#27272A] stroke-[#D4D4D8] dark:stroke-[#3F3F46]"
+          strokeWidth="0.75"
+        />
+
+        {/* Emerging Paper Sheet (animated sliding UP out of slot) */}
+        <g className="smartprint-loader-paper">
+          <rect
+            x="6.5"
+            y="4"
+            width="15"
+            height="14"
+            rx="1.5"
+            className="fill-white dark:fill-[#18181B] stroke-[#D4D4D8] dark:stroke-[#3F3F46]"
+            strokeWidth="1"
+          />
+          {/* Subtle printed text lines */}
+          {!isSmall && (
+            <>
+              <line
+                x1="9"
+                y1="7.5"
+                x2="19"
+                y2="7.5"
+                className="stroke-[#0E7490] dark:stroke-[#22D3EE]"
+                strokeWidth="1"
+                strokeLinecap="round"
+              />
+              <line
+                x1="9"
+                y1="10.5"
+                x2="16"
+                y2="10.5"
+                className="stroke-[#A1A1AA] dark:stroke-[#71717A]"
+                strokeWidth="0.9"
+                strokeLinecap="round"
+              />
+            </>
+          )}
+          {isLarge && (
+            <line
+              x1="9"
+              y1="13.5"
+              x2="17.5"
+              y2="13.5"
+              className="stroke-[#A1A1AA] dark:stroke-[#71717A]"
+              strokeWidth="0.9"
+              strokeLinecap="round"
+            />
+          )}
+        </g>
+
+        {/* Printer Chassis Body (sits on top, masking lower paper half) */}
+        <rect
+          x="3"
+          y="13"
+          width="22"
+          height="12"
+          rx="2.5"
+          className="fill-[#F4F4F5] dark:fill-[#18181B] stroke-[#D4D4D8] dark:stroke-[#3F3F46]"
+          strokeWidth="1.5"
+        />
+
+        {/* Paper Exit Slot */}
+        <line
+          x1="6.5"
+          y1="13"
+          x2="21.5"
+          y2="13"
+          className="stroke-[#A1A1AA] dark:stroke-[#52525B]"
+          strokeWidth="1.25"
+          strokeLinecap="round"
+        />
+
+        {/* Active Status LED Indicator (pulsing deep cyan) */}
+        <circle
+          cx="6.5"
+          cy="19"
+          r="1.25"
+          className="smartprint-loader-led fill-[#0E7490] dark:fill-[#22D3EE]"
+        />
+
+        {/* Bottom Output Tray Lip */}
+        <line
+          x1="9.5"
+          y1="21.5"
+          x2="18.5"
+          y2="21.5"
+          className="stroke-[#D4D4D8] dark:stroke-[#3F3F46]"
+          strokeWidth="1"
+          strokeLinecap="round"
+        />
+      </svg>
+    </span>
+  );
 }
 
 // ── Page Header ───────────────────────────────────────────

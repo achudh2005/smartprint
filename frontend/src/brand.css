@@ -162,3 +162,75 @@ html.dark .skeleton-shimmer {
   background-size: 200% 100%;
   animation: shimmerSweep 1.5s ease-in-out infinite;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   PRINTING LOADER (BRAND ON-THEME PAGE EJECTION ANIMATION)
+   ═══════════════════════════════════════════════════════════════ */
+@keyframes printerPaperFeed {
+  0% {
+    transform: translateY(7px);
+    opacity: 0.2;
+  }
+  15% {
+    opacity: 1;
+  }
+  65% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  85% {
+    transform: translateY(-0.5px);
+    opacity: 1;
+  }
+  95% {
+    transform: translateY(-0.5px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(7px);
+    opacity: 0;
+  }
+}
+
+@keyframes printerLedPulse {
+  0%, 100% {
+    opacity: 0.35;
+    transform: scale(0.85);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+.smartprint-loader-paper {
+  animation: printerPaperFeed 1.4s cubic-bezier(0.25, 1, 0.5, 1) infinite;
+  transform-origin: center bottom;
+  will-change: transform, opacity;
+}
+
+.smartprint-loader-led {
+  animation: printerLedPulse 1.4s ease-in-out infinite;
+  transform-origin: 6.5px 19px;
+}
+
+/* Accessibility: Respect prefers-reduced-motion with subtle opacity breathing */
+@media (prefers-reduced-motion: reduce) {
+  .smartprint-loader-paper {
+    animation: printerReducedMotion 1.5s ease-in-out infinite !important;
+    transform: translateY(0) !important;
+  }
+  .smartprint-loader-led {
+    animation: none !important;
+    opacity: 0.8 !important;
+  }
+}
+
+@keyframes printerReducedMotion {
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
