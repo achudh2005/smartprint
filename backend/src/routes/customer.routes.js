@@ -64,6 +64,8 @@ router.delete('/sessions/:sessionToken/files/:filePublicId', customerController.
 
 // 4. Per-document print configuration
 router.put('/sessions/:sessionToken/files/:filePublicId/config', customerController.updateFileConfig);
+router.patch('/sessions/:sessionToken/files/:filePublicId/download-permission', customerController.updateDownloadPermission);
+router.patch('/sessions/:sessionToken/download-permission', customerController.updateAllDownloadPermissions);
 
 // 5. Additional services on files
 router.post('/sessions/:sessionToken/files/:filePublicId/services', customerController.addServiceToFile);

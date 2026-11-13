@@ -278,7 +278,41 @@ async function previewFile(req, res, next) {
   }
 }
 
+
+/**
+ * PATCH /api/v1/customer/sessions/:sessionToken/files/:filePublicId/download-permission
+ */
+async function updateDownloadPermission(req, res, next) {
+  try {
+    const result = await customerService.updateFileDownloadPermission(
+      req.params.sessionToken,
+      req.params.filePublicId,
+      req.body.allowDownload
+    );
+    return sendSuccess(res, result, 'Download permission updated.');
+  } catch (err) {
+    next(err);
+  }
+}
+
+/**
+ * PATCH /api/v1/customer/sessions/:sessionToken/download-permission
+ */
+async function updateAllDownloadPermissions(req, res, next) {
+  try {
+    const result = await customerService.updateAllFilesDownloadPermission(
+      req.params.sessionToken,
+      req.body.allowDownload
+    );
+    return sendSuccess(res, result, 'All download permissions updated.');
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
+  updateDownloadPermission,
+  updateAllDownloadPermissions,
   getShopDetails,
   initSession,
   getSessionState,

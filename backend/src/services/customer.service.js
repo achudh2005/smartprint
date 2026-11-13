@@ -415,8 +415,8 @@ async function updateFileConfiguration(sessionToken, filePublicId, newConfig) {
 
   // Handle allowDownload toggle if explicitly provided
   let allowDownload = Boolean(file.allowDownload);
-  if (typeof newConfig.allowDownload === 'boolean') {
-    allowDownload = Boolean(newConfig.allowDownload);
+  if (newConfig.allowDownload !== undefined) {
+    allowDownload = newConfig.allowDownload === true || newConfig.allowDownload === 'true' || newConfig.allowDownload === 1 || newConfig.allowDownload === '1';
     await prisma.orderFile.update({
       where: { id: file.id },
       data: { allowDownload },
@@ -424,9 +424,9 @@ async function updateFileConfiguration(sessionToken, filePublicId, newConfig) {
   }
 
   // Sanitize and validate inputs
-  const copies = Math.max(1, parseInt(newConfig.copies, 10) || 1);
-  const colorMode = ['COLOR', 'BLACK_WHITE', 'GRAYSCALE'].includes(newConfig.colorMode) ? newConfig.colorMode : 'BLACK_WHITE';
-  const paperSize = ['A4', 'A3', 'A5', 'LETTER', 'LEGAL', 'CUSTOM'].includes(newConfig.paperSize) ? newConfig.paperSize : 'A4';
+  const copies = Math.max(1, parseInt(newConfig.copies, 10) || file.printConfiguration?.copies || 1);
+  const colorMode = ['COLOR', 'BLACK_WHITE', 'GRAYSCALE'].includes(newConfig.colorMode) ? newConfig.colorMode : (file.printConfiguration?.colorMode || 'BLACK_WHITE');
+  const paperSize = ['A4', 'A3', 'A5', 'LETTER', 'LEGAL', 'CUSTOM'].includes(newConfig.paperSize) ? newConfig.paperSize : (file.printConfiguration?.paperSize || 'A4');
   const paperType = ['NORMAL', 'PREMIUM', 'PHOTO', 'BOND', 'GLOSSY', 'CUSTOM'].includes(newConfig.paperType) ? newConfig.paperType : (file.printConfiguration?.paperType || 'NORMAL');
   const orientation = ['PORTRAIT', 'LANDSCAPE'].includes(newConfig.orientation) ? newConfig.orientation : 'PORTRAIT';
   const duplexMode = ['SIMPLEX', 'DUPLEX_LONG_EDGE', 'DUPLEX_SHORT_EDGE'].includes(newConfig.duplexMode) ? newConfig.duplexMode : 'SIMPLEX';
@@ -620,7 +620,7 @@ async function deleteFile(sessionToken, filePublicId) {
 /**
  * Confirm and seal customer order
  */
-async function confirmOrder(sessionToken, { notes = '', expiryOption, paymentMethod = 'COUNTER', customerName = '', customerPhone = '' } = {}) {
+async function confirmOrder(sessionToken, { notes = '', expiryOption, paymentMethod = 'COUNTER', customerName = '', customerPhone = '', allowDownload, filesAllowDownload } = {}) {
   const { session, draftOrder, shop } = await validateSession(sessionToken);
   const { calculateExpiresAt } = require('./expiry.service');
   const { scheduleOrderExpiry } = require('../queues/expiry.queue');
@@ -695,11 +695,25 @@ async function confirmOrder(sessionToken, { notes = '', expiryOption, paymentMet
 
   const expiresAt = calculateExpiresAt(chosenExpiryOption);
 
-  // Synchronize file expiresAt
+  // Synchronize file expiresAt & download permissions
   await prisma.orderFile.updateMany({
     where: { orderId: fullOrder.id },
     data: { expiresAt },
   });
+
+  if (filesAllowDownload && typeof filesAllowDownload === 'object') {
+    for (const [publicId, allow] of Object.entries(filesAllowDownload)) {
+      await prisma.orderFile.updateMany({
+        where: { publicId, orderId: fullOrder.id },
+        data: { allowDownload: Boolean(allow) },
+      });
+    }
+  } else if (typeof allowDownload === 'boolean') {
+    await prisma.orderFile.updateMany({
+      where: { orderId: fullOrder.id },
+      data: { allowDownload },
+    });
+  }
 
   // Determine if customer chose Online Payment and whether shop has it enabled
   const isOnlinePaymentEnabled = shop.shopSettings?.paymentEnabled || false;
@@ -983,7 +997,57 @@ async function getOrderByNumber(orderNumber) {
   };
 }
 
+
+/**
+ * Update single file download permission (Customer choice)
+ */
+async function updateFileDownloadPermission(sessionToken, filePublicId, allowDownload) {
+  const { session, draftOrder } = await validateSession(sessionToken);
+
+  const file = await prisma.orderFile.findFirst({
+    where: { publicId: filePublicId, orderId: draftOrder.id },
+  });
+
+  if (!file) {
+    const err = new Error('File not found in current session order.');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const isAllowed = allowDownload === true || allowDownload === 'true' || allowDownload === 1 || allowDownload === '1';
+
+  const updated = await prisma.orderFile.update({
+    where: { id: file.id },
+    data: { allowDownload: isAllowed },
+  });
+
+  return {
+    filePublicId,
+    allowDownload: Boolean(updated.allowDownload),
+  };
+}
+
+/**
+ * Update all files download permission in session (Customer choice)
+ */
+async function updateAllFilesDownloadPermission(sessionToken, allowDownload) {
+  const { session, draftOrder } = await validateSession(sessionToken);
+
+  const isAllowed = allowDownload === true || allowDownload === 'true' || allowDownload === 1 || allowDownload === '1';
+
+  await prisma.orderFile.updateMany({
+    where: { orderId: draftOrder.id },
+    data: { allowDownload: isAllowed },
+  });
+
+  return {
+    allowDownload: isAllowed,
+  };
+}
+
 module.exports = {
+  updateFileDownloadPermission,
+  updateAllFilesDownloadPermission,
   getShopByCode,
   getOrCreateSession,
   validateSession,

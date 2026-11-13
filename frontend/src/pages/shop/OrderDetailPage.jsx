@@ -879,6 +879,15 @@ export default function OrderDetailPage() {
                           <Badge variant={filePurged ? 'red' : file.status === 'PRINTED' ? 'green' : 'gray'} dot>
                             {filePurged ? 'PURGED' : file.status}
                           </Badge>
+                          {file.allowDownload ? (
+                            <Badge variant="green" size="sm">
+                              Download Allowed
+                            </Badge>
+                          ) : (
+                            <Badge variant="gray" size="sm">
+                              Direct Print Only
+                            </Badge>
+                          )}
                           {file.printJobsCount > 0 && (
                             <Badge variant="yellow" size="sm">
                               {file.printJobsCount} {file.printJobsCount === 1 ? 'print' : 'prints'}

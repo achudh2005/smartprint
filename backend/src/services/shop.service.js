@@ -543,6 +543,8 @@ async function getOrderDetails(shopId, userId, orderId) {
     totalPages,
     orderFiles: (order.orderFiles || []).map((f) => ({
       ...f,
+      allowDownload: Boolean(f.allowDownload),
+      ...f,
       fileSizeBytes: (f.fileSizeBytes || 0).toString(),
       printJobsCount: (f.printJobs || []).length,
       hasPrintedBefore: (f.printJobs || []).length > 0,

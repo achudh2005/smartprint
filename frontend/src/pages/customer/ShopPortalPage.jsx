@@ -4,8 +4,7 @@ import {
   UploadCloud, FileText, CheckCircle2, AlertCircle, X, Eye,
   Plus, Minus, Settings2, Sparkles, Store, Clock, MapPin,
   Phone, ArrowRight, RefreshCw, Layers, ShieldCheck, File,
-  Repeat, Ban, Info, CreditCard, Banknote, User
-} from 'lucide-react'
+  Repeat, Ban, Info, CreditCard, Banknote, User, Download, Lock } from 'lucide-react'
 import { Card, CardHeader, CardBody, Button, Badge, Spinner, Alert, ThemeToggle } from '../../components/ui'
 import api from '../../lib/api'
 import { openRazorpayCheckout } from '../../lib/razorpay'
@@ -283,6 +282,58 @@ export default function ShopPortalPage() {
     }
   }
 
+  
+  // Toggle single file download permission
+  const handleToggleDownloadPermission = async (filePublicId, nextValue) => {
+    setDraftOrder((prev) => ({
+      ...prev,
+      files: (prev.files || []).map((f) =>
+        f.publicId === filePublicId ? { ...f, allowDownload: nextValue } : f
+      ),
+    }))
+
+    try {
+      await api.patch(
+        `/customer/sessions/${sessionToken}/files/${filePublicId}/download-permission`,
+        { allowDownload: nextValue }
+      )
+      toast.success(
+        nextValue
+          ? 'Shop download turned ON for this file'
+          : 'Shop download turned OFF (Direct Print only)'
+      )
+    } catch (_) {
+      try {
+        await handleConfigUpdate(filePublicId, 'allowDownload', nextValue)
+      } catch (err) {
+        toast.error('Failed to update download permission.')
+      }
+    }
+  }
+
+  // Toggle all files download permission
+  const handleToggleAllDownload = async (enable) => {
+    setDraftOrder((prev) => ({
+      ...prev,
+      files: (prev.files || []).map((f) => ({ ...f, allowDownload: enable })),
+    }))
+
+    try {
+      await api.patch(`/customer/sessions/${sessionToken}/download-permission`, {
+        allowDownload: enable,
+      })
+      toast.success(
+        enable
+          ? 'Shop download turned ON for all files'
+          : 'Shop download turned OFF for all files'
+      )
+    } catch (_) {
+      for (const f of (draftOrder?.files || [])) {
+        handleConfigUpdate(f.publicId, 'allowDownload', enable)
+      }
+    }
+  }
+
   // 4. Toggle Additional Service
   const handleToggleService = async (filePublicId, serviceId, isAttached) => {
     try {
@@ -325,12 +376,18 @@ export default function ShopPortalPage() {
 
     try {
       setSubmitting(true)
+      const filesAllowDownload = (draftOrder?.files || []).reduce((acc, f) => {
+        acc[f.publicId] = Boolean(f.allowDownload)
+        return acc
+      }, {})
+
       const { data } = await api.post(`/customer/sessions/${sessionToken}/confirm`, {
         customerName: customerName.trim(),
         customerPhone: customerPhone.trim(),
         notes: customerNotes,
         expiryOption,
         paymentMethod,
+        filesAllowDownload,
       })
 
       const confirmed = data.data
@@ -712,6 +769,37 @@ export default function ShopPortalPage() {
                       </div>
                     </div>
 
+                    
+                      {/* Visible Download Permission ON/OFF bar directly on file card */}
+                      <div className="flex items-center justify-between px-3 sm:px-4 py-2 sm:py-2.5 bg-[var(--surface-hover)] border-t border-[var(--border)] rounded-b-xl text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-flex items-center gap-1.5 font-semibold text-[11px] px-2.5 py-0.5 rounded-full ${
+                            file.allowDownload
+                              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                              : 'bg-slate-500/10 text-[var(--text-muted)] border border-[var(--border)]'
+                          }`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${file.allowDownload ? 'bg-emerald-500' : 'bg-slate-400'}`} />
+                            {file.allowDownload ? 'Shop Download: ON' : 'Shop Download: OFF'}
+                          </span>
+                          <span className="text-[var(--text-muted)] text-[11px] hidden sm:inline">
+                            {file.allowDownload
+                              ? 'Shop owner is allowed to download this file'
+                              : 'Direct Print only — shop owner cannot save or keep a copy'}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleDownloadPermission(file.publicId, !file.allowDownload)}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition-all shadow-xs ${
+                            file.allowDownload
+                              ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                              : 'bg-[var(--surface)] text-[var(--text-muted)] hover:text-[var(--text)] border border-[var(--border)]'
+                          }`}
+                        >
+                          <span>{file.allowDownload ? 'ON' : 'OFF'}</span>
+                        </button>
+                      </div>
+
                     {/* Inline Configuration Details */}
                     {isConfigActive && (
                       <div className="bg-[var(--surface-hover)] border-t border-[var(--border)] p-4 sm:p-5 rounded-b-xl space-y-4">
@@ -930,6 +1018,48 @@ export default function ShopPortalPage() {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              
+              {/* Order-wide Shop Download Permission Switch */}
+              <div className="pt-3 border-t border-[var(--border)]">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-lg bg-[var(--surface-hover)] border border-[var(--border)]">
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <Download size={13} strokeWidth={2} className="text-[#0E7490]" />
+                      <label className="text-xs font-semibold text-[var(--text)]">
+                        Shop Download Permission
+                      </label>
+                    </div>
+                    <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
+                      Allow print shop owner to download files to their computer. Turn OFF for ID cards or sensitive personal files.
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleAllDownload(true)}
+                      className={`px-3 py-1 text-xs font-bold rounded-lg border transition-all ${
+                        draftOrder.files.every((f) => f.allowDownload)
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                          : 'bg-[var(--surface)] border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)]'
+                      }`}
+                    >
+                      Allow All (ON)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleAllDownload(false)}
+                      className={`px-3 py-1 text-xs font-bold rounded-lg border transition-all ${
+                        draftOrder.files.every((f) => !f.allowDownload)
+                          ? 'bg-slate-700 text-white border-slate-700 dark:bg-slate-800 shadow-xs'
+                          : 'bg-[var(--surface)] border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)]'
+                      }`}
+                    >
+                      Block All (OFF)
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* Customer Information */}
