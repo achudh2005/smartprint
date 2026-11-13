@@ -247,6 +247,7 @@ model OrderFile {
   fileSizeBytes   BigInt          @map("file_size_bytes")
   pageCount       Int?            @map("page_count")
   status          OrderFileStatus @default(UPLOADED)
+  allowDownload   Boolean         @default(false) @map("allow_download")
   uploadedAt      DateTime        @default(now()) @map("uploaded_at")
   updatedAt       DateTime        @updatedAt @map("updated_at")
 

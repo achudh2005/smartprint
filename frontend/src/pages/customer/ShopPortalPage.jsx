@@ -5,7 +5,7 @@ import {
   Plus, Minus, Settings2, Sparkles, Store, Clock, MapPin,
   Phone, ArrowRight, RefreshCw, Layers, ShieldCheck, File,
   Repeat, Ban, Info, CreditCard, Banknote, User, Download, Lock } from 'lucide-react'
-import { Card, CardHeader, CardBody, Button, Badge, Spinner, Alert, ThemeToggle } from '../../components/ui'
+import { Card, CardHeader, CardBody, Button, Badge, Spinner, Alert, ThemeToggle, Toggle } from '../../components/ui'
 import api from '../../lib/api'
 import { openRazorpayCheckout } from '../../lib/razorpay'
 import toast from 'react-hot-toast'
@@ -927,29 +927,13 @@ export default function ShopPortalPage() {
 
                         
                         {/* Download Permission Toggle */}
-                        <div className="pt-3 border-t border-[var(--border)] flex items-start justify-between gap-4">
-                          <div className="space-y-0.5 max-w-[80%]">
-                            <label className="text-xs font-semibold text-[var(--text)] flex items-center gap-1.5 cursor-pointer">
-                              <span>Allow shop to download this file</span>
-                              {file.allowDownload && (
-                                <span className="text-[10px] uppercase font-bold tracking-wider px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                                  Allowed
-                                </span>
-                              )}
-                            </label>
-                            <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
-                              Off by default for your privacy (e.g. ID documents). When off, the shop can only print this file directly — they cannot save or keep a copy.
-                            </p>
-                          </div>
-                          <label className="relative inline-flex items-center cursor-pointer shrink-0 mt-0.5">
-                            <input
-                              type="checkbox"
-                              checked={Boolean(file.allowDownload)}
-                              onChange={(e) => handleConfigUpdate(file.publicId, 'allowDownload', e.target.checked)}
-                              className="sr-only peer"
-                            />
-                            <div className="w-10 h-5 bg-[var(--border)] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#0E7490]"></div>
-                          </label>
+                        <div className="pt-3 border-t border-[var(--border)]">
+                          <Toggle
+                            label="Allow shop to download this file"
+                            description="Off by default. When off, the shop can only print this file directly and cannot save a copy of it. Turn this on only if you're okay with the shop keeping a copy (for example, if it's not a sensitive document like an ID)."
+                            checked={Boolean(file.allowDownload)}
+                            onChange={(val) => handleConfigUpdate(file.publicId, 'allowDownload', typeof val === 'boolean' ? val : Boolean(val?.target?.checked))}
+                          />
                         </div>
 
                         {/* Additional Services for this file */}

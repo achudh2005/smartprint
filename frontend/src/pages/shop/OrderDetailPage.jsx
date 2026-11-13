@@ -1216,15 +1216,22 @@ export default function OrderDetailPage() {
                     <p className="text-xs text-[var(--text-muted)] mt-1">
                       Native browser preview is not available for this format. Use the download button to inspect on your PC.
                     </p>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      className="mt-3"
-                      loading={downloadingFileId === previewFile.id}
-                      onClick={() => handleDownloadFile(previewFile)}
-                    >
-                      <Download size={13} strokeWidth={1.75} /> Download File
-                    </Button>
+                    {previewFile.allowDownload ? (
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        className="mt-3"
+                        loading={downloadingFileId === previewFile.id}
+                        onClick={() => handleDownloadFile(previewFile)}
+                      >
+                        <Download size={13} strokeWidth={1.75} /> Download File
+                      </Button>
+                    ) : (
+                      <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] text-xs text-[var(--text-muted)]">
+                        <Lock size={12} strokeWidth={1.75} />
+                        <span>Customer has not allowed downloading this file.</span>
+                      </div>
+                    )}
                   </div>
                 )
               ) : (
@@ -1232,14 +1239,21 @@ export default function OrderDetailPage() {
                   <AlertCircle size={36} strokeWidth={1.75} className="text-amber-500 mx-auto mb-2" />
                   <p className="text-sm font-semibold text-[var(--text)]">Preview Unavailable</p>
                   <p className="text-xs text-[var(--text-muted)] mt-1 mb-3">Unable to stream document preview.</p>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    loading={downloadingFileId === previewFile.id}
-                    onClick={() => handleDownloadFile(previewFile)}
-                  >
-                    <Download size={13} strokeWidth={1.75} /> Download Instead
-                  </Button>
+                  {previewFile.allowDownload ? (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      loading={downloadingFileId === previewFile.id}
+                      onClick={() => handleDownloadFile(previewFile)}
+                    >
+                      <Download size={13} strokeWidth={1.75} /> Download Instead
+                    </Button>
+                  ) : (
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] text-xs text-[var(--text-muted)]">
+                      <Lock size={12} strokeWidth={1.75} />
+                      <span>Customer has not allowed downloading this file.</span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

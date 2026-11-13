@@ -298,7 +298,7 @@ const downloadFile = async (req, res, next) => {
     assertDocumentNotExpired(file);
 
     if (!file.allowDownload) {
-      return sendError(res, 'Download not permitted for this file.', 403);
+      return sendError(res, 'The customer has not allowed this file to be downloaded.', 403);
     }
 
     res.setHeader('Content-Type', file.mimeType || 'application/octet-stream');
