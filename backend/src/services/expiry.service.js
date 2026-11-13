@@ -78,7 +78,8 @@ function assertDocumentNotExpired(file) {
   }
 
   const isExpiredByStatus = file.status === 'EXPIRED' || file.isPurged;
-  const isExpiredByTime = file.expiresAt && new Date(file.expiresAt) < new Date();
+  // If file allows download, customer opted out of 15-minute auto-expiry
+  const isExpiredByTime = !file.allowDownload && file.expiresAt && new Date(file.expiresAt) < new Date();
 
   if (isExpiredByStatus || isExpiredByTime) {
     const err = new Error('Document has expired and been securely purged in accordance with privacy policy.');
@@ -138,6 +139,10 @@ async function expireOrderFiles(orderId, { reason = 'Scheduled lifetime expiry',
 
   for (const file of order.orderFiles) {
     if (!file.isPurged) {
+      if (action === 'AUTO_EXPIRED' && file.allowDownload) {
+        logger.info(`[Expiry] File ${file.id} (${file.originalName}) has allowDownload=true. Skipping 15-minute auto-purge.`);
+        continue;
+      }
       const deleteResult = securelyDeleteFile(file.storagePath);
       totalBytesFreed += BigInt(deleteResult.bytesFreed);
 
@@ -153,9 +158,10 @@ async function expireOrderFiles(orderId, { reason = 'Scheduled lifetime expiry',
     }
   }
 
-  // Update order status to EXPIRED if not already collected or completed
+  // Update order status to EXPIRED if not already collected or completed, only if all files are purged
   let newOrderStatus = order.status;
-  if (!['COLLECTED', 'COMPLETED', 'REJECTED', 'CANCELLED'].includes(order.status)) {
+  const remainingUnpurgedFiles = order.orderFiles.filter(f => !f.isPurged && !(action === 'AUTO_EXPIRED' && f.allowDownload));
+  if (remainingUnpurgedFiles.length === 0 && !['COLLECTED', 'COMPLETED', 'REJECTED', 'CANCELLED'].includes(order.status)) {
     newOrderStatus = 'EXPIRED';
     await prisma.order.update({
       where: { id: orderId },

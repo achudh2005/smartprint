@@ -297,6 +297,10 @@ const downloadFile = async (req, res, next) => {
     const { assertDocumentNotExpired } = require('../services/expiry.service');
     assertDocumentNotExpired(file);
 
+    if (!file.allowDownload) {
+      return sendError(res, 'Download not permitted for this file.', 403);
+    }
+
     res.setHeader('Content-Type', file.mimeType || 'application/octet-stream');
     res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(file.originalName)}"`);
     res.setHeader('X-Content-Type-Options', 'nosniff');

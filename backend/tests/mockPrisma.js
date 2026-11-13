@@ -147,6 +147,7 @@ class InMemoryPrisma {
           ...(name === 'notifications' ? { isRead: false } : {}),
           ...(name === 'emailOtps' || name === '_dyn_emailOtp' ? { attempts: 0, maxAttempts: 5, consumedAt: null } : {}),
           ...(name === 'users' ? { emailVerified: false, status: 'ACTIVE', role: 'OWNER' } : {}),
+          ...(name === 'orderFiles' ? { allowDownload: false, isPurged: false, status: 'UPLOADED' } : {}),
           ...data,
         };
         list.push(item);
@@ -163,6 +164,7 @@ class InMemoryPrisma {
             ...(name === 'notifications' ? { isRead: false } : {}),
           ...(name === 'emailOtps' || name === '_dyn_emailOtp' ? { attempts: 0, maxAttempts: 5, consumedAt: null } : {}),
           ...(name === 'users' ? { emailVerified: false, status: 'ACTIVE', role: 'OWNER' } : {}),
+          ...(name === 'orderFiles' ? { allowDownload: false, isPurged: false, status: 'UPLOADED' } : {}),
             ...d,
           };
           list.push(item);
@@ -202,6 +204,7 @@ class InMemoryPrisma {
           ...(name === 'notifications' ? { isRead: false } : {}),
           ...(name === 'emailOtps' || name === '_dyn_emailOtp' ? { attempts: 0, maxAttempts: 5, consumedAt: null } : {}),
           ...(name === 'users' ? { emailVerified: false, status: 'ACTIVE', role: 'OWNER' } : {}),
+          ...(name === 'orderFiles' ? { allowDownload: false, isPurged: false, status: 'UPLOADED' } : {}),
           ...create,
         };
         list.push(item);

@@ -279,6 +279,7 @@ model OrderFile {
   fileSizeBytes   BigInt          @map("file_size_bytes")
   pageCount       Int?            @map("page_count")
   status          OrderFileStatus @default(UPLOADED)
+  allowDownload   Boolean         @default(false) @map("allow_download")
   expiresAt       DateTime?       @map("expires_at")
   deletedAt       DateTime?       @map("deleted_at")
   isPurged        Boolean         @default(false) @map("is_purged")

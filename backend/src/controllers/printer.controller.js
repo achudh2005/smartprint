@@ -54,9 +54,10 @@ const generateAgentToken = async (req, res, next) => {
 const dispatchDirectPrint = async (req, res, next) => {
   try {
     const shopId = parseInt(req.params.shopId, 10);
-    const { orderId, fileId, printerId } = req.body;
+    const orderId = parseInt(req.params.orderId || req.body.orderId, 10);
+    const { fileId, printerId } = req.body;
     const result = await printerService.dispatchDirectPrint(shopId, req.user.id, {
-      orderId: parseInt(orderId, 10),
+      orderId,
       fileId: fileId ? parseInt(fileId, 10) : undefined,
       printerId: printerId ? parseInt(printerId, 10) : undefined,
     });

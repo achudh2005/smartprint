@@ -413,6 +413,16 @@ async function updateFileConfiguration(sessionToken, filePublicId, newConfig) {
     throw err;
   }
 
+  // Handle allowDownload toggle if explicitly provided
+  let allowDownload = Boolean(file.allowDownload);
+  if (typeof newConfig.allowDownload === 'boolean') {
+    allowDownload = Boolean(newConfig.allowDownload);
+    await prisma.orderFile.update({
+      where: { id: file.id },
+      data: { allowDownload },
+    });
+  }
+
   // Sanitize and validate inputs
   const copies = Math.max(1, parseInt(newConfig.copies, 10) || 1);
   const colorMode = ['COLOR', 'BLACK_WHITE', 'GRAYSCALE'].includes(newConfig.colorMode) ? newConfig.colorMode : 'BLACK_WHITE';
@@ -475,6 +485,7 @@ async function updateFileConfiguration(sessionToken, filePublicId, newConfig) {
 
   return {
     filePublicId,
+    allowDownload,
     printConfiguration: updatedConfig,
     pricing,
     orderTotal: orderSummary.totalAmount,
@@ -955,6 +966,7 @@ async function getOrderByNumber(orderNumber) {
       originalName: f.originalName,
       pageCount: f.pageCount,
       status: f.status,
+      allowDownload: Boolean(f.allowDownload),
       printConfiguration: f.printConfiguration || null,
       services: (f.orderFileServices || []).map((s) => ({
         name: s.additionalService?.name || s.name || 'Service',

@@ -4,11 +4,11 @@ import {
   ArrowLeft, FileText, Printer, CheckCircle2, XCircle, AlertTriangle,
   Download, Eye, Clock, ShieldCheck, User, Copy, Check, X,
   Layers, ChevronRight, RefreshCw, AlertCircle, Trash2, CreditCard, Banknote,
-  PlusCircle, Flame, History, Phone
-} from 'lucide-react'
+  PlusCircle, Flame, History, Phone, Lock } from 'lucide-react'
 import { PageHeader, Card, CardHeader, CardBody, Button, Spinner, Badge, Alert } from '../../components/ui'
 import ShopNavTabs from '../../components/shop/ShopNavTabs'
 import api from '../../lib/api'
+import { getSocket } from '../../lib/socket'
 import toast from 'react-hot-toast'
 
 export default function OrderDetailPage() {
@@ -33,6 +33,11 @@ export default function OrderDetailPage() {
   const [copied, setCopied] = useState(false)
   const [timeLeft, setTimeLeft] = useState('')
   const [isExpired, setIsExpired] = useState(false)
+  const [printers, setPrinters] = useState([])
+  const [selectedPrinterId, setSelectedPrinterId] = useState(null)
+  const [printersLoading, setPrintersLoading] = useState(true)
+  const [activePrintJobs, setActivePrintJobs] = useState({})
+  const [printingAll, setPrintingAll] = useState(false)
 
   const fetchOrder = async () => {
     try {
@@ -48,8 +53,62 @@ export default function OrderDetailPage() {
     }
   }
 
+  const fetchPrinters = async () => {
+    try {
+      setPrintersLoading(true)
+      const { data } = await api.get(`/shops/${shopId}/printers`)
+      const list = data.data?.printers || []
+      setPrinters(list)
+      const def = list.find((p) => p.isDefault) || list[0]
+      if (def) setSelectedPrinterId((prev) => prev || def.id)
+    } catch (err) {
+      console.error('Failed to load printers:', err)
+    } finally {
+      setPrintersLoading(false)
+    }
+  }
+
+  const fetchPrintJobs = async () => {
+    try {
+      const { data } = await api.get(`/shops/${shopId}/print-jobs`, { params: { orderId } })
+      const jobs = data.data?.jobs || []
+      const jobMap = {}
+      jobs.forEach((j) => {
+        if (!jobMap[j.fileId] || new Date(j.createdAt) > new Date(jobMap[j.fileId].createdAt)) {
+          jobMap[j.fileId] = j
+        }
+      })
+      setActivePrintJobs(jobMap)
+    } catch (_) {}
+  }
+
   useEffect(() => {
     fetchOrder()
+    fetchPrinters()
+    fetchPrintJobs()
+  }, [shopId, orderId])
+
+  useEffect(() => {
+    const socket = getSocket()
+    if (socket) {
+      const handleJobUpdate = (job) => {
+        if (job && job.fileId) {
+          setActivePrintJobs((prev) => ({ ...prev, [job.fileId]: job }))
+          fetchOrder()
+        }
+      }
+      const handlePrintersSynced = () => {
+        fetchPrinters()
+      }
+      socket.on('print_job:status_updated', handleJobUpdate)
+      socket.on('print_jobs:new', handleJobUpdate)
+      socket.on('printers:synced', handlePrintersSynced)
+      return () => {
+        socket.off('print_job:status_updated', handleJobUpdate)
+        socket.off('print_jobs:new', handleJobUpdate)
+        socket.off('printers:synced', handlePrintersSynced)
+      }
+    }
   }, [shopId, orderId])
 
   // Expiration countdown
@@ -163,32 +222,63 @@ export default function OrderDetailPage() {
     }
   }
 
-  const handleRecordPrintJob = async (fileId, hasPrintedBefore) => {
+  const onlinePrinters = printers.filter((p) => p.status === 'ONLINE')
+  const hasOnlinePrinter = onlinePrinters.length > 0
+
+  const handleDirectPrint = async (fileId) => {
     if (isExpired) {
       toast.error('Cannot print: Document has expired and been securely deleted from storage.')
       return
     }
-
-    if (hasPrintedBefore) {
-      const confirmed = window.confirm('Warning: This file was already printed. Do you want to record another reprint attempt?')
-      if (!confirmed) return
+    if (!hasOnlinePrinter) {
+      toast.error('No printer online. Please connect and run the print-agent.')
+      return
     }
 
     try {
       setPrintingFileId(fileId)
-      const { data } = await api.post(`/shops/${shopId}/orders/${orderId}/files/${fileId}/print-job`)
-      if (data.data.warning) {
-        toast(data.data.warning, { icon: '⚠️' })
-      } else {
-        toast.success('Print attempt recorded!')
-      }
+      const targetPrinter = selectedPrinterId || onlinePrinters[0]?.id
+      await api.post(`/shops/${shopId}/orders/${orderId}/print-direct`, {
+        fileId,
+        printerId: targetPrinter,
+      })
+      toast.success('Print job dispatched to printer queue!')
       fetchOrder()
+      fetchPrintJobs()
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to record print job.')
+      toast.error(err.response?.data?.message || 'Failed to dispatch print job.')
     } finally {
       setPrintingFileId(null)
     }
   }
+
+  const handlePrintAll = async () => {
+    if (isExpired) {
+      toast.error('Cannot print: Document has expired and been securely deleted from storage.')
+      return
+    }
+    if (!hasOnlinePrinter) {
+      toast.error('No printer online. Please connect and run the print-agent.')
+      return
+    }
+
+    try {
+      setPrintingAll(true)
+      const targetPrinter = selectedPrinterId || onlinePrinters[0]?.id
+      await api.post(`/shops/${shopId}/orders/${orderId}/print-direct`, {
+        printerId: targetPrinter,
+      })
+      toast.success('All files queued for direct printing!')
+      fetchOrder()
+      fetchPrintJobs()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to dispatch print jobs.')
+    } finally {
+      setPrintingAll(false)
+    }
+  }
+
+  const handleRecordPrintJob = handleDirectPrint;
 
   const handleDownloadFile = async (file) => {
     try {
@@ -695,6 +785,80 @@ export default function OrderDetailPage() {
           <span className="text-xs text-[var(--text-muted)]">Each document has independent print settings</span>
         </div>
 
+        {/* ── Direct Print Service & Printer Selector ── */}
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-card">
+          <div className="flex items-center gap-3">
+            <div className="relative flex items-center justify-center w-3 h-3">
+              {hasOnlinePrinter ? (
+                <>
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span className="absolute -inset-0.5 rounded-full bg-emerald-500/30 animate-ping"></span>
+                </>
+              ) : (
+                <span className="w-2.5 h-2.5 rounded-full bg-[var(--text-muted)] opacity-50"></span>
+              )}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold text-[var(--text)]">Direct Print Service</span>
+                {hasOnlinePrinter ? (
+                  <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                    Ready
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-full bg-[var(--surface-hover)] text-[var(--text-muted)]">
+                    Agent Offline
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-[var(--text-muted)] mt-0.5">
+                {hasOnlinePrinter
+                  ? `Hardware connected. Spooled files are cleared automatically after printing.`
+                  : `No printer connected — connect the print-agent to enable Direct Print.`}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {printers.length > 0 ? (
+              <div className="flex items-center gap-1.5">
+                <Printer size={14} className="text-[var(--text-muted)]" />
+                <select
+                  value={selectedPrinterId || ''}
+                  onChange={(e) => setSelectedPrinterId(Number(e.target.value))}
+                  className="input text-xs py-1.5 px-2.5 min-h-[34px] bg-[var(--surface)] border-[var(--border)] text-[var(--text)] rounded-lg font-medium"
+                >
+                  {printers.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} {p.status === 'ONLINE' ? '● Online' : '○ Offline'} {p.isDefault ? '(Default)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <Link
+                to={`/shops/${shopId}/printers`}
+                className="text-xs font-medium text-[#0E7490] hover:underline flex items-center gap-1"
+              >
+                Configure printers &rarr;
+              </Link>
+            )}
+
+            {order.orderFiles && order.orderFiles.length > 1 && (
+              <Button
+                variant="primary"
+                size="sm"
+                loading={printingAll}
+                disabled={!hasOnlinePrinter || isExpired}
+                onClick={handlePrintAll}
+                title={!hasOnlinePrinter ? 'Print agent must be running to Direct Print' : 'Print all order documents'}
+              >
+                <Printer size={13} strokeWidth={2} /> Print All
+              </Button>
+            )}
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 gap-4">
           {order.orderFiles?.map((file, idx) => {
             const cfg = file.printConfiguration || {}
@@ -738,23 +902,75 @@ export default function OrderDetailPage() {
                           >
                             <Eye size={13} strokeWidth={1.75} /> Preview
                           </Button>
-                          <Button
-                            variant="secondary"
-                            size="sm"
-                            loading={downloadingFileId === file.id}
-                            onClick={() => handleDownloadFile(file)}
-                          >
-                            <Download size={13} strokeWidth={1.75} /> Download
-                          </Button>
-                          <Button
-                            variant={hasPrinted ? 'secondary' : 'primary'}
-                            size="sm"
-                            loading={printingFileId === file.id}
-                            onClick={() => handleRecordPrintJob(file.id, hasPrinted)}
-                            className={hasPrinted ? 'border-amber-300 text-amber-800 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-400' : ''}
-                          >
-                            <Printer size={13} strokeWidth={1.75} /> {hasPrinted ? 'Reprint File' : 'Mark Printed'}
-                          </Button>
+
+                          {/* Download Button: Gated by allowDownload */}
+                          {file.allowDownload ? (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              loading={downloadingFileId === file.id}
+                              onClick={() => handleDownloadFile(file)}
+                            >
+                              <Download size={13} strokeWidth={1.75} /> Download
+                            </Button>
+                          ) : (
+                            <div className="relative group inline-block">
+                              <Button
+                                variant="secondary"
+                                size="sm"
+                                disabled
+                                className="opacity-50 cursor-not-allowed border-dashed"
+                              >
+                                <Lock size={12} strokeWidth={1.75} className="text-[var(--text-muted)]" /> Download
+                              </Button>
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block z-50 w-60 p-2 text-[11px] leading-tight text-white bg-slate-900 rounded-lg shadow-lg text-center pointer-events-none">
+                                Customer has not allowed downloading this file. Use Print.
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Primary Direct Print Button */}
+                          <div className="relative group inline-block">
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              disabled={!hasOnlinePrinter || isExpired}
+                              loading={printingFileId === file.id}
+                              onClick={() => handleDirectPrint(file.id)}
+                            >
+                              <Printer size={13} strokeWidth={1.75} /> Print
+                            </Button>
+                            {!hasOnlinePrinter && (
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:block z-50 w-52 p-2 text-[11px] leading-tight text-white bg-slate-900 rounded-lg shadow-lg text-center pointer-events-none">
+                                Connect the print-agent to enable Direct Print.
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Inline Print Job Status Badge */}
+                          {activePrintJobs[file.id] && (
+                            <Badge
+                              variant={
+                                activePrintJobs[file.id].status === 'DRIVER_COMPLETED' || activePrintJobs[file.id].status === 'COMPLETED'
+                                  ? 'green'
+                                  : activePrintJobs[file.id].status === 'FAILED'
+                                  ? 'red'
+                                  : activePrintJobs[file.id].status === 'SUBMITTED_TO_OS' || activePrintJobs[file.id].status === 'PRINTING'
+                                  ? 'blue'
+                                  : 'yellow'
+                              }
+                              size="sm"
+                              dot
+                            >
+                              {activePrintJobs[file.id].status === 'DRIVER_COMPLETED'
+                                ? 'Printed'
+                                : activePrintJobs[file.id].status === 'SUBMITTED_TO_OS'
+                                ? 'Sent to OS'
+                                : activePrintJobs[file.id].status === 'QUEUED'
+                                ? 'Queued'
+                                : activePrintJobs[file.id].status}
+                            </Badge>
+                          )}
                         </>
                       ) : (
                         <span className="text-xs text-red-600 dark:text-red-400 font-semibold flex items-center gap-1">
@@ -886,22 +1102,50 @@ export default function OrderDetailPage() {
                 </h3>
               </div>
               <div className="flex items-center gap-2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  loading={downloadingFileId === previewFile.id}
-                  onClick={() => handleDownloadFile(previewFile)}
-                >
-                  <Download size={13} strokeWidth={1.75} /> Download
-                </Button>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  disabled={!previewBlobUrl}
-                  onClick={() => previewBlobUrl && window.open(previewBlobUrl, '_blank')}
-                >
-                  <Printer size={13} strokeWidth={1.75} /> Open to Print
-                </Button>
+                {/* Download Button Gated */}
+                {previewFile.allowDownload ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    loading={downloadingFileId === previewFile.id}
+                    onClick={() => handleDownloadFile(previewFile)}
+                  >
+                    <Download size={13} strokeWidth={1.75} /> Download
+                  </Button>
+                ) : (
+                  <div className="relative group inline-block">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled
+                      className="opacity-50 cursor-not-allowed border-dashed"
+                    >
+                      <Lock size={12} strokeWidth={1.75} className="text-[var(--text-muted)]" /> Download
+                    </Button>
+                    <div className="absolute top-full right-0 mt-1.5 hidden group-hover:block z-50 w-56 p-2 text-[11px] leading-tight text-white bg-slate-900 rounded-lg shadow-lg text-center pointer-events-none">
+                      Customer has not allowed downloading this file. Use Print.
+                    </div>
+                  </div>
+                )}
+
+                {/* Direct Print Button */}
+                <div className="relative group inline-block">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    disabled={!hasOnlinePrinter || isExpired}
+                    loading={printingFileId === previewFile.id}
+                    onClick={() => handleDirectPrint(previewFile.id)}
+                  >
+                    <Printer size={13} strokeWidth={1.75} /> Direct Print
+                  </Button>
+                  {!hasOnlinePrinter && (
+                    <div className="absolute top-full right-0 mt-1.5 hidden group-hover:block z-50 w-52 p-2 text-[11px] leading-tight text-white bg-slate-900 rounded-lg shadow-lg text-center pointer-events-none">
+                      Connect the print-agent to enable Direct Print.
+                    </div>
+                  )}
+                </div>
+
                 <button
                   onClick={() => setPreviewFile(null)}
                   className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)] transition-colors duration-150 ml-1"
