@@ -29,11 +29,13 @@ export default function MergePdfModal({ isOpen, onClose, currentPage, onMergePdf
     setLoading(true);
     try {
       const buffer = await selectedFile.arrayBuffer();
-      await onMergePdf(buffer, insertPosition);
-      toast.success(`Merged pages from ${selectedFile.name}`);
+      const res = await onMergePdf(buffer, insertPosition);
+      const count = res?.insertedCount ? `${res.insertedCount} page(s)` : 'pages';
+      toast.success(`Merged ${count} from ${selectedFile.name}`);
       onClose();
     } catch (err) {
-      toast.error('Failed to merge PDF: ' + err.message);
+      console.error('Merge PDF error:', err);
+      toast.error('Failed to merge PDF: ' + (err.message || 'Invalid or unreadable PDF'));
     } finally {
       setLoading(false);
     }

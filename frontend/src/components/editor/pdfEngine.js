@@ -10,26 +10,47 @@ if (typeof window !== 'undefined') {
 // Track cached PDF.js document to avoid re-parsing 50+ page PDFs on every click
 let cachedPdfDoc = null;
 let cachedPdfBytes = null;
+let inFlightDocPromise = null;
 let currentRenderTask = null;
+let thumbnailRenderQueue = Promise.resolve();
 
 export async function getPdfJsDocument(pdfBytes) {
   if (cachedPdfDoc && cachedPdfBytes === pdfBytes) {
     return cachedPdfDoc;
   }
-  const data = pdfBytes instanceof Uint8Array ? pdfBytes : new Uint8Array(pdfBytes);
-  const loadingTask = pdfjsLib.getDocument({
-    data,
-    cMapUrl: 'https://unpkg.com/pdfjs-dist@6.5.438/cmaps/',
-    cMapPacked: true,
-  });
-  cachedPdfDoc = await loadingTask.promise;
+  if (inFlightDocPromise && cachedPdfBytes === pdfBytes) {
+    return inFlightDocPromise;
+  }
   cachedPdfBytes = pdfBytes;
-  return cachedPdfDoc;
+  // Use a copy slice so PDF.js doesn't detach caller's ArrayBuffer in worker
+  const data = (pdfBytes instanceof Uint8Array ? pdfBytes : new Uint8Array(pdfBytes)).slice();
+
+  inFlightDocPromise = (async () => {
+    try {
+      const loadingTask = pdfjsLib.getDocument({
+        data,
+        cMapUrl: 'https://unpkg.com/pdfjs-dist@6.5.438/cmaps/',
+        cMapPacked: true,
+      });
+      cachedPdfDoc = await loadingTask.promise;
+      return cachedPdfDoc;
+    } finally {
+      inFlightDocPromise = null;
+    }
+  })();
+
+  return inFlightDocPromise;
 }
 
 export function invalidatePdfJsCache() {
+  if (cachedPdfDoc) {
+    try {
+      cachedPdfDoc.destroy();
+    } catch (_) {}
+  }
   cachedPdfDoc = null;
   cachedPdfBytes = null;
+  inFlightDocPromise = null;
 }
 
 /**
@@ -153,26 +174,49 @@ export async function renderPdfPage(pdfBytes, pageNumber, canvas, scale = 1.0) {
 
 /**
  * Render a small thumbnail of a PDF page onto a thumbnail canvas
+ * Uses a sequential promise queue to avoid concurrency bottlenecks on the PDF.js worker.
  */
 export async function renderPdfThumbnail(pdfBytes, pageNumber, canvas) {
-  if (!canvas || !pdfBytes) return;
-  try {
-    const pdf = await getPdfJsDocument(pdfBytes);
-    if (pageNumber > pdf.numPages || pageNumber < 1) return;
-    const page = await pdf.getPage(pageNumber);
-    const unscaled = page.getViewport({ scale: 1.0 });
-    const targetW = 96;
-    const scale = targetW / unscaled.width;
-    const viewport = page.getViewport({ scale });
+  if (!canvas || !pdfBytes) return false;
 
-    canvas.width = Math.floor(viewport.width);
-    canvas.height = Math.floor(viewport.height);
+  return new Promise((resolve) => {
+    thumbnailRenderQueue = thumbnailRenderQueue
+      .catch(() => {})
+      .then(async () => {
+        try {
+          if (!canvas) {
+            resolve(false);
+            return;
+          }
+          const pdf = await getPdfJsDocument(pdfBytes);
+          if (pageNumber > pdf.numPages || pageNumber < 1) {
+            resolve(false);
+            return;
+          }
+          const page = await pdf.getPage(pageNumber);
+          const unscaled = page.getViewport({ scale: 1.0 });
+          const targetW = 96;
+          const scale = targetW / unscaled.width;
+          const viewport = page.getViewport({ scale });
 
-    const ctx = canvas.getContext('2d');
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+          canvas.width = Math.floor(viewport.width);
+          canvas.height = Math.floor(viewport.height);
 
-    await page.render({ canvasContext: ctx, viewport }).promise;
-  } catch (_) {}
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(false);
+            return;
+          }
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+          await page.render({ canvasContext: ctx, viewport }).promise;
+          resolve(true);
+        } catch (err) {
+          console.warn(`Thumbnail render failed for page ${pageNumber}:`, err);
+          resolve(false);
+        }
+      });
+  });
 }
 
 /**

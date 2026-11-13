@@ -7,6 +7,7 @@ function PageThumbnailItem({
   isActive,
   pdfBytes,
   totalPages,
+  rotation = 0,
   onSelectPage,
   onDragStart,
   onDragOver,
@@ -15,26 +16,50 @@ function PageThumbnailItem({
   onDuplicatePage,
   onDeletePage,
 }) {
+  const containerRef = useRef(null);
   const canvasRef = useRef(null);
   const [rendered, setRendered] = useState(false);
+  const [inView, setInView] = useState(pageNum <= 3);
+
+  // Lazy render: Observe visibility so 50+ page PDFs don't thrash the worker all at once
+  useEffect(() => {
+    if (inView) return;
+    const el = containerRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') {
+      setInView(true);
+      return;
+    }
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setInView(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '120px' }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [inView]);
 
   useEffect(() => {
     let active = true;
-    if (!pdfBytes || !canvasRef.current) return;
+    if (!inView || !pdfBytes || !canvasRef.current || rendered) return;
 
     renderPdfThumbnail(pdfBytes, pageNum, canvasRef.current)
-      .then(() => {
-        if (active) setRendered(true);
+      .then((ok) => {
+        if (active && ok) setRendered(true);
       })
       .catch(() => {});
 
     return () => {
       active = false;
     };
-  }, [pdfBytes, pageNum]);
+  }, [inView, pdfBytes, pageNum, rendered]);
 
   return (
     <div
+      ref={containerRef}
       draggable
       onDragStart={onDragStart}
       onDragOver={onDragOver}
@@ -52,7 +77,10 @@ function PageThumbnailItem({
       </div>
 
       {/* Page Aspect Representation Box */}
-      <div className="w-24 h-32 bg-white dark:bg-slate-900 border border-[var(--border)] rounded-md shadow-xs flex items-center justify-center relative overflow-hidden mb-1.5">
+      <div
+        className="w-24 h-32 bg-white dark:bg-slate-900 border border-[var(--border)] rounded-md shadow-xs flex items-center justify-center relative overflow-hidden mb-1.5 transition-transform duration-200"
+        style={{ transform: rotation ? `rotate(${rotation}deg)` : undefined }}
+      >
         <canvas
           ref={canvasRef}
           className={`w-full h-full object-contain ${rendered ? 'block' : 'hidden'}`}
@@ -118,6 +146,7 @@ export default function PageThumbnailsSidebar({
   totalPages,
   currentPage,
   pdfBytes,
+  rotations = {},
   onSelectPage,
   onReorderPages,
   onDuplicatePage,
@@ -138,7 +167,7 @@ export default function PageThumbnailsSidebar({
 
   const handleDrop = (e, dropIndex) => {
     e.preventDefault();
-    if (draggedIndex === null || draggedIndex === dropIndex) return;
+    if (draggedIndex === null || dropIndex === draggedIndex) return;
     onReorderPages(draggedIndex, dropIndex);
     setDraggedIndex(null);
   };
@@ -162,6 +191,7 @@ export default function PageThumbnailsSidebar({
               isActive={currentPage === pageNum}
               pdfBytes={pdfBytes}
               totalPages={totalPages}
+              rotation={rotations[pageNum] || 0}
               onSelectPage={onSelectPage}
               onDragStart={(e) => handleDragStart(e, idx)}
               onDragOver={(e) => handleDragOver(e, idx)}

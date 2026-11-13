@@ -175,8 +175,10 @@ export default function DocumentEditorPage() {
     if (!rawPdfBytes || !pdfCanvasRef.current) return;
     try {
       const renderResult = await renderPdfPage(rawPdfBytes, currentPage, pdfCanvasRef.current, zoom);
-      setPageViewport(renderResult.viewport);
-      setTextItems(renderResult.textItems);
+      if (renderResult) {
+        setPageViewport(renderResult.viewport);
+        setTextItems(renderResult.textItems || []);
+      }
     } catch (err) {
       console.error('Page render error:', err);
     }
@@ -922,6 +924,7 @@ export default function DocumentEditorPage() {
             totalPages={totalPages}
             currentPage={currentPage}
             pdfBytes={rawPdfBytes}
+            rotations={rotations}
             onSelectPage={setCurrentPage}
             onReorderPages={handleReorderPages}
             onDuplicatePage={handleDuplicatePage}
@@ -1290,16 +1293,12 @@ export default function DocumentEditorPage() {
         onClose={() => setIsMergeModalOpen(false)}
         currentPage={currentPage}
         onMergePdf={async (otherBytes, position) => {
-          if (!rawPdfBytes) return;
-          try {
-            const res = await mergePdfBytes(rawPdfBytes, otherBytes, position, currentPage);
-            setRawPdfBytes(res.bytes);
-            setTotalPages(res.pageCount);
-            setCurrentPage(res.newCurrentPage);
-            toast.success(`Merged ${res.insertedCount} page(s) successfully.`);
-          } catch (err) {
-            toast.error('Merge failed: ' + err.message);
-          }
+          if (!rawPdfBytes) return null;
+          const res = await mergePdfBytes(rawPdfBytes, otherBytes, position, currentPage);
+          setRawPdfBytes(res.bytes);
+          setTotalPages(res.pageCount);
+          setCurrentPage(res.newCurrentPage);
+          return res;
         }}
       />
 
