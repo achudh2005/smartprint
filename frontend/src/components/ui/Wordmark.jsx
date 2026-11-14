@@ -31,8 +31,8 @@ export function Wordmark({
     <div className={`inline-flex items-center gap-2 select-none ${className}`} {...props}>
       {withMark && <BrandMark size={markSize || defaultMarkSize} />}
       <span className={`font-display inline-flex items-baseline ${sizeClasses}`}>
-        <span className="font-semibold text-[#18181B] dark:text-[#FAFAFA]">Smart</span>
-        <span className="font-bold text-[#0E7490] dark:text-[#22D3EE] ml-0.5">Print</span>
+        <span className="font-semibold text-text">Smart</span>
+        <span className="font-bold text-primary-600 dark:text-primary-400 ml-0.5">Print</span>
       </span>
     </div>
   );

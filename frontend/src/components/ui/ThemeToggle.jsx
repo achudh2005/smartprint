@@ -10,7 +10,7 @@ export default function ThemeToggle({ className }) {
       type="button"
       onClick={toggleTheme}
       className={clsx(
-        'inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-[#E4E4E7] dark:border-[#27272A] bg-white dark:bg-[#18181B] text-[#71717A] dark:text-[#A1A1AA] hover:text-[#18181B] dark:hover:text-[#FAFAFA] hover:bg-[#F4F4F5] dark:hover:bg-[#27272A] text-xs font-medium transition-colors duration-150 shadow-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-[#22D3EE]/40',
+        'inline-flex items-center gap-1.5 h-8 px-2.5 rounded-lg border border-border bg-surface text-text-muted hover:text-text hover:bg-surface-hover text-xs font-medium transition-colors duration-150 shadow-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400/40',
         className
       )}
       title={isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
@@ -23,7 +23,7 @@ export default function ThemeToggle({ className }) {
         </>
       ) : (
         <>
-          <Moon size={14} strokeWidth={1.75} className="text-[#0E7490]" />
+          <Moon size={14} strokeWidth={1.75} className="text-primary-600 dark:text-primary-400" />
           <span className="hidden sm:inline">Dark</span>
         </>
       )}

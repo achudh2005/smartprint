@@ -65,7 +65,7 @@ export function Input({
       />
       {error && <p className="form-error">{error}</p>}
       {hint && !error && (
-        <p className="text-xs text-[#71717A] dark:text-[#A1A1AA] mt-1">{hint}</p>
+        <p className="text-xs text-text-muted mt-1">{hint}</p>
       )}
     </div>
   )
@@ -195,7 +195,7 @@ export function Spinner({ size = 'md', className, ...props }) {
           width="13"
           height="5"
           rx="1"
-          className="fill-[#E4E4E7] dark:fill-[#27272A] stroke-[#D4D4D8] dark:stroke-[#3F3F46]"
+          className="fill-surface-2 stroke-border"
           strokeWidth="0.75"
         />
 
@@ -207,7 +207,7 @@ export function Spinner({ size = 'md', className, ...props }) {
             width="15"
             height="14"
             rx="1.5"
-            className="fill-white dark:fill-[#18181B] stroke-[#D4D4D8] dark:stroke-[#3F3F46]"
+            className="fill-surface stroke-border"
             strokeWidth="1"
           />
           {/* Subtle printed text lines */}
@@ -218,7 +218,7 @@ export function Spinner({ size = 'md', className, ...props }) {
                 y1="7.5"
                 x2="19"
                 y2="7.5"
-                className="stroke-[#0E7490] dark:stroke-[#22D3EE]"
+                className="stroke-primary-600 dark:stroke-primary-400"
                 strokeWidth="1"
                 strokeLinecap="round"
               />
@@ -227,7 +227,7 @@ export function Spinner({ size = 'md', className, ...props }) {
                 y1="10.5"
                 x2="16"
                 y2="10.5"
-                className="stroke-[#A1A1AA] dark:stroke-[#71717A]"
+                className="stroke-text-muted"
                 strokeWidth="0.9"
                 strokeLinecap="round"
               />
@@ -239,7 +239,7 @@ export function Spinner({ size = 'md', className, ...props }) {
               y1="13.5"
               x2="17.5"
               y2="13.5"
-              className="stroke-[#A1A1AA] dark:stroke-[#71717A]"
+              className="stroke-text-muted"
               strokeWidth="0.9"
               strokeLinecap="round"
             />
@@ -253,7 +253,7 @@ export function Spinner({ size = 'md', className, ...props }) {
           width="22"
           height="12"
           rx="2.5"
-          className="fill-[#F4F4F5] dark:fill-[#18181B] stroke-[#D4D4D8] dark:stroke-[#3F3F46]"
+          className="fill-surface-2 stroke-border"
           strokeWidth="1.5"
         />
 
@@ -263,7 +263,7 @@ export function Spinner({ size = 'md', className, ...props }) {
           y1="13"
           x2="21.5"
           y2="13"
-          className="stroke-[#A1A1AA] dark:stroke-[#52525B]"
+          className="stroke-text-muted"
           strokeWidth="1.25"
           strokeLinecap="round"
         />
@@ -273,7 +273,7 @@ export function Spinner({ size = 'md', className, ...props }) {
           cx="6.5"
           cy="19"
           r="1.25"
-          className="smartprint-loader-led fill-[#0E7490] dark:fill-[#22D3EE]"
+          className="smartprint-loader-led fill-primary-600 dark:fill-primary-400"
         />
 
         {/* Bottom Output Tray Lip */}
@@ -282,7 +282,7 @@ export function Spinner({ size = 'md', className, ...props }) {
           y1="21.5"
           x2="18.5"
           y2="21.5"
-          className="stroke-[#D4D4D8] dark:stroke-[#3F3F46]"
+          className="stroke-border"
           strokeWidth="1"
           strokeLinecap="round"
         />
@@ -296,11 +296,11 @@ export function PageHeader({ title, description, action, className, ...props }) 
   return (
     <div className={clsx('flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6', className)} {...props}>
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-[#18181B] dark:text-[#FAFAFA]">
+        <h1 className="text-2xl font-semibold tracking-tight text-text">
           {title}
         </h1>
         {description && (
-          <p className="mt-1 text-sm text-[#71717A] dark:text-[#A1A1AA]">
+          <p className="mt-1 text-sm text-text-muted">
             {description}
           </p>
         )}
@@ -319,13 +319,13 @@ export function EmptyState({ icon: Icon, illustration: Illustration, title, desc
           <Illustration size={96} />
         </div>
       ) : Icon ? (
-        <div className="w-10 h-10 rounded-lg bg-[#F4F4F5] dark:bg-[#18181B] border border-[#E4E4E7] dark:border-[#27272A] flex items-center justify-center mb-3 text-[#71717A] dark:text-[#A1A1AA]">
+        <div className="w-10 h-10 rounded-lg bg-surface-2 border border-border flex items-center justify-center mb-3 text-text-muted">
           <Icon size={18} strokeWidth={1.75} />
         </div>
       ) : null}
-      <h3 className="text-sm font-semibold text-[#18181B] dark:text-[#FAFAFA]">{title}</h3>
+      <h3 className="text-sm font-semibold text-text">{title}</h3>
       {description && (
-        <p className="mt-1 text-xs text-[#71717A] dark:text-[#A1A1AA] max-w-sm">
+        <p className="mt-1 text-xs text-text-muted max-w-sm">
           {description}
         </p>
       )}
@@ -337,10 +337,10 @@ export function EmptyState({ icon: Icon, illustration: Illustration, title, desc
 // ── Alert ─────────────────────────────────────────────────
 export function Alert({ type = 'info', children, className, ...props }) {
   const styles = {
-    info:    'bg-[#ECFEFF] border-[#A5F3FC] text-[#0E7490] dark:bg-[#083344] dark:border-[#155E75] dark:text-[#67E8F9]',
-    success: 'bg-[#F0FDF4] border-[#BBF7D0] text-[#15803D] dark:bg-[#052E16] dark:border-[#14532D] dark:text-[#4ADE80]',
-    warning: 'bg-[#FFFBEB] border-[#FDE68A] text-[#B45309] dark:bg-[#451A03] dark:border-[#78350F] dark:text-[#FBBF24]',
-    error:   'bg-[#FEF2F2] border-[#FECACA] text-[#B91C1C] dark:bg-[#450A0A] dark:border-[#7F1D1D] dark:text-[#F87171]',
+    info:    'bg-primary-500/10 border-primary-500/20 text-primary-700 dark:text-primary-300',
+    success: 'bg-green-500/10 border-green-500/20 text-green-700 dark:text-green-400',
+    warning: 'bg-amber-500/10 border-amber-500/20 text-amber-700 dark:text-amber-400',
+    error:   'bg-red-500/10 border-red-500/20 text-red-700 dark:text-red-400',
   }
 
   return (
@@ -355,9 +355,9 @@ export function Toggle({ checked, onChange, label, description, className, disab
   return (
     <div className={clsx('flex items-center justify-between gap-4', className)} {...props}>
       <div>
-        {label && <p className="text-sm font-medium text-[#18181B] dark:text-[#FAFAFA]">{label}</p>}
+        {label && <p className="text-sm font-medium text-text">{label}</p>}
         {description && (
-          <p className="text-xs text-[#71717A] dark:text-[#A1A1AA] mt-0.5">{description}</p>
+          <p className="text-xs text-text-muted mt-0.5">{description}</p>
         )}
       </div>
       <button
@@ -367,13 +367,13 @@ export function Toggle({ checked, onChange, label, description, className, disab
         disabled={disabled}
         onClick={() => !disabled && onChange && onChange(!checked)}
         className={clsx(
-          'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-150 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-[#22D3EE]/40 disabled:opacity-50 disabled:cursor-not-allowed',
-          checked ? 'bg-[#0E7490]' : 'bg-[#E4E4E7] dark:bg-[#27272A]'
+          'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-150 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400/40 disabled:opacity-50 disabled:cursor-not-allowed',
+          checked ? 'bg-primary-600' : 'bg-surface-2 border border-border'
         )}
       >
         <span
           className={clsx(
-            'pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-xs transform transition-transform duration-150 ease-in-out',
+            'pointer-events-none inline-block h-4 w-4 rounded-full bg-white dark:bg-white shadow-xs transform transition-transform duration-150 ease-in-out',
             checked ? 'translate-x-4' : 'translate-x-0'
           )}
         />
@@ -404,30 +404,30 @@ export function StatCard({
   ...props
 }) {
   const changeStyles = {
-    positive: 'text-[#15803D] dark:text-[#4ADE80] bg-[#F0FDF4] dark:bg-[#052E16]',
-    negative: 'text-[#B91C1C] dark:text-[#F87171] bg-[#FEF2F2] dark:bg-[#450A0A]',
-    neutral:  'text-[#71717A] dark:text-[#A1A1AA] bg-[#F4F4F5] dark:bg-[#18181B]',
+    positive: 'text-green-700 dark:text-green-400 bg-green-500/10',
+    negative: 'text-red-700 dark:text-red-400 bg-red-500/10',
+    neutral:  'text-text-muted bg-surface-2',
   }
 
   return (
     <div className={clsx('card p-4 sm:p-5 flex flex-col justify-between', className)} {...props}>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-medium uppercase tracking-wider text-[#71717A] dark:text-[#A1A1AA]">
+        <span className="text-xs font-medium uppercase tracking-wider text-text-muted">
           {label}
         </span>
         {Icon && (
-          <div className="w-7 h-7 rounded-md bg-[#F4F4F5] dark:bg-[#18181B] border border-[#E4E4E7] dark:border-[#27272A] flex items-center justify-center text-[#71717A] dark:text-[#A1A1AA] shrink-0">
+          <div className="w-7 h-7 rounded-md bg-surface-2 border border-border flex items-center justify-center text-text-muted shrink-0">
             <Icon size={14} strokeWidth={1.75} />
           </div>
         )}
       </div>
 
       <div className="mt-3">
-        <div className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-[#18181B] dark:text-[#FAFAFA] tabular-nums">
+        <div className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-text tabular-nums">
           {value}
         </div>
         {(change || description) && (
-          <div className="flex items-center gap-2 mt-1.5 text-xs text-[#71717A] dark:text-[#A1A1AA]">
+          <div className="flex items-center gap-2 mt-1.5 text-xs text-text-muted">
             {change && (
               <span className={clsx('inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium tabular-nums', changeStyles[changeType])}>
                 {change}
@@ -450,7 +450,7 @@ export function Tabs({
   ...props
 }) {
   return (
-    <div className={clsx('border-b border-[#E4E4E7] dark:border-[#27272A] overflow-x-auto scrollbar-none', className)} {...props}>
+    <div className={clsx('border-b border-border overflow-x-auto scrollbar-none', className)} {...props}>
       <nav className="flex space-x-6 min-w-max" aria-label="Tabs">
         {tabs.map((tab) => {
           const tabKey = typeof tab === 'object' ? tab.key || tab.id : tab
@@ -466,8 +466,8 @@ export function Tabs({
               className={clsx(
                 'group relative pb-2.5 text-sm font-medium transition-colors duration-150 inline-flex items-center gap-2 select-none',
                 isActive
-                  ? 'text-[#0E7490] dark:text-[#22D3EE] font-semibold'
-                  : 'text-[#71717A] dark:text-[#A1A1AA] hover:text-[#18181B] dark:hover:text-[#FAFAFA]'
+                  ? 'text-primary-600 dark:text-primary-400 font-semibold'
+                  : 'text-text-muted hover:text-text'
               )}
             >
               <span>{tabLabel}</span>
@@ -476,15 +476,15 @@ export function Tabs({
                   className={clsx(
                     'px-1.5 py-0.2 rounded-full text-[11px] tabular-nums font-medium',
                     isActive
-                      ? 'bg-[#ECFEFF] dark:bg-[#083344] text-[#0E7490] dark:text-[#22D3EE]'
-                      : 'bg-[#F4F4F5] dark:bg-[#18181B] text-[#71717A] dark:text-[#A1A1AA]'
+                      ? 'bg-primary-500/10 text-primary-700 dark:text-primary-300'
+                      : 'bg-surface-2 text-text-muted'
                   )}
                 >
                   {tabCount}
                 </span>
               )}
               {isActive && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#0E7490] dark:bg-[#22D3EE] rounded-t" />
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600 dark:bg-primary-400 rounded-t" />
               )}
             </button>
           )
@@ -498,7 +498,7 @@ export function Tabs({
 export function Table({ children, className, ...props }) {
   return (
     <div className="w-full overflow-x-auto scrollbar-thin">
-      <table className={clsx('w-full text-left text-sm text-[#18181B] dark:text-[#FAFAFA]', className)} {...props}>
+      <table className={clsx('w-full text-left text-sm text-text', className)} {...props}>
         {children}
       </table>
     </div>
@@ -507,7 +507,7 @@ export function Table({ children, className, ...props }) {
 
 export function TableHeader({ children, className, ...props }) {
   return (
-    <thead className={clsx('bg-[#FAFAFA] dark:bg-[#18181B] text-xs font-semibold uppercase tracking-wider text-[#71717A] dark:text-[#A1A1AA] border-b border-[#E4E4E7] dark:border-[#27272A] select-none', className)} {...props}>
+    <thead className={clsx('bg-surface-2 text-xs font-semibold uppercase tracking-wider text-text-muted border-b border-border select-none', className)} {...props}>
       {children}
     </thead>
   )
@@ -515,7 +515,7 @@ export function TableHeader({ children, className, ...props }) {
 
 export function TableBody({ children, className, ...props }) {
   return (
-    <tbody className={clsx('divide-y divide-[#E4E4E7] dark:divide-[#27272A]', className)} {...props}>
+    <tbody className={clsx('divide-y divide-border', className)} {...props}>
       {children}
     </tbody>
   )
@@ -523,7 +523,7 @@ export function TableBody({ children, className, ...props }) {
 
 export function TableRow({ children, className, ...props }) {
   return (
-    <tr className={clsx('hover:bg-[#F4F4F5]/60 dark:hover:bg-[#18181B]/60 transition-colors duration-150', className)} {...props}>
+    <tr className={clsx('hover:bg-surface-hover/60 transition-colors duration-150', className)} {...props}>
       {children}
     </tr>
   )

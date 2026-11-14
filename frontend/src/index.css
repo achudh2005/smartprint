@@ -35,12 +35,12 @@
 
 html.dark {
   --bg: 9 9 11;                 /* #09090B */
-  --surface: 17 17 19;          /* #111113 */
-  --surface-2: 24 24 27;        /* #18181B */
-  --surface-hover: 39 39 42;    /* #27272A */
+  --surface: 18 18 20;          /* #121214 */
+  --surface-2: 27 27 31;        /* #1B1B1F */
+  --surface-hover: 34 34 39;    /* #222227 */
   --border: 39 39 42;           /* #27272A */
-  --border-subtle: 24 24 27;    /* #18181B */
-  --text: 250 250 250;          /* #FAFAFA */
+  --border-subtle: 27 27 31;    /* #1B1B1F */
+  --text: 244 244 245;          /* #F4F4F5 */
   --text-muted: 161 161 170;    /* #A1A1AA */
   --accent: 14 116 144;         /* #0E7490 */
   --accent-hover: 21 94 117;    /* #155E75 */
@@ -114,39 +114,39 @@ html.dark {
     font-weight: 500;
   }
   .btn-primary {
-    @apply bg-[#0E7490] hover:bg-[#155E75] active:bg-[#164E63] text-white shadow-xs focus-visible:ring-2 focus-visible:ring-[#22D3EE]/40 focus-visible:ring-offset-1 dark:focus-visible:ring-offset-[#111113];
+    @apply bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white focus-visible:ring-2 focus-visible:ring-primary-400/40;
   }
   .btn-secondary {
-    @apply bg-white dark:bg-[#18181B] text-[#18181B] dark:text-[#FAFAFA] border border-[#E4E4E7] dark:border-[#27272A] hover:bg-[#F4F4F5] dark:hover:bg-[#27272A] active:bg-[#E4E4E7] dark:active:bg-[#3F3F46] shadow-xs focus-visible:ring-2 focus-visible:ring-[#22D3EE]/40;
+    @apply bg-surface text-text border border-border hover:bg-surface-hover active:bg-surface-2 focus-visible:ring-2 focus-visible:ring-primary-400/40;
   }
   .btn-ghost {
-    @apply bg-transparent text-[#71717A] dark:text-[#A1A1AA] hover:bg-[#F4F4F5] dark:hover:bg-[#18181B] hover:text-[#18181B] dark:hover:text-[#FAFAFA] focus-visible:ring-2 focus-visible:ring-[#22D3EE]/40;
+    @apply bg-transparent text-text-muted hover:bg-surface-hover hover:text-text focus-visible:ring-2 focus-visible:ring-primary-400/40;
   }
   .btn-danger {
-    @apply bg-[#B91C1C] hover:bg-[#991B1B] text-white shadow-xs focus-visible:ring-2 focus-visible:ring-red-400/40;
+    @apply bg-red-600 hover:bg-red-700 text-white focus-visible:ring-2 focus-visible:ring-red-400/40;
   }
 
   /* ── Form Inputs ── */
   .input {
-    @apply block w-full rounded-lg border border-[#E4E4E7] dark:border-[#27272A] bg-white dark:bg-[#111113] px-3 py-2 text-sm text-[#18181B] dark:text-[#FAFAFA] placeholder-[#71717A] dark:placeholder-[#71717A] shadow-xs transition-colors duration-150 focus:border-[#0E7490] dark:focus:border-[#22D3EE] focus:outline-none focus:ring-2 focus:ring-[#22D3EE]/30 disabled:bg-[#F4F4F5] dark:disabled:bg-[#18181B] disabled:text-[#71717A] disabled:cursor-not-allowed;
+    @apply block w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text placeholder-text-muted transition-colors duration-150 focus:border-primary-600 dark:focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-400/25 disabled:bg-surface-2 disabled:text-text-muted disabled:cursor-not-allowed;
     height: 40px;
   }
   .input-error {
-    @apply border-[#B91C1C] dark:border-[#EF4444] focus:border-[#B91C1C] dark:focus:border-[#EF4444] focus:ring-red-400/30;
+    @apply border-red-600 dark:border-red-500 focus:border-red-600 dark:focus:border-red-500 focus:ring-red-400/30;
   }
   .label {
-    @apply block text-xs font-medium uppercase tracking-wider text-[#71717A] dark:text-[#A1A1AA] mb-1.5;
+    @apply block text-xs font-medium uppercase tracking-wider text-text-muted mb-1.5;
   }
   .form-error {
-    @apply mt-1 text-xs text-[#B91C1C] dark:text-[#F87171];
+    @apply mt-1 text-xs text-red-600 dark:text-red-400;
   }
 
   /* ── Card ── */
   .card {
-    @apply bg-white dark:bg-[#111113] rounded-xl border border-[#E4E4E7] dark:border-[#27272A] shadow-card transition-colors duration-150;
+    @apply bg-surface rounded-xl border border-border transition-colors duration-150;
   }
   .card-header {
-    @apply px-5 py-3.5 border-b border-[#E4E4E7] dark:border-[#27272A] flex items-center justify-between;
+    @apply px-5 py-3.5 border-b border-border flex items-center justify-between;
   }
   .card-body {
     @apply px-5 py-4;
@@ -156,18 +156,18 @@ html.dark {
   .badge {
     @apply inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium border transition-colors duration-150;
   }
-  .badge-green  { @apply bg-[#F0FDF4] text-[#15803D] border-[#BBF7D0] dark:bg-[#052E16] dark:text-[#4ADE80] dark:border-[#14532D]; }
-  .badge-blue   { @apply bg-[#ECFEFF] text-[#0E7490] border-[#A5F3FC] dark:bg-[#083344] dark:text-[#22D3EE] dark:border-[#155E75]; }
-  .badge-yellow { @apply bg-[#FFFBEB] text-[#B45309] border-[#FDE68A] dark:bg-[#451A03] dark:text-[#FBBF24] dark:border-[#78350F]; }
-  .badge-red    { @apply bg-[#FEF2F2] text-[#B91C1C] border-[#FECACA] dark:bg-[#450A0A] dark:text-[#F87171] dark:border-[#7F1D1D]; }
-  .badge-gray   { @apply bg-[#F4F4F5] text-[#71717A] border-[#E4E4E7] dark:bg-[#18181B] dark:text-[#A1A1AA] dark:border-[#27272A]; }
+  .badge-green  { @apply bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20; }
+  .badge-blue   { @apply bg-primary-500/10 text-primary-700 dark:text-primary-300 border-primary-500/20; }
+  .badge-yellow { @apply bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20; }
+  .badge-red    { @apply bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20; }
+  .badge-gray   { @apply bg-surface-2 text-text-muted border-border; }
 
   /* ── Navigation Links ── */
   .sidebar-link {
-    @apply flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-[#71717A] dark:text-[#A1A1AA] transition-colors duration-150 hover:bg-[#F4F4F5] dark:hover:bg-[#18181B] hover:text-[#18181B] dark:hover:text-[#FAFAFA];
+    @apply flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm font-medium text-text-muted transition-colors duration-150 hover:bg-surface-hover hover:text-text;
   }
   .sidebar-link-active {
-    @apply bg-[#ECFEFF] dark:bg-[#083344] text-[#0E7490] dark:text-[#22D3EE] font-semibold hover:bg-[#CFFAFE] dark:hover:bg-[#0E3D4F];
+    @apply bg-accent-tint text-primary-700 dark:text-primary-300 font-semibold hover:bg-primary-100 dark:hover:bg-primary-950/60;
   }
 }
 
