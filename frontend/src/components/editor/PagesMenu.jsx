@@ -1,6 +1,6 @@
 import {
   FilePlus, Layers, Copy, Trash2, RotateCw, RotateCcw,
-  Crop, Scissors, RefreshCw
+  Crop, Scissors
 } from 'lucide-react';
 
 export default function PagesMenu({
@@ -16,77 +16,77 @@ export default function PagesMenu({
   onOpenSplitModal,
 }) {
   return (
-    <div className="flex items-center gap-1.5 flex-wrap py-1 text-xs">
+    <div className="flex items-center gap-1.5 flex-wrap py-0.5 text-xs select-none">
       {/* Insert & Merge */}
-      <div className="flex items-center gap-1 border-r border-[var(--border)] pr-2">
+      <div className="flex items-center gap-1 border-r border-black/[0.08] dark:border-white/[0.08] pr-2">
         <button
           type="button"
           onClick={onInsertBlankPage}
-          className="px-2.5 py-1.5 rounded-lg border border-[var(--border)] font-medium text-[var(--text)] hover:bg-[var(--surface-hover)] flex items-center gap-1.5 transition-colors"
+          className="mac-button-secondary px-2.5 py-1 text-xs font-medium flex items-center gap-1.5"
           title="Insert a blank page after the current page"
         >
-          <FilePlus size={13} strokeWidth={1.75} className="text-[#0E7490]" />
+          <FilePlus size={12} strokeWidth={2} className="text-[#0E7490]" />
           <span>Insert Blank</span>
         </button>
 
         <button
           type="button"
           onClick={onOpenMergeModal}
-          className="px-2.5 py-1.5 rounded-lg border border-[var(--border)] font-medium text-[var(--text)] hover:bg-[var(--surface-hover)] flex items-center gap-1.5 transition-colors"
+          className="mac-button-secondary px-2.5 py-1 text-xs font-medium flex items-center gap-1.5"
           title="Merge and append pages from another PDF"
         >
-          <Layers size={13} strokeWidth={1.75} className="text-[#0E7490]" />
+          <Layers size={12} strokeWidth={2} className="text-[#0E7490]" />
           <span>Merge PDF</span>
         </button>
       </div>
 
       {/* Duplicate & Delete */}
-      <div className="flex items-center gap-1 border-r border-[var(--border)] pr-2">
+      <div className="flex items-center gap-1 border-r border-black/[0.08] dark:border-white/[0.08] pr-2">
         <button
           type="button"
           onClick={onDuplicatePage}
-          className="p-1.5 rounded-lg border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)] transition-colors"
+          className="mac-button-secondary p-1 text-xs"
           title="Duplicate current page"
         >
-          <Copy size={13} strokeWidth={1.75} />
+          <Copy size={12} strokeWidth={2} />
         </button>
 
         <button
           type="button"
           onClick={onDeleteCurrentPage}
           disabled={totalPages <= 1}
-          className="p-1.5 rounded-lg border border-[var(--border)] text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="mac-button-secondary p-1 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/20 disabled:opacity-30"
           title="Delete current page"
         >
-          <Trash2 size={13} strokeWidth={1.75} />
+          <Trash2 size={12} strokeWidth={2} />
         </button>
       </div>
 
       {/* Rotation */}
-      <div className="flex items-center gap-1 border-r border-[var(--border)] pr-2">
+      <div className="flex items-center gap-1 border-r border-black/[0.08] dark:border-white/[0.08] pr-2">
         <button
           type="button"
           onClick={() => onRotatePage(90)}
-          className="px-2 py-1.5 rounded-lg border border-[var(--border)] text-[var(--text)] hover:bg-[var(--surface-hover)] flex items-center gap-1"
+          className="mac-button-secondary px-2 py-1 text-xs flex items-center gap-1"
           title="Rotate current page 90° clockwise"
         >
-          <RotateCw size={13} strokeWidth={1.75} />
+          <RotateCw size={12} strokeWidth={2} />
           <span>Rotate 90°</span>
         </button>
 
         <button
           type="button"
           onClick={() => onRotatePage(-90)}
-          className="p-1.5 rounded-lg border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)]"
+          className="mac-button-secondary p-1 text-xs"
           title="Rotate current page 90° counter-clockwise"
         >
-          <RotateCcw size={13} strokeWidth={1.75} />
+          <RotateCcw size={12} strokeWidth={2} />
         </button>
 
         <button
           type="button"
           onClick={() => onRotateAllPages(90)}
-          className="px-2 py-1.5 rounded-lg border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)]"
+          className="mac-button-secondary px-2 py-1 text-xs"
           title="Rotate all pages 90° clockwise"
         >
           <span>All 90°</span>
@@ -97,10 +97,10 @@ export default function PagesMenu({
       <button
         type="button"
         onClick={onOpenCropModal}
-        className="px-2.5 py-1.5 rounded-lg border border-[var(--border)] font-medium text-[var(--text)] hover:bg-[var(--surface-hover)] flex items-center gap-1.5 transition-colors"
+        className="mac-button-secondary px-2.5 py-1 text-xs flex items-center gap-1.5"
         title="Crop page margins"
       >
-        <Crop size={13} strokeWidth={1.75} />
+        <Crop size={12} strokeWidth={2} />
         <span>Crop</span>
       </button>
 
@@ -108,14 +108,14 @@ export default function PagesMenu({
       <button
         type="button"
         onClick={onOpenSplitModal}
-        className="px-2.5 py-1.5 rounded-lg border border-[var(--border)] font-medium text-[var(--text)] hover:bg-[var(--surface-hover)] flex items-center gap-1.5 transition-colors"
+        className="mac-button-secondary px-2.5 py-1 text-xs flex items-center gap-1.5"
         title="Extract chosen page range into a new order document"
       >
-        <Scissors size={13} strokeWidth={1.75} className="text-[#0E7490]" />
+        <Scissors size={12} strokeWidth={2} className="text-[#0E7490]" />
         <span>Extract Range</span>
       </button>
 
-      <span className="text-[11px] text-[var(--text-muted)] ml-auto tabular-nums">
+      <span className="text-[11px] text-[var(--text-muted)] ml-auto tabular-nums font-medium">
         Page {currentPage} of {totalPages}
       </span>
     </div>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X, Check, Hash } from 'lucide-react';
-import { Button } from '../ui';
+import { Button, MacTrafficLights } from '../ui';
 
 export default function PageNumberModal({ isOpen, onClose, pageNumbering, onSavePageNumbering }) {
   if (!isOpen) return null;
@@ -21,15 +21,23 @@ export default function PageNumberModal({ isOpen, onClose, pageNumbering, onSave
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl w-full max-w-sm shadow-xl overflow-hidden flex flex-col">
-        <div className="px-5 py-4 border-b border-[var(--border)] flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Hash size={16} strokeWidth={2} className="text-[#0E7490]" />
-            <h3 className="font-display font-bold text-sm text-[var(--text)]">Page Numbering</h3>
+    <div className="fixed inset-0 z-50 bg-black/40 dark:bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+      <div className="mac-sheet rounded-2xl w-full max-w-sm overflow-hidden flex flex-col animate-scaleIn select-none">
+        {/* macOS Sheet Titlebar with Traffic Lights */}
+        <div className="px-4 py-3 border-b border-black/[0.08] dark:border-white/[0.08] flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <MacTrafficLights size="sm" onClose={onClose} />
+            <div className="h-3 w-px bg-black/[0.1] dark:bg-white/[0.1] mx-0.5" />
+            <div className="flex items-center gap-1.5">
+              <Hash size={14} strokeWidth={2} className="text-[#0E7490]" />
+              <h3 className="font-semibold text-xs text-[var(--text)]">Page Numbering</h3>
+            </div>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)]">
-            <X size={16} strokeWidth={2} />
+          <button
+            onClick={onClose}
+            className="p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-black/[0.05] dark:hover:bg-white/[0.05] transition-colors"
+          >
+            <X size={14} strokeWidth={2} />
           </button>
         </div>
 
@@ -45,11 +53,11 @@ export default function PageNumberModal({ isOpen, onClose, pageNumbering, onSave
           </div>
 
           <div>
-            <label className="text-xs font-medium text-[var(--text-muted)] block mb-1">Format</label>
+            <label className="text-[11px] font-semibold text-[var(--text-muted)] block mb-1">Format</label>
             <select
               value={format}
               onChange={(e) => setFormat(e.target.value)}
-              className="input text-xs bg-[var(--surface)] text-[var(--text)]"
+              className="w-full rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-3 py-1.5 text-xs font-medium text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#0E7490]/30"
             >
               <option value="X_OF_Y">Page 1 of 5</option>
               <option value="NUMBER_ONLY">1, 2, 3...</option>
@@ -57,11 +65,11 @@ export default function PageNumberModal({ isOpen, onClose, pageNumbering, onSave
           </div>
 
           <div>
-            <label className="text-xs font-medium text-[var(--text-muted)] block mb-1">Position</label>
+            <label className="text-[11px] font-semibold text-[var(--text-muted)] block mb-1">Position</label>
             <select
               value={position}
               onChange={(e) => setPosition(e.target.value)}
-              className="input text-xs bg-[var(--surface)] text-[var(--text)]"
+              className="w-full rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-3 py-1.5 text-xs font-medium text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#0E7490]/30"
             >
               <option value="BOTTOM_CENTER">Bottom Center</option>
               <option value="BOTTOM_RIGHT">Bottom Right</option>
@@ -72,24 +80,32 @@ export default function PageNumberModal({ isOpen, onClose, pageNumbering, onSave
           </div>
 
           <div>
-            <label className="text-xs font-medium text-[var(--text-muted)] block mb-1">Start at Page Number</label>
+            <label className="text-[11px] font-semibold text-[var(--text-muted)] block mb-1">Start at Page Number</label>
             <input
               type="number"
               min="1"
               value={startNumber}
               onChange={(e) => setStartNumber(e.target.value)}
-              className="input text-xs bg-[var(--surface)] text-[var(--text)]"
+              className="w-full rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-3 py-1.5 text-xs font-medium text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#0E7490]/30"
             />
           </div>
         </div>
 
-        <div className="px-5 py-3 border-t border-[var(--border)] flex justify-end gap-2 bg-[var(--surface-hover)]">
-          <Button variant="secondary" size="sm" onClick={onClose}>
+        <div className="px-4 py-3 border-t border-black/[0.08] dark:border-white/[0.08] flex justify-end gap-2 bg-black/[0.02] dark:bg-white/[0.02]">
+          <button
+            type="button"
+            onClick={onClose}
+            className="mac-button-secondary px-3.5 py-1.5 text-xs font-medium"
+          >
             Cancel
-          </Button>
-          <Button variant="primary" size="sm" onClick={handleApply}>
+          </button>
+          <button
+            type="button"
+            onClick={handleApply}
+            className="mac-button-primary px-4 py-1.5 text-xs flex items-center gap-1.5"
+          >
             <Check size={13} strokeWidth={2} /> Apply Numbers
-          </Button>
+          </button>
         </div>
       </div>
     </div>

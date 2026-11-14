@@ -30,9 +30,9 @@ export default function DrawMarkupMenu({
   const stamps = ['APPROVED', 'CONFIDENTIAL', 'DRAFT', 'PAID', 'VOID', 'REJECTED'];
 
   return (
-    <div className="flex items-center gap-2 flex-wrap py-1 text-xs">
+    <div className="flex items-center gap-1.5 flex-wrap py-0.5 text-xs select-none">
       {/* Freehand & Text Markups */}
-      <div className="flex items-center gap-1 border-r border-[var(--border)] pr-2">
+      <div className="flex items-center gap-1 border-r border-black/[0.08] dark:border-white/[0.08] pr-2">
         {tools.map((t) => {
           const Icon = t.icon;
           const active = activeTool === t.id;
@@ -41,14 +41,14 @@ export default function DrawMarkupMenu({
               key={t.id}
               type="button"
               onClick={() => onSelectTool(active ? 'SELECT' : t.id)}
-              className={`px-2.5 py-1.5 rounded-lg border font-medium flex items-center gap-1.5 transition-all ${
+              className={`px-2.5 py-1 text-xs font-semibold flex items-center gap-1.5 transition-all ${
                 active
-                  ? 'bg-[#0E7490] text-white border-[#0E7490] shadow-xs'
-                  : 'border-[var(--border)] text-[var(--text)] hover:bg-[var(--surface-hover)]'
+                  ? 'mac-button-primary'
+                  : 'mac-button-secondary text-[var(--text)]'
               }`}
               title={t.label}
             >
-              <Icon size={13} strokeWidth={1.75} />
+              <Icon size={12} strokeWidth={2} />
               <span>{t.label}</span>
             </button>
           );
@@ -56,7 +56,7 @@ export default function DrawMarkupMenu({
       </div>
 
       {/* Shapes Dropdown / Buttons */}
-      <div className="flex items-center gap-1 border-r border-[var(--border)] pr-2">
+      <div className="flex items-center gap-1 border-r border-black/[0.08] dark:border-white/[0.08] pr-2">
         {shapes.map((s) => {
           const Icon = s.icon;
           const active = activeTool === s.id;
@@ -68,11 +68,11 @@ export default function DrawMarkupMenu({
               className={`p-1.5 rounded-lg border transition-all ${
                 active
                   ? 'bg-[#0E7490] text-white border-[#0E7490] shadow-xs'
-                  : 'border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)]'
+                  : 'mac-button-secondary text-slate-500 hover:text-slate-900 dark:hover:text-white'
               }`}
               title={s.label}
             >
-              <Icon size={14} strokeWidth={1.75} />
+              <Icon size={13} strokeWidth={2} />
             </button>
           );
         })}
@@ -82,27 +82,27 @@ export default function DrawMarkupMenu({
       <button
         type="button"
         onClick={() => onSelectTool(activeTool === 'STICKY_NOTE' ? 'SELECT' : 'STICKY_NOTE')}
-        className={`px-2.5 py-1.5 rounded-lg border font-medium flex items-center gap-1.5 transition-all ${
+        className={`px-2.5 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all ${
           activeTool === 'STICKY_NOTE'
-            ? 'bg-amber-500 text-white border-amber-500 shadow-xs'
-            : 'border-[var(--border)] text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/20'
+            ? 'bg-amber-500 text-white border border-amber-600 shadow-xs'
+            : 'mac-button-secondary text-amber-600 dark:text-amber-400'
         }`}
         title="Place a sticky note comment pin on the document"
       >
-        <MessageSquare size={13} strokeWidth={1.75} />
+        <MessageSquare size={12} strokeWidth={2} />
         <span>Comment Note</span>
       </button>
 
       {/* Stamp Selector */}
-      <div className="flex items-center gap-1.5 border-r border-[var(--border)] pr-2">
-        <Stamp size={13} strokeWidth={1.75} className="text-[#0E7490]" />
+      <div className="flex items-center gap-1 border-r border-black/[0.08] dark:border-white/[0.08] pr-2">
+        <Stamp size={12} strokeWidth={2} className="text-[#0E7490]" />
         <select
           value={markupConfig.stampPreset || 'APPROVED'}
           onChange={(e) => {
             onMarkupConfigChange('stampPreset', e.target.value);
             onSelectTool('STAMP');
           }}
-          className="input text-xs py-1 px-2 min-h-[32px] bg-[var(--surface)] text-[var(--text)] font-semibold"
+          className="rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-2.5 py-1 text-xs font-semibold text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#0E7490]/30 shadow-xs"
         >
           {stamps.map((st) => (
             <option key={st} value={st}>
@@ -113,36 +113,36 @@ export default function DrawMarkupMenu({
         <button
           type="button"
           onClick={() => onSelectTool(activeTool === 'STAMP' ? 'SELECT' : 'STAMP')}
-          className={`px-2 py-1 rounded text-xs font-semibold border ${
+          className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
             activeTool === 'STAMP'
-              ? 'bg-[#0E7490] text-white border-[#0E7490]'
-              : 'border-[var(--border)] text-[var(--text)] hover:bg-[var(--surface-hover)]'
+              ? 'mac-button-primary'
+              : 'mac-button-secondary text-[var(--text)]'
           }`}
         >
-          Place Stamp
+          Place
         </button>
       </div>
 
       {/* Color picker & stroke thickness */}
-      <div className="flex items-center gap-2">
-        <span className="text-[11px] text-[var(--text-muted)]">Color:</span>
+      <div className="flex items-center gap-1.5">
+        <span className="text-[11px] text-[var(--text-muted)] font-medium">Color:</span>
         {['#EF4444', '#F59E0B', '#10B981', '#0E7490', '#3B82F6', '#8B5CF6', '#000000'].map((c) => (
           <button
             key={c}
             type="button"
             onClick={() => onMarkupConfigChange('color', c)}
-            className={`w-5 h-5 rounded-full border-2 transition-all ${
-              markupConfig.color === c ? 'scale-110 border-slate-900 dark:border-white' : 'border-transparent'
+            className={`w-4.5 h-4.5 rounded-full border transition-all ${
+              markupConfig.color === c ? 'ring-2 ring-slate-900 dark:ring-white scale-110' : 'border-black/10 dark:border-white/20'
             }`}
             style={{ backgroundColor: c }}
           />
         ))}
 
-        <span className="text-[11px] text-[var(--text-muted)] ml-2">Width:</span>
+        <span className="text-[11px] text-[var(--text-muted)] font-medium ml-1.5">Width:</span>
         <select
           value={markupConfig.strokeWidth}
           onChange={(e) => onMarkupConfigChange('strokeWidth', parseInt(e.target.value, 10))}
-          className="input text-xs py-1 px-1.5 min-h-[30px] w-14 bg-[var(--surface)] text-[var(--text)]"
+          className="rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-2 py-1 text-xs font-medium text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#0E7490]/30 shadow-xs w-14 tabular-nums"
         >
           {[1, 2, 3, 5, 8].map((w) => (
             <option key={w} value={w}>

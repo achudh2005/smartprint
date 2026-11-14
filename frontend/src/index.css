@@ -86,7 +86,7 @@ html.dark {
 @layer components {
   /* ── Buttons ── */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg text-sm font-medium transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#22D3EE]/40 disabled:opacity-50 disabled:cursor-not-allowed select-none;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg text-sm font-medium transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#22D3EE]/40 disabled:opacity-50 disabled:cursor-not-allowed select-none active:scale-[0.98];
     height: 36px;
     padding-left: 0.875rem;
     padding-right: 0.875rem;
@@ -97,6 +97,7 @@ html.dark {
     padding-right: 0.625rem;
     font-size: 0.75rem;
     line-height: 1rem;
+    border-radius: 7px;
   }
   .btn-md {
     height: 36px;
@@ -114,28 +115,28 @@ html.dark {
     font-weight: 500;
   }
   .btn-primary {
-    @apply bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white focus-visible:ring-2 focus-visible:ring-primary-400/40;
+    @apply bg-gradient-to-b from-[#0E7490] to-[#0A5E75] hover:from-[#118BAA] hover:to-[#0D6F8A] text-white shadow-xs border border-[#0E7490]/70 focus-visible:ring-2 focus-visible:ring-primary-400/40;
   }
   .btn-secondary {
-    @apply bg-surface text-text border border-border hover:bg-surface-hover active:bg-surface-2 focus-visible:ring-2 focus-visible:ring-primary-400/40;
+    @apply bg-black/[0.04] dark:bg-white/[0.08] text-text border border-black/10 dark:border-white/10 hover:bg-black/[0.07] dark:hover:bg-white/[0.12] active:bg-black/[0.1] shadow-xs focus-visible:ring-2 focus-visible:ring-primary-400/40;
   }
   .btn-ghost {
-    @apply bg-transparent text-text-muted hover:bg-surface-hover hover:text-text focus-visible:ring-2 focus-visible:ring-primary-400/40;
+    @apply bg-transparent text-text-muted hover:bg-black/[0.04] dark:hover:bg-white/[0.06] hover:text-text focus-visible:ring-2 focus-visible:ring-primary-400/40;
   }
   .btn-danger {
-    @apply bg-red-600 hover:bg-red-700 text-white focus-visible:ring-2 focus-visible:ring-red-400/40;
+    @apply bg-red-600 hover:bg-red-700 text-white shadow-xs focus-visible:ring-2 focus-visible:ring-red-400/40;
   }
 
   /* ── Form Inputs ── */
   .input {
-    @apply block w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text placeholder-text-muted transition-colors duration-150 focus:border-primary-600 dark:focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-400/25 disabled:bg-surface-2 disabled:text-text-muted disabled:cursor-not-allowed;
-    height: 40px;
+    @apply block w-full rounded-lg border border-black/10 dark:border-white/10 bg-surface px-3 py-2 text-sm text-text placeholder-text-muted shadow-xs transition-colors duration-150 focus:border-primary-600 dark:focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-400/25 disabled:bg-surface-2 disabled:text-text-muted disabled:cursor-not-allowed;
+    height: 38px;
   }
   .input-error {
     @apply border-red-600 dark:border-red-500 focus:border-red-600 dark:focus:border-red-500 focus:ring-red-400/30;
   }
   .label {
-    @apply block text-xs font-medium uppercase tracking-wider text-text-muted mb-1.5;
+    @apply block text-xs font-semibold uppercase tracking-wider text-text-muted mb-1.5;
   }
   .form-error {
     @apply mt-1 text-xs text-red-600 dark:text-red-400;
@@ -143,10 +144,10 @@ html.dark {
 
   /* ── Card ── */
   .card {
-    @apply bg-surface rounded-xl border border-border transition-colors duration-150;
+    @apply bg-surface rounded-2xl border border-black/[0.08] dark:border-white/[0.08] shadow-[0_2px_12px_rgba(0,0,0,0.03)] dark:shadow-[0_2px_16px_rgba(0,0,0,0.3)] transition-colors duration-150;
   }
   .card-header {
-    @apply px-5 py-3.5 border-b border-border flex items-center justify-between;
+    @apply px-5 py-3.5 border-b border-black/[0.08] dark:border-white/[0.08] flex items-center justify-between;
   }
   .card-body {
     @apply px-5 py-4;

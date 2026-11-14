@@ -5,7 +5,7 @@ import {
   Undo2, Redo2, RotateCcw, Download, Printer, ArrowLeft, Loader2,
   Lock, Save, AlertCircle, FileText
 } from 'lucide-react';
-import { Button, Spinner, Badge } from '../../components/ui';
+import { Button, Spinner, Badge, MacTrafficLights } from '../../components/ui';
 import api from '../../lib/api';
 import toast from 'react-hot-toast';
 
@@ -677,18 +677,27 @@ export default function DocumentEditorPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--bg)] select-none text-[var(--text)]">
-      {/* ── Top Header Bar ── */}
-      <header className="h-14 bg-[var(--surface)] border-b border-[var(--border)] px-4 flex items-center justify-between shrink-0 z-30">
+      {/* ── Top Header Bar (macOS Window Chrome) ── */}
+      <header className="h-14 mac-vibrancy-header px-4 flex items-center justify-between shrink-0 z-30">
         <div className="flex items-center gap-3">
+          {/* macOS Traffic Lights with Close action navigating back */}
+          <MacTrafficLights
+            size="md"
+            onClose={() => navigate(`/shops/${shopId}/orders/${orderId}`)}
+          />
+
+          <div className="h-4 w-px bg-black/[0.1] dark:bg-white/[0.1] mx-0.5" />
+
           <Link
             to={`/shops/${shopId}/orders/${orderId}`}
-            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)] transition-colors"
+            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
             title="Back to Order"
           >
-            <ArrowLeft size={16} strokeWidth={2} />
+            <ArrowLeft size={15} strokeWidth={2} />
           </Link>
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-[var(--accent-tint)] text-[#0E7490] flex items-center justify-center shrink-0">
+
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-[var(--accent-tint)] text-[#0E7490] flex items-center justify-center shrink-0 shadow-xs border border-[var(--border)]">
               <FileText size={15} strokeWidth={2} />
             </div>
             <div>
@@ -696,9 +705,9 @@ export default function DocumentEditorPage() {
                 {fileMeta?.originalName || 'Document Editor'}
               </h1>
               <div className="flex items-center gap-2 text-[10px] text-[var(--text-muted)]">
-                <span>Page {currentPage} of {totalPages}</span>
+                <span className="font-medium">Page {currentPage} of {totalPages}</span>
                 <span>•</span>
-                <span className="flex items-center gap-1">
+                <span className="flex items-center gap-1 font-medium">
                   <span className={`w-1.5 h-1.5 rounded-full ${isAutosaved ? 'bg-emerald-500' : 'bg-amber-500'}`} />
                   {isAutosaved ? 'Autosaved' : 'Saving draft...'}
                 </span>
@@ -713,61 +722,59 @@ export default function DocumentEditorPage() {
 
         {/* Action Controls */}
         <div className="flex items-center gap-2">
-          {/* Undo / Redo */}
-          <div className="flex items-center border border-[var(--border)] rounded-lg bg-[var(--surface-hover)] p-0.5">
+          {/* Undo / Redo (macOS Segmented Capsule) */}
+          <div className="mac-segmented-track p-0.5">
             <button
               type="button"
               onClick={handleUndo}
               disabled={historyIndex <= 0}
-              className="p-1.5 rounded text-[var(--text-muted)] hover:text-[var(--text)] disabled:opacity-40"
+              className="p-1 rounded text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 disabled:opacity-30 transition-colors"
               title="Undo (Ctrl+Z)"
             >
-              <Undo2 size={14} />
+              <Undo2 size={13} strokeWidth={2} />
             </button>
             <button
               type="button"
               onClick={handleRedo}
               disabled={historyIndex >= historyStack.length - 1}
-              className="p-1.5 rounded text-[var(--text-muted)] hover:text-[var(--text)] disabled:opacity-40"
+              className="p-1 rounded text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 disabled:opacity-30 transition-colors"
               title="Redo (Ctrl+Y)"
             >
-              <Redo2 size={14} />
+              <Redo2 size={13} strokeWidth={2} />
             </button>
           </div>
 
           <button
             type="button"
             onClick={handleResetToOriginal}
-            className="px-2.5 py-1.5 rounded-lg border border-[var(--border)] text-xs text-[var(--text-muted)] hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors flex items-center gap-1"
+            className="mac-button-secondary px-2.5 py-1.5 text-xs text-[var(--text-muted)] hover:text-rose-600 transition-colors flex items-center gap-1"
             title="Discard all edits and revert"
           >
-            <RotateCcw size={13} strokeWidth={1.75} />
+            <RotateCcw size={12} strokeWidth={2} />
             <span className="hidden md:inline">Reset</span>
           </button>
 
           {/* Download Edited Version (Gated by allowDownload) */}
           {fileMeta?.allowDownload ? (
-            <Button
-              variant="secondary"
-              size="sm"
-              loading={downloading}
+            <button
+              type="button"
+              disabled={downloading}
               onClick={handleDownloadEditedVersion}
-              className="border-emerald-300 text-emerald-800 dark:border-emerald-800 dark:text-emerald-400"
+              className="mac-button-secondary px-3 py-1.5 text-xs text-emerald-700 dark:text-emerald-400 font-semibold flex items-center gap-1.5"
             >
               <Download size={13} strokeWidth={2} />
               <span className="hidden sm:inline">Download Edited</span>
-            </Button>
+            </button>
           ) : (
             <div className="relative group inline-block">
-              <Button
-                variant="secondary"
-                size="sm"
+              <button
+                type="button"
                 disabled
-                className="opacity-50 cursor-not-allowed border-dashed"
+                className="mac-button-secondary px-3 py-1.5 text-xs opacity-50 cursor-not-allowed flex items-center gap-1.5"
               >
                 <Lock size={12} strokeWidth={1.75} />
                 <span className="hidden sm:inline">Download (Locked)</span>
-              </Button>
+              </button>
               <div className="absolute top-full right-0 mt-1.5 hidden group-hover:block z-50 w-56 p-2 text-[11px] leading-tight text-white bg-slate-900 rounded-lg shadow-lg text-center pointer-events-none">
                 Customer has not allowed downloading this file. Use Print Edited Version.
               </div>
@@ -775,52 +782,51 @@ export default function DocumentEditorPage() {
           )}
 
           {/* Print Edited Version */}
-          <Button
-            variant="primary"
-            size="sm"
-            loading={bakingPdf}
+          <button
+            type="button"
+            disabled={bakingPdf}
             onClick={handlePrintEditedVersion}
-            className="shadow-xs"
+            className="mac-button-primary px-3.5 py-1.5 text-xs flex items-center gap-1.5"
           >
-            <Printer size={13} strokeWidth={2} />
+            {bakingPdf ? <Loader2 size={13} className="animate-spin" /> : <Printer size={13} strokeWidth={2} />}
             <span>Print Edited Version</span>
-          </Button>
+          </button>
         </div>
       </header>
 
-      {/* ── Menu Navigation Tabs Bar ── */}
-      <nav className="bg-[var(--surface)] border-b border-[var(--border)] px-4 flex items-center gap-1 overflow-x-auto shrink-0 z-20">
-        {[
-          { id: 'VIEW', label: 'View', icon: Eye },
-          { id: 'EDIT_TEXT', label: 'Edit Text', icon: Edit3 },
-          { id: 'DRAW_MARKUP', label: 'Draw & Markup', icon: PenTool },
-          { id: 'REDACTION', label: 'True Redaction', icon: ShieldX },
-          { id: 'PAGES', label: 'Pages', icon: Layers },
-          { id: 'INSERT', label: 'Insert', icon: PlusCircle },
-          ...(detectedFormFields.length > 0 ? [{ id: 'FORMS', label: 'Forms', icon: CheckSquare }] : []),
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const active = activeTab === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border-b-2 transition-all whitespace-nowrap ${
-                active
-                  ? 'border-[#0E7490] text-[#0E7490] dark:text-[#22D3EE] bg-[var(--surface-hover)]'
-                  : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text)]'
-              }`}
-            >
-              <Icon size={13} strokeWidth={1.75} />
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
-      </nav>
+      {/* ── Menu Navigation Tabs Bar (macOS Segmented Control) ── */}
+      <div className="mac-vibrancy-header px-4 py-1.5 flex items-center overflow-x-auto shrink-0 z-20">
+        <div className="mac-segmented-track">
+          {[
+            { id: 'VIEW', label: 'View', icon: Eye },
+            { id: 'EDIT_TEXT', label: 'Edit Text', icon: Edit3 },
+            { id: 'DRAW_MARKUP', label: 'Draw & Markup', icon: PenTool },
+            { id: 'REDACTION', label: 'True Redaction', icon: ShieldX },
+            { id: 'PAGES', label: 'Pages', icon: Layers },
+            { id: 'INSERT', label: 'Insert', icon: PlusCircle },
+            ...(detectedFormFields.length > 0 ? [{ id: 'FORMS', label: 'Forms', icon: CheckSquare }] : []),
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const active = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`mac-segmented-pill flex items-center gap-1.5 cursor-pointer ${
+                  active ? 'mac-segmented-pill-active' : 'mac-segmented-pill-inactive'
+                }`}
+              >
+                <Icon size={12} strokeWidth={active ? 2.25 : 1.75} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
-      {/* ── Active Tab Secondary Toolbar ── */}
-      <div className="bg-[var(--surface)] border-b border-[var(--border)] px-4 py-1.5 shrink-0 z-10 shadow-xs min-h-[44px] flex items-center">
+      {/* ── Active Tab Secondary Toolbar (macOS Palette) ── */}
+      <div className="mac-vibrancy-header px-4 py-1.5 shrink-0 z-10 min-h-[44px] flex items-center">
         {activeTab === 'VIEW' && (
           <ViewMenu
             zoom={zoom}

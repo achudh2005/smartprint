@@ -11,45 +11,45 @@ export default function ViewMenu({
   onToggleThumbnails,
 }) {
   return (
-    <div className="flex items-center gap-2 flex-wrap py-1">
-      {/* Zoom controls */}
-      <div className="flex items-center bg-[var(--surface-hover)] border border-[var(--border)] rounded-lg p-0.5">
+    <div className="flex items-center gap-2 flex-wrap py-0.5 select-none text-xs">
+      {/* Zoom controls (macOS Segmented Capsule) */}
+      <div className="mac-segmented-track p-0.5">
         <button
           type="button"
           onClick={() => onZoomChange(Math.max(0.5, zoom - 0.15))}
-          className="p-1.5 rounded text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-colors"
+          className="p-1 rounded text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
           title="Zoom Out"
         >
-          <ZoomOut size={14} strokeWidth={2} />
+          <ZoomOut size={13} strokeWidth={2} />
         </button>
-        <span className="text-xs font-semibold text-[var(--text)] px-2 tabular-nums select-none min-w-[50px] text-center">
+        <span className="text-xs font-semibold text-[var(--text)] px-2 tabular-nums select-none min-w-[46px] text-center">
           {Math.round(zoom * 100)}%
         </span>
         <button
           type="button"
           onClick={() => onZoomChange(Math.min(3.0, zoom + 0.15))}
-          className="p-1.5 rounded text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface)] transition-colors"
+          className="p-1 rounded text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
           title="Zoom In"
         >
-          <ZoomIn size={14} strokeWidth={2} />
+          <ZoomIn size={13} strokeWidth={2} />
         </button>
       </div>
 
       {/* Fit buttons */}
-      <div className="flex items-center gap-1 border-r border-[var(--border)] pr-2">
+      <div className="flex items-center gap-1 border-r border-black/[0.08] dark:border-white/[0.08] pr-2">
         <button
           type="button"
           onClick={() => onZoomChange(1.0)}
-          className="px-2.5 py-1 text-xs font-medium rounded-lg border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)] transition-colors flex items-center gap-1"
+          className="mac-button-secondary px-2.5 py-1 text-xs flex items-center gap-1"
         >
-          <Maximize2 size={12} strokeWidth={2} /> 100%
+          <Maximize2 size={11} strokeWidth={2} /> 100%
         </button>
         <button
           type="button"
           onClick={() => onZoomChange(1.25)}
-          className="px-2.5 py-1 text-xs font-medium rounded-lg border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)] transition-colors flex items-center gap-1"
+          className="mac-button-secondary px-2.5 py-1 text-xs flex items-center gap-1"
         >
-          <Minimize2 size={12} strokeWidth={2} /> Fit Width
+          <Minimize2 size={11} strokeWidth={2} /> Fit Width
         </button>
       </div>
 
@@ -57,13 +57,13 @@ export default function ViewMenu({
       <button
         type="button"
         onClick={onToggleThumbnails}
-        className={`px-2.5 py-1 text-xs font-medium rounded-lg border transition-colors flex items-center gap-1.5 ${
+        className={`px-2.5 py-1 text-xs font-medium rounded-lg flex items-center gap-1.5 transition-all ${
           showThumbnails
-            ? 'bg-[var(--accent-tint)] border-[#0E7490] text-[#0E7490] dark:text-[#22D3EE]'
-            : 'border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)]'
+            ? 'mac-button-primary'
+            : 'mac-button-secondary'
         }`}
       >
-        <LayoutGrid size={13} strokeWidth={1.75} />
+        <LayoutGrid size={12} strokeWidth={2} />
         <span>Thumbnails</span>
       </button>
 
@@ -71,13 +71,13 @@ export default function ViewMenu({
       <button
         type="button"
         onClick={onToggleSearch}
-        className={`px-2.5 py-1 text-xs font-medium rounded-lg border transition-colors flex items-center gap-1.5 ${
+        className={`px-2.5 py-1 text-xs font-medium rounded-lg flex items-center gap-1.5 transition-all ${
           showSearch
-            ? 'bg-[var(--accent-tint)] border-[#0E7490] text-[#0E7490] dark:text-[#22D3EE]'
-            : 'border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)]'
+            ? 'mac-button-primary'
+            : 'mac-button-secondary'
         }`}
       >
-        <Search size={13} strokeWidth={1.75} />
+        <Search size={12} strokeWidth={2} />
         <span>Find Text</span>
       </button>
 
@@ -85,10 +85,10 @@ export default function ViewMenu({
       <button
         type="button"
         onClick={onCanvasThemeToggle}
-        className="px-2.5 py-1 text-xs font-medium rounded-lg border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)] transition-colors flex items-center gap-1.5 ml-auto"
+        className="mac-button-secondary px-2.5 py-1 text-xs flex items-center gap-1.5 ml-auto"
         title="Toggle canvas background theme"
       >
-        {canvasTheme === 'dark' ? <Sun size={13} strokeWidth={2} /> : <Moon size={13} strokeWidth={2} />}
+        {canvasTheme === 'dark' ? <Sun size={12} strokeWidth={2} /> : <Moon size={12} strokeWidth={2} />}
         <span>{canvasTheme === 'dark' ? 'Light Canvas' : 'Dark Canvas'}</span>
       </button>
     </div>

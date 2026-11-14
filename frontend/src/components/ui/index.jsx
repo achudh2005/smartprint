@@ -441,14 +441,58 @@ export function StatCard({
   )
 }
 
-// ── Tabs (New Optional Component - Underline style) ───────
+// ── Tabs (macOS Segmented & Minimalist Underline) ───────────
 export function Tabs({
   tabs = [],
   activeTab,
   onChange,
+  variant = 'segmented', // 'segmented' (macOS native pill) | 'underline'
   className,
   ...props
 }) {
+  if (variant === 'segmented') {
+    return (
+      <div className={clsx('inline-flex overflow-x-auto scrollbar-none max-w-full', className)} {...props}>
+        <nav className="mac-segmented-track" aria-label="Tabs">
+          {tabs.map((tab) => {
+            const tabKey = typeof tab === 'object' ? tab.key || tab.id : tab
+            const tabLabel = typeof tab === 'object' ? tab.label || tab.name : tab
+            const tabCount = typeof tab === 'object' ? tab.count : undefined
+            const TabIcon = typeof tab === 'object' ? tab.icon : null
+            const isActive = activeTab === tabKey
+
+            return (
+              <button
+                key={tabKey}
+                type="button"
+                onClick={() => onChange && onChange(tabKey)}
+                className={clsx(
+                  'mac-segmented-pill inline-flex items-center gap-1.5 cursor-pointer',
+                  isActive ? 'mac-segmented-pill-active' : 'mac-segmented-pill-inactive'
+                )}
+              >
+                {TabIcon && <TabIcon size={13} strokeWidth={1.75} className="shrink-0" />}
+                <span>{tabLabel}</span>
+                {tabCount !== undefined && (
+                  <span
+                    className={clsx(
+                      'px-1.5 py-0.2 rounded-full text-[10px] tabular-nums font-semibold',
+                      isActive
+                        ? 'bg-black/10 dark:bg-white/20 text-current'
+                        : 'bg-black/5 dark:bg-white/10 text-text-muted'
+                    )}
+                  >
+                    {tabCount}
+                  </span>
+                )}
+              </button>
+            )
+          })}
+        </nav>
+      </div>
+    )
+  }
+
   return (
     <div className={clsx('border-b border-border overflow-x-auto scrollbar-none', className)} {...props}>
       <nav className="flex space-x-6 min-w-max" aria-label="Tabs">
@@ -552,3 +596,4 @@ export { default as ThemeToggle } from './ThemeToggle'
 // Brand Identity Components
 export { BrandMark } from './BrandMark'
 export { Wordmark } from './Wordmark'
+export { default as MacTrafficLights } from './MacTrafficLights'

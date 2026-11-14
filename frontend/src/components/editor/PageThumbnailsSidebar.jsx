@@ -65,10 +65,10 @@ function PageThumbnailItem({
       onDragOver={onDragOver}
       onDrop={onDrop}
       onClick={() => onSelectPage(pageNum)}
-      className={`group relative rounded-xl border-2 transition-all p-2 flex flex-col items-center cursor-pointer ${
+      className={`group relative rounded-xl transition-all p-2.5 flex flex-col items-center cursor-pointer select-none ${
         isActive
-          ? 'border-[#0E7490] bg-[var(--surface-hover)] shadow-xs'
-          : 'border-[var(--border)] hover:border-[var(--border-strong)] bg-[var(--bg)]'
+          ? 'ring-2 ring-[#007AFF] bg-[#007AFF]/10 dark:bg-[#0A84FF]/20 shadow-sm'
+          : 'hover:bg-black/[0.04] dark:hover:bg-white/[0.05]'
       }`}
     >
       {/* Drag Handle */}
@@ -76,9 +76,9 @@ function PageThumbnailItem({
         <GripVertical size={13} />
       </div>
 
-      {/* Page Aspect Representation Box */}
+      {/* macOS Page Sheet Representation */}
       <div
-        className="w-24 h-32 bg-white dark:bg-slate-900 border border-[var(--border)] rounded-md shadow-xs flex items-center justify-center relative overflow-hidden mb-1.5 transition-transform duration-200"
+        className="w-28 h-36 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.12)] border border-black/[0.08] rounded-sm flex items-center justify-center relative overflow-hidden mb-1.5 transition-transform duration-200"
         style={{ transform: rotation ? `rotate(${rotation}deg)` : undefined }}
       >
         <canvas
@@ -86,13 +86,13 @@ function PageThumbnailItem({
           className={`w-full h-full object-contain ${rendered ? 'block' : 'hidden'}`}
         />
         {!rendered && (
-          <span className="text-xs font-display font-bold text-[var(--text-muted)] opacity-30 select-none">
+          <span className="text-xs font-display font-bold text-slate-400 opacity-40 select-none">
             P.{pageNum}
           </span>
         )}
 
         {/* Quick actions on hover */}
-        <div className="absolute inset-x-0 bottom-0 bg-slate-900/80 backdrop-blur-xs py-1 px-1.5 flex items-center justify-around opacity-0 group-hover:opacity-100 transition-opacity z-10">
+        <div className="absolute inset-x-0 bottom-0 bg-slate-900/85 backdrop-blur-xs py-1 px-1.5 flex items-center justify-around opacity-0 group-hover:opacity-100 transition-opacity z-10">
           <button
             type="button"
             onClick={(e) => {
@@ -173,12 +173,12 @@ export default function PageThumbnailsSidebar({
   };
 
   return (
-    <aside className="w-48 bg-[var(--surface)] border-r border-[var(--border)] flex flex-col h-full overflow-hidden shrink-0 select-none">
-      <div className="p-3 border-b border-[var(--border)] flex items-center justify-between">
-        <span className="text-xs font-bold text-[var(--text)] uppercase tracking-wider">
+    <aside className="w-52 mac-vibrancy-sidebar flex flex-col h-full overflow-hidden shrink-0 select-none">
+      <div className="px-4 py-3 border-b border-black/[0.08] dark:border-white/[0.08] flex items-center justify-between">
+        <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
           Pages ({totalPages})
         </span>
-        <span className="text-[10px] text-[var(--text-muted)]">Drag to reorder</span>
+        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Reorder</span>
       </div>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3">

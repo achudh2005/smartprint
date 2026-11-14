@@ -25,35 +25,28 @@ export default function ShopNavTabs({ shopId }) {
 
   return (
     <div className="relative mb-6">
-      {/* Scrollable tab strip */}
-      <div className="flex gap-0 overflow-x-auto scrollbar-none border-b border-[var(--border)]">
-        {tabs.map(({ to, icon: Icon, label }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end
-            className={({ isActive }) =>
-              clsx(
-                'relative flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-medium whitespace-nowrap shrink-0 transition-colors duration-150',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#22D3EE] focus-visible:ring-offset-1',
-                isActive
-                  ? 'text-[#0E7490] dark:text-[#22D3EE]'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text)]'
-              )
-            }
-          >
-            {({ isActive }) => (
-              <>
-                <Icon size={14} strokeWidth={1.75} className="shrink-0" />
-                <span>{label}</span>
-                {/* Active underline indicator */}
-                {isActive && (
-                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#0E7490] dark:bg-[#22D3EE] rounded-t-full" />
-                )}
-              </>
-            )}
-          </NavLink>
-        ))}
+      {/* macOS Segmented Tab Bar */}
+      <div className="inline-flex overflow-x-auto scrollbar-none max-w-full pb-1">
+        <nav className="mac-segmented-track" aria-label="Shop Navigation">
+          {tabs.map(({ to, icon: Icon, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end
+              className={({ isActive }) =>
+                clsx(
+                  'mac-segmented-pill flex items-center gap-1.5 cursor-pointer',
+                  isActive
+                    ? 'mac-segmented-pill-active'
+                    : 'mac-segmented-pill-inactive'
+                )
+              }
+            >
+              <Icon size={13} strokeWidth={1.75} className="shrink-0" />
+              <span>{label}</span>
+            </NavLink>
+          ))}
+        </nav>
       </div>
     </div>
   )

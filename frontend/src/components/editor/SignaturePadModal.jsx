@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { X, PenTool, Type, Upload, RotateCcw, Check } from 'lucide-react';
-import { Button } from '../ui';
+import { Button, MacTrafficLights } from '../ui';
 
 export default function SignaturePadModal({ isOpen, onClose, onSaveSignature }) {
   if (!isOpen) return null;
@@ -75,17 +75,15 @@ export default function SignaturePadModal({ isOpen, onClose, onSaveSignature }) 
       onClose();
     } else if (activeTab === 'type') {
       if (!typedName.trim()) return;
-      // Render typed text to temporary canvas
       const tempCanvas = document.createElement('canvas');
-      tempCanvas.width = 400;
-      tempCanvas.height = 120;
+      tempCanvas.width = 440;
+      tempCanvas.height = 140;
       const ctx = tempCanvas.getContext('2d');
       ctx.font = `44px ${typedFont}`;
       ctx.fillStyle = penColor;
       ctx.textBaseline = 'middle';
-      ctx.fillText(typedName, 20, 60);
-      const dataUrl = tempCanvas.toDataURL('image/png');
-      onSaveSignature(dataUrl);
+      ctx.fillText(typedName, 20, 70);
+      onSaveSignature(tempCanvas.toDataURL('image/png'));
       onClose();
     }
   };
@@ -102,53 +100,57 @@ export default function SignaturePadModal({ isOpen, onClose, onSaveSignature }) 
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl w-full max-w-lg shadow-xl overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="px-5 py-4 border-b border-[var(--border)] flex items-center justify-between">
-          <div>
-            <h3 className="font-display font-bold text-sm text-[var(--text)]">Create Signature</h3>
-            <p className="text-xs text-[var(--text-muted)] mt-0.5">Draw, type, or upload a signature to stamp on documents</p>
+    <div className="fixed inset-0 z-50 bg-black/40 dark:bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+      <div className="mac-sheet rounded-2xl w-full max-w-lg overflow-hidden flex flex-col animate-scaleIn select-none">
+        {/* macOS Sheet Titlebar with Traffic Lights */}
+        <div className="px-4 py-3 border-b border-black/[0.08] dark:border-white/[0.08] flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <MacTrafficLights size="sm" onClose={onClose} />
+            <div className="h-3 w-px bg-black/[0.1] dark:bg-white/[0.1] mx-0.5" />
+            <div className="flex items-center gap-1.5">
+              <PenTool size={14} strokeWidth={2} className="text-[#0E7490]" />
+              <h3 className="font-semibold text-xs text-[var(--text)]">Create Signature</h3>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)] transition-colors"
+            className="p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-black/[0.05] dark:hover:bg-white/[0.05] transition-colors"
           >
-            <X size={16} strokeWidth={2} />
+            <X size={14} strokeWidth={2} />
           </button>
         </div>
 
-        {/* Tab switch */}
-        <div className="flex border-b border-[var(--border)] bg-[var(--surface-hover)] px-5 pt-2">
-          {[
-            { id: 'draw', label: 'Draw', icon: PenTool },
-            { id: 'type', label: 'Type', icon: Type },
-            { id: 'upload', label: 'Upload Image', icon: Upload },
-          ].map((tab) => {
-            const Icon = tab.icon;
-            const active = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold border-b-2 transition-all ${
-                  active
-                    ? 'border-[#0E7490] text-[#0E7490] dark:text-[#22D3EE] bg-[var(--surface)]'
-                    : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text)]'
-                }`}
-              >
-                <Icon size={13} strokeWidth={1.75} />
-                {tab.label}
-              </button>
-            );
-          })}
+        {/* Tab switch (macOS Segmented Control) */}
+        <div className="px-4 py-2 border-b border-black/[0.08] dark:border-white/[0.08] bg-black/[0.02] dark:bg-white/[0.02] flex items-center">
+          <div className="mac-segmented-track">
+            {[
+              { id: 'draw', label: 'Draw', icon: PenTool },
+              { id: 'type', label: 'Type', icon: Type },
+              { id: 'upload', label: 'Upload Image', icon: Upload },
+            ].map((tab) => {
+              const Icon = tab.icon;
+              const active = activeTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`mac-segmented-pill flex items-center gap-1.5 cursor-pointer ${
+                    active ? 'mac-segmented-pill-active' : 'mac-segmented-pill-inactive'
+                  }`}
+                >
+                  <Icon size={12} strokeWidth={active ? 2.25 : 1.75} />
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
         {/* Body */}
         <div className="p-5 flex-1">
           {activeTab === 'draw' && (
             <div className="space-y-4">
-              <div className="relative border-2 border-dashed border-[var(--border)] rounded-xl bg-white dark:bg-slate-950 overflow-hidden cursor-crosshair">
+              <div className="relative border border-dashed border-black/20 dark:border-white/20 rounded-xl bg-white dark:bg-slate-950 overflow-hidden cursor-crosshair">
                 <canvas
                   ref={canvasRef}
                   width={440}
@@ -166,13 +168,13 @@ export default function SignaturePadModal({ isOpen, onClose, onSaveSignature }) 
               {/* Controls */}
               <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-[var(--text-muted)]">Color:</span>
+                  <span className="text-[11px] text-[var(--text-muted)]">Color:</span>
                   {['#000000', '#1E3A8A', '#DC2626'].map((c) => (
                     <button
                       key={c}
                       type="button"
                       onClick={() => setPenColor(c)}
-                      className={`w-6 h-6 rounded-full border-2 transition-all ${
+                      className={`w-5 h-5 rounded-full border-2 transition-all ${
                         penColor === c ? 'scale-110 border-[#0E7490]' : 'border-transparent'
                       }`}
                       style={{ backgroundColor: c }}
@@ -184,9 +186,9 @@ export default function SignaturePadModal({ isOpen, onClose, onSaveSignature }) 
                   <button
                     type="button"
                     onClick={clearCanvas}
-                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border border-[var(--border)] text-xs text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)] transition-colors"
+                    className="mac-button-secondary px-2.5 py-1 text-xs inline-flex items-center gap-1"
                   >
-                    <RotateCcw size={12} strokeWidth={2} /> Clear
+                    <RotateCcw size={11} strokeWidth={2} /> Clear
                   </button>
                 </div>
               </div>
@@ -196,17 +198,17 @@ export default function SignaturePadModal({ isOpen, onClose, onSaveSignature }) 
           {activeTab === 'type' && (
             <div className="space-y-4">
               <div>
-                <label className="text-xs font-semibold text-[var(--text)] block mb-1">Enter your name</label>
+                <label className="text-[11px] font-semibold text-[var(--text)] block mb-1">Enter your name</label>
                 <input
                   type="text"
                   value={typedName}
                   onChange={(e) => setTypedName(e.target.value)}
                   placeholder="e.g. Rahul Sharma"
-                  className="input text-sm bg-[var(--surface)] text-[var(--text)]"
+                  className="w-full rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-3 py-1.5 text-xs font-medium text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#0E7490]/30"
                 />
               </div>
 
-              <div className="p-6 bg-white dark:bg-slate-950 border border-[var(--border)] rounded-xl text-center min-h-[120px] flex items-center justify-center">
+              <div className="p-6 bg-white dark:bg-slate-950 border border-black/10 dark:border-white/10 rounded-xl text-center min-h-[120px] flex items-center justify-center">
                 <span
                   style={{ fontFamily: typedFont, fontSize: '38px', color: penColor }}
                   className="select-none"
@@ -216,13 +218,15 @@ export default function SignaturePadModal({ isOpen, onClose, onSaveSignature }) 
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-xs text-[var(--text-muted)]">Style:</span>
+                <span className="text-[11px] text-[var(--text-muted)]">Style:</span>
                 {['cursive', 'serif', 'sans-serif'].map((f) => (
                   <button
                     key={f}
                     onClick={() => setTypedFont(f)}
-                    className={`px-3 py-1 rounded-lg text-xs font-semibold border ${
-                      typedFont === f ? 'bg-[var(--accent-tint)] border-[#0E7490] text-[#0E7490]' : 'border-[var(--border)]'
+                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${
+                      typedFont === f
+                        ? 'bg-[var(--accent-tint)] border-[#0E7490] text-[#0E7490]'
+                        : 'border-black/10 dark:border-white/10 text-[var(--text-muted)]'
                     }`}
                   >
                     {f}
@@ -233,29 +237,37 @@ export default function SignaturePadModal({ isOpen, onClose, onSaveSignature }) 
           )}
 
           {activeTab === 'upload' && (
-            <div className="border-2 border-dashed border-[var(--border)] rounded-xl p-8 text-center bg-[var(--surface-hover)]">
-              <Upload size={28} className="mx-auto text-[var(--text-muted)] mb-2" />
-              <p className="text-xs font-medium text-[var(--text)]">Upload a photo of your signature</p>
+            <div className="border border-dashed border-black/20 dark:border-white/20 rounded-xl p-8 text-center bg-black/[0.02] dark:bg-white/[0.03]">
+              <Upload size={24} className="mx-auto text-[var(--text-muted)] mb-2" />
+              <p className="text-xs font-semibold text-[var(--text)]">Upload a photo of your signature</p>
               <p className="text-[11px] text-[var(--text-muted)] mt-1">PNG or JPEG format (transparent background works best)</p>
               <input
                 type="file"
                 accept="image/*"
                 onChange={handleFileUpload}
-                className="mt-4 text-xs text-[var(--text-muted)]"
+                className="mt-4 text-xs text-[var(--text-muted)] cursor-pointer"
               />
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3 border-t border-[var(--border)] flex justify-end gap-2 bg-[var(--surface-hover)]">
-          <Button variant="secondary" size="sm" onClick={onClose}>
+        <div className="px-4 py-3 border-t border-black/[0.08] dark:border-white/[0.08] flex justify-end gap-2 bg-black/[0.02] dark:bg-white/[0.02]">
+          <button
+            type="button"
+            onClick={onClose}
+            className="mac-button-secondary px-3.5 py-1.5 text-xs font-medium"
+          >
             Cancel
-          </Button>
+          </button>
           {activeTab !== 'upload' && (
-            <Button variant="primary" size="sm" onClick={handleSave}>
+            <button
+              type="button"
+              onClick={handleSave}
+              className="mac-button-primary px-4 py-1.5 text-xs flex items-center gap-1.5"
+            >
               <Check size={13} strokeWidth={2} /> Use Signature
-            </Button>
+            </button>
           )}
         </div>
       </div>

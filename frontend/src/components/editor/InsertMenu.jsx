@@ -24,7 +24,7 @@ export default function InsertMenu({
   };
 
   return (
-    <div className="flex items-center gap-2 flex-wrap py-1 text-xs">
+    <div className="flex items-center gap-1.5 flex-wrap py-0.5 text-xs select-none">
       <input
         ref={imageInputRef}
         type="file"
@@ -37,9 +37,9 @@ export default function InsertMenu({
       <button
         type="button"
         onClick={() => imageInputRef.current?.click()}
-        className="px-3 py-1.5 rounded-lg border border-[var(--border)] font-medium text-[var(--text)] hover:bg-[var(--surface-hover)] flex items-center gap-1.5 transition-colors"
+        className="mac-button-secondary px-2.5 py-1 text-xs font-medium flex items-center gap-1.5"
       >
-        <Image size={13} strokeWidth={1.75} className="text-[#0E7490]" />
+        <Image size={12} strokeWidth={2} className="text-[#0E7490]" />
         <span>Insert Image</span>
       </button>
 
@@ -47,9 +47,9 @@ export default function InsertMenu({
       <button
         type="button"
         onClick={onOpenSignatureModal}
-        className="px-3 py-1.5 rounded-lg border border-[var(--border)] font-medium text-[var(--text)] hover:bg-[var(--surface-hover)] flex items-center gap-1.5 transition-colors"
+        className="mac-button-secondary px-2.5 py-1 text-xs font-medium flex items-center gap-1.5"
       >
-        <PenTool size={13} strokeWidth={1.75} className="text-[#0E7490]" />
+        <PenTool size={12} strokeWidth={2} className="text-[#0E7490]" />
         <span>Add Signature</span>
       </button>
 
@@ -57,13 +57,13 @@ export default function InsertMenu({
       <button
         type="button"
         onClick={onOpenPageNumberModal}
-        className={`px-3 py-1.5 rounded-lg border font-medium flex items-center gap-1.5 transition-colors ${
+        className={`px-2.5 py-1 text-xs font-medium flex items-center gap-1.5 transition-all ${
           hasPageNumbers
-            ? 'bg-[var(--accent-tint)] border-[#0E7490] text-[#0E7490] dark:text-[#22D3EE]'
-            : 'border-[var(--border)] text-[var(--text)] hover:bg-[var(--surface-hover)]'
+            ? 'mac-button-primary'
+            : 'mac-button-secondary'
         }`}
       >
-        <Hash size={13} strokeWidth={1.75} />
+        <Hash size={12} strokeWidth={2} />
         <span>Page Numbers {hasPageNumbers ? '✓' : ''}</span>
       </button>
 
@@ -71,13 +71,13 @@ export default function InsertMenu({
       <button
         type="button"
         onClick={onOpenWatermarkModal}
-        className={`px-3 py-1.5 rounded-lg border font-medium flex items-center gap-1.5 transition-colors ${
+        className={`px-2.5 py-1 text-xs font-medium flex items-center gap-1.5 transition-all ${
           hasWatermark
-            ? 'bg-[var(--accent-tint)] border-[#0E7490] text-[#0E7490] dark:text-[#22D3EE]'
-            : 'border-[var(--border)] text-[var(--text)] hover:bg-[var(--surface-hover)]'
+            ? 'mac-button-primary'
+            : 'mac-button-secondary'
         }`}
       >
-        <ShieldAlert size={13} strokeWidth={1.75} />
+        <ShieldAlert size={12} strokeWidth={2} />
         <span>Watermark {hasWatermark ? '✓' : ''}</span>
       </button>
     </div>

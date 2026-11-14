@@ -234,3 +234,164 @@ html.dark .skeleton-shimmer {
     opacity: 1;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   macOS NATIVE SYSTEM UI DESIGN LANGUAGE (Apple Sequoia / Sonoma)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Window Controls (Traffic Lights) */
+.mac-traffic-lights {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.mac-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
+  position: relative;
+  box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.15);
+  transition: transform 120ms ease, opacity 120ms ease;
+  cursor: default;
+}
+.mac-traffic-lights:hover .mac-dot {
+  opacity: 0.95;
+}
+.mac-dot-red {
+  background-color: #FF5F56;
+  border: 0.5px solid #E0443E;
+}
+.mac-dot-yellow {
+  background-color: #FFBD2E;
+  border: 0.5px solid #DEA123;
+}
+.mac-dot-green {
+  background-color: #27C93F;
+  border: 0.5px solid #1AAB29;
+}
+
+/* Translucent Vibrancy Surfaces */
+.mac-vibrancy-header {
+  background-color: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+html.dark .mac-vibrancy-header {
+  background-color: rgba(28, 28, 30, 0.82);
+  backdrop-filter: blur(24px) saturate(190%);
+  -webkit-backdrop-filter: blur(24px) saturate(190%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mac-vibrancy-sidebar {
+  background-color: rgba(246, 246, 248, 0.85);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+}
+html.dark .mac-vibrancy-sidebar {
+  background-color: rgba(24, 24, 26, 0.85);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* macOS Sheet Dialog / Modal */
+.mac-sheet {
+  background-color: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(32px) saturate(200%);
+  -webkit-backdrop-filter: blur(32px) saturate(200%);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 24px 64px -12px rgba(0, 0, 0, 0.22), 0 4px 16px -2px rgba(0, 0, 0, 0.08);
+}
+html.dark .mac-sheet {
+  background-color: rgba(36, 36, 38, 0.94);
+  backdrop-filter: blur(32px) saturate(200%);
+  -webkit-backdrop-filter: blur(32px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 28px 72px -12px rgba(0, 0, 0, 0.65), 0 4px 20px -2px rgba(0, 0, 0, 0.4);
+}
+
+/* macOS Segmented Controls */
+.mac-segmented-track {
+  display: inline-flex;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.06);
+  padding: 3px;
+  border-radius: 12px;
+  gap: 2px;
+  border: 0.5px solid rgba(0, 0, 0, 0.04);
+}
+html.dark .mac-segmented-track {
+  background-color: rgba(255, 255, 255, 0.08);
+  border: 0.5px solid rgba(255, 255, 255, 0.05);
+}
+
+.mac-segmented-pill {
+  padding: 5px 12px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 140ms cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  white-space: nowrap;
+}
+.mac-segmented-pill-active {
+  background-color: #FFFFFF;
+  color: #0F172A;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 1px rgba(0, 0, 0, 0.06);
+  font-weight: 600;
+}
+html.dark .mac-segmented-pill-active {
+  background-color: #38383A;
+  color: #F8FAFC;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+.mac-segmented-pill-inactive {
+  color: #64748B;
+}
+html.dark .mac-segmented-pill-inactive {
+  color: #94A3B8;
+}
+.mac-segmented-pill-inactive:hover {
+  color: #0F172A;
+  background-color: rgba(0, 0, 0, 0.03);
+}
+html.dark .mac-segmented-pill-inactive:hover {
+  color: #F8FAFC;
+  background-color: rgba(255, 255, 255, 0.04);
+}
+
+/* macOS System Push Buttons */
+.mac-button-primary {
+  background: linear-gradient(180deg, #0E7490 0%, #0A5E75 100%);
+  color: #FFFFFF;
+  border: 0.5px solid rgba(14, 116, 144, 0.6);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  font-weight: 600;
+}
+.mac-button-primary:hover {
+  background: linear-gradient(180deg, #118BAA 0%, #0D6F8A 100%);
+}
+.mac-button-secondary {
+  background-color: rgba(0, 0, 0, 0.04);
+  color: #1E293B;
+  border: 0.5px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  border-radius: 8px;
+  font-weight: 500;
+}
+html.dark .mac-button-secondary {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #F1F5F9;
+  border: 0.5px solid rgba(255, 255, 255, 0.12);
+}
+.mac-button-secondary:hover {
+  background-color: rgba(0, 0, 0, 0.07);
+}
+html.dark .mac-button-secondary:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+

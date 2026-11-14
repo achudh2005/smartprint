@@ -495,7 +495,7 @@ export default function ShopPortalPage() {
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--text)] pb-32 sm:pb-20 transition-colors duration-150">
       {/* Top Shop Brand Header */}
-      <header className="bg-[var(--surface)] border-b border-[var(--border)] sticky top-0 z-20 shadow-xs transition-colors duration-150">
+      <header className="mac-vibrancy-header sticky top-0 z-20 transition-colors duration-150">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3 min-w-0">
             {shop.logoUrl ? (

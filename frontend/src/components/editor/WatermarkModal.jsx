@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X, Check, ShieldAlert } from 'lucide-react';
-import { Button } from '../ui';
+import { Button, MacTrafficLights } from '../ui';
 
 export default function WatermarkModal({ isOpen, onClose, watermark, onSaveWatermark }) {
   if (!isOpen) return null;
@@ -27,19 +27,23 @@ export default function WatermarkModal({ isOpen, onClose, watermark, onSaveWater
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl w-full max-w-md shadow-xl overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="px-5 py-4 border-b border-[var(--border)] flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ShieldAlert size={16} strokeWidth={2} className="text-[#0E7490]" />
-            <h3 className="font-display font-bold text-sm text-[var(--text)]">Document Watermark</h3>
+    <div className="fixed inset-0 z-50 bg-black/40 dark:bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+      <div className="mac-sheet rounded-2xl w-full max-w-md overflow-hidden flex flex-col animate-scaleIn select-none">
+        {/* macOS Sheet Titlebar with Traffic Lights */}
+        <div className="px-4 py-3 border-b border-black/[0.08] dark:border-white/[0.08] flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <MacTrafficLights size="sm" onClose={onClose} />
+            <div className="h-3 w-px bg-black/[0.1] dark:bg-white/[0.1] mx-0.5" />
+            <div className="flex items-center gap-1.5">
+              <ShieldAlert size={14} strokeWidth={2} className="text-[#0E7490]" />
+              <h3 className="font-semibold text-xs text-[var(--text)]">Document Watermark</h3>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)] transition-colors"
+            className="p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-black/[0.05] dark:hover:bg-white/[0.05] transition-colors"
           >
-            <X size={16} strokeWidth={2} />
+            <X size={14} strokeWidth={2} />
           </button>
         </div>
 
@@ -56,72 +60,75 @@ export default function WatermarkModal({ isOpen, onClose, watermark, onSaveWater
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-[var(--text-muted)] block mb-1">Watermark Text</label>
+            <label className="text-[11px] font-semibold text-[var(--text-muted)] block mb-1">Watermark Text</label>
             <input
               type="text"
               value={text}
               onChange={(e) => setText(e.target.value)}
+              className="w-full rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-3 py-1.5 text-xs font-medium text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#0E7490]/30"
               placeholder="e.g. CONFIDENTIAL"
-              className="input text-xs font-bold uppercase tracking-wider bg-[var(--surface)] text-[var(--text)]"
             />
-            {/* Preset chips */}
-            <div className="flex flex-wrap gap-1.5 mt-2">
-              {presets.map((p) => (
+            {/* Quick Presets */}
+            <div className="flex flex-wrap gap-1 mt-2">
+              {presets.map((preset) => (
                 <button
-                  key={p}
+                  key={preset}
                   type="button"
-                  onClick={() => setText(p)}
-                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border transition-all ${
-                    text === p
-                      ? 'bg-[#0E7490] text-white border-[#0E7490]'
-                      : 'border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)]'
-                  }`}
+                  onClick={() => setText(preset)}
+                  className="px-2 py-0.5 text-[10px] font-semibold rounded-md bg-black/[0.04] dark:bg-white/[0.06] text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-black/[0.08] transition-colors"
                 >
-                  {p}
+                  {preset}
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Opacity slider */}
-          <div>
-            <div className="flex justify-between text-xs font-medium text-[var(--text-muted)] mb-1">
-              <span>Opacity</span>
-              <span className="tabular-nums font-semibold text-[var(--text)]">{Math.round(opacity * 100)}%</span>
-            </div>
-            <input
-              type="range"
-              min="0.05"
-              max="0.6"
-              step="0.05"
-              value={opacity}
-              onChange={(e) => setOpacity(parseFloat(e.target.value))}
-              className="w-full accent-[#0E7490]"
-            />
-          </div>
-
-          {/* Angle & Size */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-[var(--text-muted)] block mb-1">Rotation Angle</label>
-              <select
+              <label className="text-[11px] font-semibold text-[var(--text-muted)] block mb-1">Opacity: {Math.round(opacity * 100)}%</label>
+              <input
+                type="range"
+                min="0.05"
+                max="0.8"
+                step="0.05"
+                value={opacity}
+                onChange={(e) => setOpacity(parseFloat(e.target.value))}
+                className="w-full"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold text-[var(--text-muted)] block mb-1">Rotation Angle: {angle}°</label>
+              <input
+                type="range"
+                min="-90"
+                max="90"
+                step="5"
                 value={angle}
                 onChange={(e) => setAngle(parseInt(e.target.value, 10))}
-                className="input text-xs bg-[var(--surface)] text-[var(--text)]"
-              >
-                <option value={-45}>-45° (Diagonal)</option>
-                <option value={0}>0° (Horizontal)</option>
-                <option value={45}>45° (Reverse Diagonal)</option>
-                <option value={-90}>-90° (Vertical)</option>
-              </select>
+                className="w-full"
+              />
             </div>
+          </div>
 
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-[var(--text-muted)] block mb-1">Font Size</label>
+              <label className="text-[11px] font-semibold text-[var(--text-muted)] block mb-1">Color</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+                  className="w-8 h-8 rounded-lg border border-black/10 dark:border-white/10 cursor-pointer"
+                />
+                <span className="text-xs font-mono text-[var(--text-muted)]">{color}</span>
+              </div>
+            </div>
+            <div>
+              <label className="text-[11px] font-semibold text-[var(--text-muted)] block mb-1">Font Size</label>
               <select
                 value={fontSize}
                 onChange={(e) => setFontSize(parseInt(e.target.value, 10))}
-                className="input text-xs bg-[var(--surface)] text-[var(--text)]"
+                className="w-full rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-3 py-1.5 text-xs font-medium text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#0E7490]/30"
               >
                 <option value={32}>Small (32pt)</option>
                 <option value={48}>Medium (48pt)</option>
@@ -133,13 +140,21 @@ export default function WatermarkModal({ isOpen, onClose, watermark, onSaveWater
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3 border-t border-[var(--border)] flex justify-end gap-2 bg-[var(--surface-hover)]">
-          <Button variant="secondary" size="sm" onClick={onClose}>
+        <div className="px-4 py-3 border-t border-black/[0.08] dark:border-white/[0.08] flex justify-end gap-2 bg-black/[0.02] dark:bg-white/[0.02]">
+          <button
+            type="button"
+            onClick={onClose}
+            className="mac-button-secondary px-3.5 py-1.5 text-xs font-medium"
+          >
             Cancel
-          </Button>
-          <Button variant="primary" size="sm" onClick={handleApply}>
+          </button>
+          <button
+            type="button"
+            onClick={handleApply}
+            className="mac-button-primary px-4 py-1.5 text-xs flex items-center gap-1.5"
+          >
             <Check size={13} strokeWidth={2} /> Apply Watermark
-          </Button>
+          </button>
         </div>
       </div>
     </div>

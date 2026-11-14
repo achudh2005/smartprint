@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X, Scissors, Check } from 'lucide-react';
-import { Button } from '../ui';
+import { Button, MacTrafficLights } from '../ui';
 
 export default function SplitModal({ isOpen, onClose, totalPages, onExtractPages }) {
   if (!isOpen) return null;
@@ -21,15 +21,23 @@ export default function SplitModal({ isOpen, onClose, totalPages, onExtractPages
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl w-full max-w-sm shadow-xl overflow-hidden flex flex-col">
-        <div className="px-5 py-4 border-b border-[var(--border)] flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Scissors size={16} strokeWidth={2} className="text-[#0E7490]" />
-            <h3 className="font-display font-bold text-sm text-[var(--text)]">Extract & Split Pages</h3>
+    <div className="fixed inset-0 z-50 bg-black/40 dark:bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+      <div className="mac-sheet rounded-2xl w-full max-w-sm overflow-hidden flex flex-col animate-scaleIn select-none">
+        {/* macOS Sheet Titlebar with Traffic Lights */}
+        <div className="px-4 py-3 border-b border-black/[0.08] dark:border-white/[0.08] flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <MacTrafficLights size="sm" onClose={onClose} />
+            <div className="h-3 w-px bg-black/[0.1] dark:bg-white/[0.1] mx-0.5" />
+            <div className="flex items-center gap-1.5">
+              <Scissors size={14} strokeWidth={2} className="text-[#0E7490]" />
+              <h3 className="font-semibold text-xs text-[var(--text)]">Extract & Split Pages</h3>
+            </div>
           </div>
-          <button onClick={onClose} className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)]">
-            <X size={16} strokeWidth={2} />
+          <button
+            onClick={onClose}
+            className="p-1 rounded-md text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-black/[0.05] dark:hover:bg-white/[0.05] transition-colors"
+          >
+            <X size={14} strokeWidth={2} />
           </button>
         </div>
 
@@ -43,7 +51,7 @@ export default function SplitModal({ isOpen, onClose, totalPages, onExtractPages
               value={rangeInput}
               onChange={(e) => setRangeInput(e.target.value)}
               placeholder="e.g. 1-3, 5"
-              className="input text-xs font-medium bg-[var(--surface)] text-[var(--text)]"
+              className="w-full rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-3 py-1.5 text-xs font-medium text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#0E7490]/30"
             />
             <p className="text-[11px] text-[var(--text-muted)] mt-1">
               Specify comma-separated pages or ranges (e.g. 1-2, 4).
@@ -51,7 +59,7 @@ export default function SplitModal({ isOpen, onClose, totalPages, onExtractPages
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-[var(--text-muted)] block mb-1">Export Destination</label>
+            <label className="text-[11px] font-semibold text-[var(--text-muted)] block mb-1.5">Export Destination</label>
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-xs font-medium text-[var(--text)] cursor-pointer">
                 <input
@@ -75,13 +83,23 @@ export default function SplitModal({ isOpen, onClose, totalPages, onExtractPages
           </div>
         </div>
 
-        <div className="px-5 py-3 border-t border-[var(--border)] flex justify-end gap-2 bg-[var(--surface-hover)]">
-          <Button variant="secondary" size="sm" onClick={onClose} disabled={loading}>
+        <div className="px-4 py-3 border-t border-black/[0.08] dark:border-white/[0.08] flex justify-end gap-2 bg-black/[0.02] dark:bg-white/[0.02]">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={loading}
+            className="mac-button-secondary px-3.5 py-1.5 text-xs font-medium"
+          >
             Cancel
-          </Button>
-          <Button variant="primary" size="sm" onClick={handleConfirm} loading={loading}>
+          </button>
+          <button
+            type="button"
+            onClick={handleConfirm}
+            disabled={loading}
+            className="mac-button-primary px-4 py-1.5 text-xs flex items-center gap-1.5"
+          >
             <Check size={13} strokeWidth={2} /> Extract Pages
-          </Button>
+          </button>
         </div>
       </div>
     </div>
