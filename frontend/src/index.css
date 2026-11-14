@@ -4,56 +4,56 @@
 @tailwind utilities;
 
 /* ═══════════════════════════════════════════════════════════════
-   DESIGN SYSTEM TOKENS (LIGHT & DARK)
-   Accent: Deep Cyan (#0E7490, hover #155E75, tint #ECFEFF)
-   Neutrals: Light (#FAFAFA / #FFFFFF / #E4E4E7 / #18181B / #71717A)
-             Dark (#09090B / #111113 / #18181B / #27272A / #FAFAFA / #A1A1AA)
+   macOS NATIVE DESIGN SYSTEM TOKENS (LIGHT & DARK)
+   Accent: Apple System Blue (#007AFF light / #0A84FF dark)
+   Neutrals: Light (#F5F5F7 System Gray 6 / #FFFFFF / #E5E5EA / #1D1D1F / #6E6E73)
+             Dark (#1E1E1E Window / #2C2C2E Card / #38383A / #F5F5F7 / #98989D)
    ═══════════════════════════════════════════════════════════════ */
 :root {
-  --bg: 250 250 250;            /* #FAFAFA */
-  --surface: 255 255 255;       /* #FFFFFF */
-  --surface-2: 244 244 245;     /* #F4F4F5 */
-  --surface-hover: 244 244 245; /* #F4F4F5 */
-  --border: 228 228 231;        /* #E4E4E7 */
-  --border-subtle: 244 244 245; /* #F4F4F5 */
-  --text: 24 24 27;             /* #18181B */
-  --text-muted: 113 113 122;    /* #71717A */
-  --accent: 14 116 144;         /* #0E7490 Deep Cyan */
-  --accent-hover: 21 94 117;    /* #155E75 */
-  --accent-tint: 236 254 255;   /* #ECFEFF */
-  --accent-ring: 34 211 238;    /* #22D3EE */
-  --success: 21 128 61;         /* #15803D */
-  --success-tint: 240 253 244;  /* #F0FDF4 */
+  --bg: 245 245 247;            /* #F5F5F7 - macOS Light System Gray 6 */
+  --surface: 255 255 255;       /* #FFFFFF - macOS Card Surface */
+  --surface-2: 235 235 237;     /* #EBEBED - macOS Inset / Inactive Control */
+  --surface-hover: 235 235 237; /* #EBEBED */
+  --border: 229 229 234;        /* #E5E5EA - macOS Hairline 1px Border */
+  --border-subtle: 235 235 237; /* #EBEBED */
+  --text: 29 29 31;             /* #1D1D1F - macOS Primary Label */
+  --text-muted: 110 110 115;    /* #6E6E73 - macOS Secondary Label */
+  --accent: 0 122 255;          /* #007AFF - Apple System Blue */
+  --accent-hover: 0 113 227;    /* #0071E3 */
+  --accent-tint: 240 247 255;   /* rgba(0, 122, 255, 0.12) Selection Highlight */
+  --accent-ring: 0 122 255;     /* #007AFF */
+  --success: 52 199 89;         /* #34C759 - macOS System Green */
+  --success-tint: 238 251 242;  /* #EEFBF2 */
   --success-border: 187 247 208;/* #BBF7D0 */
-  --warning: 180 83 9;          /* #B45309 */
-  --warning-tint: 255 251 235;  /* #FFFBEB */
+  --warning: 255 149 0;         /* #FF9500 - macOS System Orange */
+  --warning-tint: 255 248 235;  /* #FFF8EB */
   --warning-border: 253 230 138;/* #FDE68A */
-  --danger: 185 28 28;          /* #B91C1C */
-  --danger-tint: 254 242 242;   /* #FEF2F2 */
+  --danger: 255 59 48;          /* #FF3B30 - macOS System Red */
+  --danger-tint: 255 241 240;   /* #FFF1F0 */
   --danger-border: 254 202 202; /* #FECACA */
 }
 
 html.dark {
-  --bg: 9 9 11;                 /* #09090B */
-  --surface: 18 18 20;          /* #121214 */
-  --surface-2: 27 27 31;        /* #1B1B1F */
-  --surface-hover: 34 34 39;    /* #222227 */
-  --border: 39 39 42;           /* #27272A */
-  --border-subtle: 27 27 31;    /* #1B1B1F */
-  --text: 244 244 245;          /* #F4F4F5 */
-  --text-muted: 161 161 170;    /* #A1A1AA */
-  --accent: 14 116 144;         /* #0E7490 */
-  --accent-hover: 21 94 117;    /* #155E75 */
-  --accent-tint: 8 51 68;       /* #083344 */
-  --accent-ring: 34 211 238;    /* #22D3EE */
-  --success: 74 222 128;        /* #4ADE80 */
-  --success-tint: 5 46 22;      /* #052E16 */
+  --bg: 30 30 30;               /* #1E1E1E - macOS Dark Window Background */
+  --surface: 44 44 46;          /* #2C2C2E - macOS Dark Elevated Card */
+  --surface-2: 58 58 60;        /* #3A3A3C - macOS Dark Inset Track */
+  --surface-hover: 58 58 60;    /* #3A3A3C */
+  --border: 56 56 58;           /* #38383A - macOS Dark Hairline Border */
+  --border-subtle: 44 44 46;    /* #2C2C2E */
+  --text: 245 245 247;          /* #F5F5F7 - macOS Dark Primary Label */
+  --text-muted: 152 152 157;    /* #98989D - macOS Dark Secondary Label */
+  --accent: 10 132 255;         /* #0A84FF - Apple Dark Mode System Blue */
+  --accent-hover: 64 156 255;   /* #409CFF */
+  --accent-tint: 20 40 70;      /* rgba(10, 132, 255, 0.20) Selection Highlight */
+  --accent-ring: 10 132 255;    /* #0A84FF */
+  --success: 48 209 88;         /* #30D158 */
+  --success-tint: 10 40 20;     /* #0A2814 */
   --success-border: 20 83 45;   /* #14532D */
-  --warning: 251 191 36;        /* #FBBF24 */
-  --warning-tint: 69 26 3;      /* #451A03 */
+  --warning: 255 159 10;        /* #FF9F0A */
+  --warning-tint: 50 30 5;      /* #321E05 */
   --warning-border: 120 53 15;  /* #78350F */
-  --danger: 248 113 113;        /* #F87171 */
-  --danger-tint: 69 10 10;      /* #450A0A */
+  --danger: 255 69 58;          /* #FF453A */
+  --danger-tint: 50 10 10;      /* #320A0A */
   --danger-border: 127 29 29;   /* #7F1D1D */
 }
 
@@ -64,7 +64,7 @@ html.dark {
   body {
     background-color: rgb(var(--bg));
     color: rgb(var(--text));
-    font-family: Inter, system-ui, -apple-system, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, "Segoe UI", Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11', 'tnum';
@@ -73,31 +73,31 @@ html.dark {
     transition-duration: 150ms;
   }
   h1 {
-    @apply text-2xl font-semibold tracking-tight font-display;
+    @apply text-2xl font-semibold tracking-[-0.02em] font-display;
   }
   h2 {
-    @apply text-base font-semibold tracking-tight;
+    @apply text-base font-semibold tracking-[-0.015em];
   }
   h3, h4, h5, h6 {
-    @apply font-semibold tracking-tight;
+    @apply font-semibold tracking-[-0.01em];
   }
 }
 
 @layer components {
   /* ── Buttons ── */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg text-sm font-medium transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#22D3EE]/40 disabled:opacity-50 disabled:cursor-not-allowed select-none active:scale-[0.98];
+    @apply inline-flex items-center justify-center gap-2 rounded-lg text-sm font-medium transition-all duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007AFF]/40 disabled:opacity-50 disabled:cursor-not-allowed select-none active:scale-[0.98];
     height: 36px;
     padding-left: 0.875rem;
     padding-right: 0.875rem;
   }
   .btn-sm {
-    height: 32px;
+    height: 30px;
     padding-left: 0.625rem;
     padding-right: 0.625rem;
     font-size: 0.75rem;
     line-height: 1rem;
-    border-radius: 7px;
+    border-radius: 8px;
   }
   .btn-md {
     height: 36px;
@@ -105,41 +105,44 @@ html.dark {
     padding-right: 0.875rem;
     font-size: 0.875rem;
     line-height: 1.25rem;
+    border-radius: 10px;
   }
   .btn-lg {
-    height: 40px;
-    padding-left: 1.125rem;
-    padding-right: 1.125rem;
+    height: 42px;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
     font-size: 0.875rem;
     line-height: 1.25rem;
     font-weight: 500;
+    border-radius: 10px;
   }
   .btn-primary {
-    @apply bg-gradient-to-b from-[#0E7490] to-[#0A5E75] hover:from-[#118BAA] hover:to-[#0D6F8A] text-white shadow-xs border border-[#0E7490]/70 focus-visible:ring-2 focus-visible:ring-primary-400/40;
+    @apply bg-gradient-to-b from-[#007AFF] to-[#0062D2] hover:from-[#1A87FF] hover:to-[#006CEB] text-white shadow-xs border border-[#007AFF]/70 focus-visible:ring-2 focus-visible:ring-[#007AFF]/40;
   }
   .btn-secondary {
-    @apply bg-black/[0.04] dark:bg-white/[0.08] text-text border border-black/10 dark:border-white/10 hover:bg-black/[0.07] dark:hover:bg-white/[0.12] active:bg-black/[0.1] shadow-xs focus-visible:ring-2 focus-visible:ring-primary-400/40;
+    @apply bg-black/[0.04] dark:bg-white/[0.08] text-text border border-black/10 dark:border-white/10 hover:bg-black/[0.07] dark:hover:bg-white/[0.12] active:bg-black/[0.1] shadow-xs focus-visible:ring-2 focus-visible:ring-[#007AFF]/40;
   }
   .btn-ghost {
-    @apply bg-transparent text-text-muted hover:bg-black/[0.04] dark:hover:bg-white/[0.06] hover:text-text focus-visible:ring-2 focus-visible:ring-primary-400/40;
+    @apply bg-transparent text-text-muted hover:bg-black/[0.04] dark:hover:bg-white/[0.06] hover:text-text focus-visible:ring-2 focus-visible:ring-[#007AFF]/40;
   }
   .btn-danger {
-    @apply bg-red-600 hover:bg-red-700 text-white shadow-xs focus-visible:ring-2 focus-visible:ring-red-400/40;
+    @apply bg-[#FF3B30] hover:bg-[#E0342A] text-white shadow-xs focus-visible:ring-2 focus-visible:ring-red-400/40;
   }
 
   /* ── Form Inputs ── */
   .input {
-    @apply block w-full rounded-lg border border-black/10 dark:border-white/10 bg-surface px-3 py-2 text-sm text-text placeholder-text-muted shadow-xs transition-colors duration-150 focus:border-primary-600 dark:focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-400/25 disabled:bg-surface-2 disabled:text-text-muted disabled:cursor-not-allowed;
+    @apply block w-full rounded-lg border border-black/10 dark:border-white/10 bg-surface px-3 py-2 text-sm text-text placeholder-text-muted shadow-xs transition-colors duration-150 focus:border-[#007AFF] dark:focus:border-[#0A84FF] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/25 disabled:bg-surface-2 disabled:text-text-muted disabled:cursor-not-allowed;
     height: 38px;
+    border-radius: 10px;
   }
   .input-error {
-    @apply border-red-600 dark:border-red-500 focus:border-red-600 dark:focus:border-red-500 focus:ring-red-400/30;
+    @apply border-[#FF3B30] dark:border-[#FF453A] focus:border-[#FF3B30] dark:focus:border-[#FF453A] focus:ring-[#FF3B30]/30;
   }
   .label {
     @apply block text-xs font-semibold uppercase tracking-wider text-text-muted mb-1.5;
   }
   .form-error {
-    @apply mt-1 text-xs text-red-600 dark:text-red-400;
+    @apply mt-1 text-xs text-[#FF3B30] dark:text-[#FF453A];
   }
 
   /* ── Card ── */
@@ -158,7 +161,7 @@ html.dark {
     @apply inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium border transition-colors duration-150;
   }
   .badge-green  { @apply bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20; }
-  .badge-blue   { @apply bg-primary-500/10 text-primary-700 dark:text-primary-300 border-primary-500/20; }
+  .badge-blue   { @apply bg-[#007AFF]/10 text-[#007AFF] dark:text-[#0A84FF] border-[#007AFF]/20; }
   .badge-yellow { @apply bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20; }
   .badge-red    { @apply bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/20; }
   .badge-gray   { @apply bg-surface-2 text-text-muted border-border; }

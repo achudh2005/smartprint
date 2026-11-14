@@ -31,19 +31,19 @@ export default {
           tint: 'rgb(var(--accent-tint) / <alpha-value>)',
           ring: 'rgb(var(--accent-ring) / <alpha-value>)',
         },
-        // Deep cyan printer-ink scale replacing default blue
+        // Apple macOS system blue primary scale
         primary: {
-          50:  '#ECFEFF',
-          100: '#CFFAFE',
-          200: '#A5F3FC',
-          300: '#67E8F9',
-          400: '#22D3EE',
-          500: '#06B6D4',
-          600: '#0E7490', // Deep cyan primary
-          700: '#155E75', // Deep cyan hover
-          800: '#164E63',
-          900: '#155E75',
-          950: '#083344',
+          50:  '#F0F7FF',
+          100: '#E0EFFF',
+          200: '#BAE0FF',
+          300: '#7CC4FA',
+          400: '#38A4F8',
+          500: '#007AFF', // macOS System Blue
+          600: '#0071E3', // macOS Blue Hover
+          700: '#0058B3',
+          800: '#004791',
+          900: '#003A75',
+          950: '#002247',
         },
         brand: {
           50:  '#ECFEFF',
@@ -60,16 +60,31 @@ export default {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-        display: ['"Space Grotesk"', 'Inter', 'system-ui', 'sans-serif'],
+        sans: [
+          '-apple-system',
+          'BlinkMacSystemFont',
+          '"SF Pro Text"',
+          'Inter',
+          '"Segoe UI"',
+          'Roboto',
+          'sans-serif',
+        ],
+        display: [
+          '-apple-system',
+          'BlinkMacSystemFont',
+          '"SF Pro Display"',
+          'Inter',
+          '"Segoe UI"',
+          'sans-serif',
+        ],
       },
       borderRadius: {
-        DEFAULT: '8px',
-        sm: '6px',
-        md: '8px',
-        lg: '8px',     // 8px controls
-        xl: '12px',    // 12px cards
-        '2xl': '12px', // Normalize legacy rounded-2xl to 12px cards
+        DEFAULT: '10px',
+        sm: '8px',
+        md: '10px',
+        lg: '10px',   // 10px controls & buttons
+        xl: '14px',   // 14px cards
+        '2xl': '16px', // 16px modals & panels
       },
       boxShadow: {
         xs: 'var(--shadow-resting, 0 1px 2px 0 rgba(0, 0, 0, 0.04))',

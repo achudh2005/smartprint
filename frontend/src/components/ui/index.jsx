@@ -367,8 +367,8 @@ export function Toggle({ checked, onChange, label, description, className, disab
         disabled={disabled}
         onClick={() => !disabled && onChange && onChange(!checked)}
         className={clsx(
-          'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-150 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-400/40 disabled:opacity-50 disabled:cursor-not-allowed',
-          checked ? 'bg-primary-600' : 'bg-surface-2 border border-border'
+          'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-150 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-[#007AFF]/40 disabled:opacity-50 disabled:cursor-not-allowed',
+          checked ? 'bg-[#007AFF]' : 'bg-surface-2 border border-border'
         )}
       >
         <span
@@ -510,7 +510,7 @@ export function Tabs({
               className={clsx(
                 'group relative pb-2.5 text-sm font-medium transition-colors duration-150 inline-flex items-center gap-2 select-none',
                 isActive
-                  ? 'text-primary-600 dark:text-primary-400 font-semibold'
+                  ? 'text-[#007AFF] dark:text-[#0A84FF] font-semibold'
                   : 'text-text-muted hover:text-text'
               )}
             >
@@ -520,7 +520,7 @@ export function Tabs({
                   className={clsx(
                     'px-1.5 py-0.2 rounded-full text-[11px] tabular-nums font-medium',
                     isActive
-                      ? 'bg-primary-500/10 text-primary-700 dark:text-primary-300'
+                      ? 'bg-[#007AFF]/10 text-[#007AFF] dark:text-[#0A84FF]'
                       : 'bg-surface-2 text-text-muted'
                   )}
                 >
@@ -528,7 +528,7 @@ export function Tabs({
                 </span>
               )}
               {isActive && (
-                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600 dark:bg-primary-400 rounded-t" />
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#007AFF] dark:bg-[#0A84FF] rounded-t" />
               )}
             </button>
           )
@@ -567,7 +567,7 @@ export function TableBody({ children, className, ...props }) {
 
 export function TableRow({ children, className, ...props }) {
   return (
-    <tr className={clsx('hover:bg-surface-hover/60 transition-colors duration-150', className)} {...props}>
+    <tr className={clsx('hover:bg-[rgba(0,122,255,0.06)] dark:hover:bg-[rgba(10,132,255,0.1)] transition-colors duration-150', className)} {...props}>
       {children}
     </tr>
   )
