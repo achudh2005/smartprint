@@ -39,7 +39,7 @@ export default function InsertMenu({
         onClick={() => imageInputRef.current?.click()}
         className="mac-button-secondary px-2.5 py-1 text-xs font-medium flex items-center gap-1.5"
       >
-        <Image size={12} strokeWidth={2} className="text-[#0E7490]" />
+        <Image size={12} strokeWidth={2} className="text-[#007AFF] dark:text-[#0A84FF]" />
         <span>Insert Image</span>
       </button>
 
@@ -49,7 +49,7 @@ export default function InsertMenu({
         onClick={onOpenSignatureModal}
         className="mac-button-secondary px-2.5 py-1 text-xs font-medium flex items-center gap-1.5"
       >
-        <PenTool size={12} strokeWidth={2} className="text-[#0E7490]" />
+        <PenTool size={12} strokeWidth={2} className="text-[#007AFF] dark:text-[#0A84FF]" />
         <span>Add Signature</span>
       </button>
 

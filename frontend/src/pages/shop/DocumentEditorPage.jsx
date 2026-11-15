@@ -697,7 +697,7 @@ export default function DocumentEditorPage() {
           </Link>
 
           <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-[var(--accent-tint)] text-[#0E7490] flex items-center justify-center shrink-0 shadow-xs border border-[var(--border)]">
+            <div className="w-7 h-7 rounded-lg bg-[var(--accent-tint)] text-[#007AFF] dark:text-[#0A84FF] flex items-center justify-center shrink-0 shadow-xs border border-[var(--border)]">
               <FileText size={15} strokeWidth={2} />
             </div>
             <div>

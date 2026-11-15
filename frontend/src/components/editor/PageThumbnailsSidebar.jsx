@@ -133,7 +133,7 @@ function PageThumbnailItem({
 
       <span
         className={`text-[11px] font-semibold tabular-nums ${
-          isActive ? 'text-[#0E7490] dark:text-[#22D3EE]' : 'text-[var(--text-muted)]'
+          isActive ? 'text-[#007AFF] dark:text-[#0A84FF]' : 'text-[var(--text-muted)]'
         }`}
       >
         Page {pageNum}

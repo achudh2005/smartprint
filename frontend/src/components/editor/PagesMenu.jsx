@@ -25,7 +25,7 @@ export default function PagesMenu({
           className="mac-button-secondary px-2.5 py-1 text-xs font-medium flex items-center gap-1.5"
           title="Insert a blank page after the current page"
         >
-          <FilePlus size={12} strokeWidth={2} className="text-[#0E7490]" />
+          <FilePlus size={12} strokeWidth={2} className="text-[#007AFF] dark:text-[#0A84FF]" />
           <span>Insert Blank</span>
         </button>
 
@@ -35,7 +35,7 @@ export default function PagesMenu({
           className="mac-button-secondary px-2.5 py-1 text-xs font-medium flex items-center gap-1.5"
           title="Merge and append pages from another PDF"
         >
-          <Layers size={12} strokeWidth={2} className="text-[#0E7490]" />
+          <Layers size={12} strokeWidth={2} className="text-[#007AFF] dark:text-[#0A84FF]" />
           <span>Merge PDF</span>
         </button>
       </div>
@@ -111,7 +111,7 @@ export default function PagesMenu({
         className="mac-button-secondary px-2.5 py-1 text-xs flex items-center gap-1.5"
         title="Extract chosen page range into a new order document"
       >
-        <Scissors size={12} strokeWidth={2} className="text-[#0E7490]" />
+        <Scissors size={12} strokeWidth={2} className="text-[#007AFF] dark:text-[#0A84FF]" />
         <span>Extract Range</span>
       </button>
 
