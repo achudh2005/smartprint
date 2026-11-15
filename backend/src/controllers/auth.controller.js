@@ -70,17 +70,11 @@ const resendOtpValidation = [
 // ── Handlers ──────────────────────────────────────────────
 
 const register = async (req, res, next) => {
-  try {
-    const { name, email, password } = req.body;
-    const result = await authService.register({ name, email, password });
-    return sendCreated(res, {
-      user: result.user,
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
-    }, 'Account created successfully. Welcome to SmartPrint!');
-  } catch (error) {
-    next(error);
-  }
+  return sendError(
+    res,
+    'Account registration is managed by your administrator. Contact SmartPrint support for access.',
+    403
+  );
 };
 
 const verifyOtp = async (req, res, next) => {
@@ -110,7 +104,9 @@ const resendOtp = async (req, res, next) => {
 const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
-    const result = await authService.login({ email, password });
+    const ipAddress = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || req.socket?.remoteAddress;
+    const userAgent = req.headers['user-agent'];
+    const result = await authService.login({ email, password, ipAddress, userAgent });
     return sendSuccess(res, {
       user: result.user,
       accessToken: result.accessToken,
@@ -125,8 +121,32 @@ const refresh = async (req, res, next) => {
   try {
     const { refreshToken } = req.body;
     if (!refreshToken) return sendError(res, 'Refresh token is required.', 400);
-    const result = await authService.refreshAccessToken(refreshToken);
+    const ipAddress = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || req.socket?.remoteAddress;
+    const userAgent = req.headers['user-agent'];
+    const result = await authService.refreshAccessToken(refreshToken, ipAddress, userAgent);
     return sendSuccess(res, result, 'Token refreshed successfully.');
+  } catch (error) {
+    next(error);
+  }
+};
+
+const changePasswordValidation = [
+  body('newPassword')
+    .notEmpty().withMessage('New password is required.')
+    .isLength({ min: 8 }).withMessage('Password must be at least 8 characters long.')
+    .matches(/[A-Z]/).withMessage('Password must contain at least one uppercase letter.')
+    .matches(/[a-z]/).withMessage('Password must contain at least one lowercase letter.')
+    .matches(/[0-9]/).withMessage('Password must contain at least one number.'),
+  validate,
+];
+
+const changePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const ipAddress = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || req.socket?.remoteAddress;
+    const userAgent = req.headers['user-agent'];
+    await authService.changePassword(req.user.id, currentPassword, newPassword, ipAddress, userAgent);
+    return sendSuccess(res, {}, 'Password changed successfully.');
   } catch (error) {
     next(error);
   }
@@ -160,6 +180,7 @@ module.exports = {
   loginValidation,
   verifyOtpValidation,
   resendOtpValidation,
+  changePasswordValidation,
   register,
   verifyOtp,
   resendOtp,
@@ -168,4 +189,5 @@ module.exports = {
   logout,
   logoutAll,
   me,
+  changePassword,
 };

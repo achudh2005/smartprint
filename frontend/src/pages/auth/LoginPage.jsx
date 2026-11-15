@@ -94,11 +94,8 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <p className="text-center text-sm text-[var(--text-muted)] mt-5">
-        Don't have an account?{' '}
-        <Link to="/register" className="text-[#0E7490] font-medium hover:text-[#155E75] transition-colors duration-150">
-          Create one for free
-        </Link>
+      <p className="text-center text-xs text-[var(--text-muted)] mt-5">
+        Don&apos;t have access? Contact your administrator.
       </p>
     </div>
   )

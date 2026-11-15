@@ -83,6 +83,13 @@ router.post('/logout', authController.logout);
 // POST /api/v1/auth/logout-all  (requires auth)
 router.post('/logout-all', authenticate, authController.logoutAll);
 
+// POST /api/v1/auth/change-password (requires auth)
+router.post('/change-password',
+  authenticate,
+  authController.changePasswordValidation,
+  authController.changePassword
+);
+
 // GET  /api/v1/auth/me  (requires auth)
 router.get('/me', authenticate, authController.me);
 

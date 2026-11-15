@@ -38,21 +38,28 @@ function generateRefreshToken() {
   return uuidv4().replace(/-/g, '') + uuidv4().replace(/-/g, '');
 }
 
-async function saveRefreshToken(userId, token) {
+async function saveRefreshToken(userId, token, ipAddress = null, userAgent = null) {
   const expiresAt = new Date();
   const days = parseInt((process.env.JWT_REFRESH_EXPIRES_IN || '30d').replace('d', ''));
   expiresAt.setDate(expiresAt.getDate() + days);
 
   await prisma.refreshToken.create({
-    data: { userId, token, expiresAt },
+    data: {
+      userId,
+      token,
+      expiresAt,
+      ipAddress: ipAddress ? String(ipAddress).slice(0, 45) : null,
+      userAgent: userAgent ? String(userAgent).slice(0, 512) : null,
+      lastUsedAt: new Date(),
+    },
   });
 }
 
 // Internal helper: issue tokens and return the standard login payload.
-async function issueTokens(user) {
+async function issueTokens(user, ipAddress = null, userAgent = null) {
   const accessToken = generateAccessToken(user);
   const refreshToken = generateRefreshToken();
-  await saveRefreshToken(user.id, refreshToken);
+  await saveRefreshToken(user.id, refreshToken, ipAddress, userAgent);
   return { user, accessToken, refreshToken };
 }
 
@@ -167,9 +174,13 @@ async function resendOtp({ email }) {
 
 // ── Login ─────────────────────────────────────────────────
 
-async function login({ email, password }) {
+async function login({ email, password, ipAddress = null, userAgent = null }) {
+  const normalizedEmail = (email || '').trim().toLowerCase();
+  const safeIp = ipAddress ? String(ipAddress).slice(0, 45) : null;
+  const safeAgent = userAgent ? String(userAgent).slice(0, 512) : null;
+
   const user = await prisma.user.findUnique({
-    where: { email },
+    where: { email: normalizedEmail },
     select: {
       id: true,
       publicId: true,
@@ -179,22 +190,58 @@ async function login({ email, password }) {
       role: true,
       status: true,
       emailVerified: true,
+      mustChangePassword: true,
     },
   });
 
   if (!user) {
+    await prisma.auditLog.create({
+      data: {
+        action: 'LOGIN_FAILED',
+        resource: 'auth',
+        resourceId: normalizedEmail,
+        ipAddress: safeIp,
+        userAgent: safeAgent,
+        newData: { reason: 'User not found' },
+      },
+    }).catch((e) => logger.warn('Failed to write audit log:', e.message));
+
     const err = new Error('Invalid email or password.');
     err.statusCode = 401;
     throw err;
   }
 
   if (user.status === 'SUSPENDED') {
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        action: 'LOGIN_FAILED',
+        resource: 'auth',
+        resourceId: String(user.id),
+        ipAddress: safeIp,
+        userAgent: safeAgent,
+        newData: { reason: 'Account suspended' },
+      },
+    }).catch((e) => logger.warn('Failed to write audit log:', e.message));
+
     const err = new Error('Your account has been suspended. Please contact support.');
     err.statusCode = 403;
     throw err;
   }
 
   if (user.status === 'INACTIVE') {
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        action: 'LOGIN_FAILED',
+        resource: 'auth',
+        resourceId: String(user.id),
+        ipAddress: safeIp,
+        userAgent: safeAgent,
+        newData: { reason: 'Account inactive' },
+      },
+    }).catch((e) => logger.warn('Failed to write audit log:', e.message));
+
     const err = new Error('Your account is inactive. Please contact support.');
     err.statusCode = 403;
     throw err;
@@ -202,11 +249,22 @@ async function login({ email, password }) {
 
   const passwordValid = await argon2.verify(user.passwordHash, password);
   if (!passwordValid) {
+    await prisma.auditLog.create({
+      data: {
+        userId: user.id,
+        action: 'LOGIN_FAILED',
+        resource: 'auth',
+        resourceId: String(user.id),
+        ipAddress: safeIp,
+        userAgent: safeAgent,
+        newData: { reason: 'Invalid password' },
+      },
+    }).catch((e) => logger.warn('Failed to write audit log:', e.message));
+
     const err = new Error('Invalid email or password.');
     err.statusCode = 401;
     throw err;
   }
-
 
   // Update last login
   await prisma.user.update({
@@ -214,11 +272,24 @@ async function login({ email, password }) {
     data: { lastLoginAt: new Date() },
   });
 
+  // Log successful login
+  await prisma.auditLog.create({
+    data: {
+      userId: user.id,
+      action: 'LOGIN_SUCCESS',
+      resource: 'auth',
+      resourceId: String(user.id),
+      ipAddress: safeIp,
+      userAgent: safeAgent,
+      newData: { email: user.email, role: user.role },
+    },
+  }).catch((e) => logger.warn('Failed to write audit log:', e.message));
+
   const { passwordHash, ...safeUser } = user;
 
   const accessToken = generateAccessToken(safeUser);
   const refreshToken = generateRefreshToken();
-  await saveRefreshToken(user.id, refreshToken);
+  await saveRefreshToken(user.id, refreshToken, safeIp, safeAgent);
 
   logger.info(`User logged in: ${email} (ID: ${user.id})`);
 
@@ -227,12 +298,12 @@ async function login({ email, password }) {
 
 // ── Refresh Token ─────────────────────────────────────────
 
-async function refreshAccessToken(token) {
+async function refreshAccessToken(token, ipAddress = null, userAgent = null) {
   const stored = await prisma.refreshToken.findUnique({
     where: { token },
     include: {
       user: {
-        select: { id: true, publicId: true, email: true, role: true, status: true },
+        select: { id: true, publicId: true, email: true, role: true, status: true, mustChangePassword: true },
       },
     },
   });
@@ -249,8 +320,71 @@ async function refreshAccessToken(token) {
     throw err;
   }
 
+  // Update lastUsedAt on token
+  const safeIp = ipAddress ? String(ipAddress).slice(0, 45) : stored.ipAddress;
+  const safeAgent = userAgent ? String(userAgent).slice(0, 512) : stored.userAgent;
+  await prisma.refreshToken.update({
+    where: { token },
+    data: {
+      lastUsedAt: new Date(),
+      ...(safeIp && { ipAddress: safeIp }),
+      ...(safeAgent && { userAgent: safeAgent }),
+    },
+  }).catch((e) => logger.warn('Failed to update refresh token lastUsedAt:', e.message));
+
   const accessToken = generateAccessToken(stored.user);
   return { accessToken };
+}
+
+// ── Change Password (Self-service / Forced change) ────────
+
+async function changePassword(userId, currentPassword, newPassword, ipAddress = null, userAgent = null) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true, passwordHash: true },
+  });
+
+  if (!user) {
+    const err = new Error('User not found.');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  if (currentPassword) {
+    const valid = await argon2.verify(user.passwordHash, currentPassword);
+    if (!valid) {
+      const err = new Error('Current password is incorrect.');
+      err.statusCode = 400;
+      throw err;
+    }
+  }
+
+  const newHash = await argon2.hash(newPassword, ARGON2_OPTIONS);
+  await prisma.user.update({
+    where: { id: userId },
+    data: {
+      passwordHash: newHash,
+      mustChangePassword: false,
+    },
+  });
+
+  const safeIp = ipAddress ? String(ipAddress).slice(0, 45) : null;
+  const safeAgent = userAgent ? String(userAgent).slice(0, 512) : null;
+
+  await prisma.auditLog.create({
+    data: {
+      userId,
+      action: 'PASSWORD_CHANGED',
+      resource: 'user',
+      resourceId: String(userId),
+      ipAddress: safeIp,
+      userAgent: safeAgent,
+      newData: { email: user.email },
+    },
+  }).catch((e) => logger.warn('Failed to log password change:', e.message));
+
+  logger.info(`[Auth] Password updated for user #${userId}`);
+  return { success: true };
 }
 
 // ── Logout ────────────────────────────────────────────────
@@ -272,4 +406,4 @@ async function logoutAll(userId) {
   });
 }
 
-module.exports = { register, login, verifyEmailOtp, resendOtp, refreshAccessToken, logout, logoutAll };
+module.exports = { register, login, verifyEmailOtp, resendOtp, refreshAccessToken, logout, logoutAll, changePassword };

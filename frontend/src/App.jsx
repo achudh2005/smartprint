@@ -38,12 +38,14 @@ import OrderConfirmationPage from './pages/customer/OrderConfirmationPage'
 import ProfilePage from './pages/profile/ProfilePage'
 import AboutPage from './pages/AboutPage'
 import NotFoundPage from './pages/NotFoundPage'
+import ForcedPasswordChange from './components/auth/ForcedPasswordChange'
 
 // Protected Route wrapper
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
   if (loading) return <PageLoader />
   if (!user) return <Navigate to="/login" replace />
+  if (user.mustChangePassword) return <ForcedPasswordChange />
   return children
 }
 

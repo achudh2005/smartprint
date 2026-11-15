@@ -53,6 +53,7 @@ const authenticate = async (req, res, next) => {
         name: true,
         role: true,
         status: true,
+        mustChangePassword: true,
       },
     });
 
