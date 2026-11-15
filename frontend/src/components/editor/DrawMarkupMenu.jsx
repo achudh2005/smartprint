@@ -67,7 +67,7 @@ export default function DrawMarkupMenu({
               onClick={() => onSelectTool(active ? 'SELECT' : s.id)}
               className={`p-1.5 rounded-lg border transition-all ${
                 active
-                  ? 'bg-[#0E7490] text-white border-[#0E7490] shadow-xs'
+                  ? 'bg-[#007AFF] text-white border-[#007AFF] shadow-xs'
                   : 'mac-button-secondary text-slate-500 hover:text-slate-900 dark:hover:text-white'
               }`}
               title={s.label}
@@ -95,14 +95,14 @@ export default function DrawMarkupMenu({
 
       {/* Stamp Selector */}
       <div className="flex items-center gap-1 border-r border-black/[0.08] dark:border-white/[0.08] pr-2">
-        <Stamp size={12} strokeWidth={2} className="text-[#0E7490]" />
+        <Stamp size={12} strokeWidth={2} className="text-[#007AFF] dark:text-[#0A84FF]" />
         <select
           value={markupConfig.stampPreset || 'APPROVED'}
           onChange={(e) => {
             onMarkupConfigChange('stampPreset', e.target.value);
             onSelectTool('STAMP');
           }}
-          className="rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-2.5 py-1 text-xs font-semibold text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#0E7490]/30 shadow-xs"
+          className="rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-2.5 py-1 text-xs font-semibold text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 shadow-xs"
         >
           {stamps.map((st) => (
             <option key={st} value={st}>
@@ -126,7 +126,7 @@ export default function DrawMarkupMenu({
       {/* Color picker & stroke thickness */}
       <div className="flex items-center gap-1.5">
         <span className="text-[11px] text-[var(--text-muted)] font-medium">Color:</span>
-        {['#EF4444', '#F59E0B', '#10B981', '#0E7490', '#3B82F6', '#8B5CF6', '#000000'].map((c) => (
+        {['#EF4444', '#F59E0B', '#10B981', '#007AFF', '#3B82F6', '#8B5CF6', '#000000'].map((c) => (
           <button
             key={c}
             type="button"
@@ -142,7 +142,7 @@ export default function DrawMarkupMenu({
         <select
           value={markupConfig.strokeWidth}
           onChange={(e) => onMarkupConfigChange('strokeWidth', parseInt(e.target.value, 10))}
-          className="rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-2 py-1 text-xs font-medium text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#0E7490]/30 shadow-xs w-14 tabular-nums"
+          className="rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-2 py-1 text-xs font-medium text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 shadow-xs w-14 tabular-nums"
         >
           {[1, 2, 3, 5, 8].map((w) => (
             <option key={w} value={w}>

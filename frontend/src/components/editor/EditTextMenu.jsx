@@ -15,7 +15,7 @@ export default function EditTextMenu({
   const fontSizes = [9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 36, 48];
 
   const colors = [
-    '#000000', '#1E293B', '#1E3A8A', '#0E7490', '#047857', '#B45309', '#DC2626'
+    '#000000', '#1E293B', '#1E3A8A', '#007AFF', '#047857', '#B45309', '#DC2626'
   ];
 
   return (
@@ -70,7 +70,7 @@ export default function EditTextMenu({
         <select
           value={textConfig.fontFamily}
           onChange={(e) => onTextConfigChange('fontFamily', e.target.value)}
-          className="rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-2.5 py-1 text-xs font-medium text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#0E7490]/30 shadow-xs"
+          className="rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-2.5 py-1 text-xs font-medium text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 shadow-xs"
         >
           {fontFamilies.map((f) => (
             <option key={f.value} value={f.value}>
@@ -85,7 +85,7 @@ export default function EditTextMenu({
         <select
           value={textConfig.fontSize}
           onChange={(e) => onTextConfigChange('fontSize', parseInt(e.target.value, 10))}
-          className="rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-2 py-1 text-xs font-medium text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#0E7490]/30 shadow-xs w-16 tabular-nums"
+          className="rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-2 py-1 text-xs font-medium text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30 shadow-xs w-16 tabular-nums"
         >
           {fontSizes.map((s) => (
             <option key={s} value={s}>
@@ -102,7 +102,7 @@ export default function EditTextMenu({
           onClick={() => onTextConfigChange('isBold', !textConfig.isBold)}
           className={`w-7 h-7 rounded-lg flex items-center justify-center border transition-all ${
             textConfig.isBold
-              ? 'bg-[#0E7490] text-white border-[#0E7490] shadow-xs'
+              ? 'bg-[#007AFF] text-white border-[#007AFF] shadow-xs'
               : 'border-black/10 dark:border-white/10 text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
           }`}
           title="Bold"
@@ -115,7 +115,7 @@ export default function EditTextMenu({
           onClick={() => onTextConfigChange('isItalic', !textConfig.isItalic)}
           className={`w-7 h-7 rounded-lg flex items-center justify-center border transition-all ${
             textConfig.isItalic
-              ? 'bg-[#0E7490] text-white border-[#0E7490] shadow-xs'
+              ? 'bg-[#007AFF] text-white border-[#007AFF] shadow-xs'
               : 'border-black/10 dark:border-white/10 text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
           }`}
           title="Italic"
@@ -133,7 +133,7 @@ export default function EditTextMenu({
             type="button"
             onClick={() => onTextConfigChange('color', c)}
             className={`w-4.5 h-4.5 rounded-full border transition-all ${
-              textConfig.color === c ? 'ring-2 ring-[#0E7490] scale-110' : 'border-black/10 dark:border-white/20'
+              textConfig.color === c ? 'ring-2 ring-[#007AFF] scale-110' : 'border-black/10 dark:border-white/20'
             }`}
             style={{ backgroundColor: c }}
           />

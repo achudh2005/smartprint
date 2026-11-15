@@ -15,7 +15,7 @@ export default function FormsMenu({
 
   return (
     <div className="flex items-center gap-3 flex-wrap py-1 text-xs">
-      <div className="flex items-center gap-1.5 text-xs font-semibold text-[#0E7490] border-r border-[var(--border)] pr-2">
+      <div className="flex items-center gap-1.5 text-xs font-semibold text-[#007AFF] dark:text-[#0A84FF] border-r border-[var(--border)] pr-2">
         <CheckSquare size={13} strokeWidth={2} />
         <span>{detectedFormFields.length} Form Fields:</span>
       </div>

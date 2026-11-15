@@ -20,7 +20,7 @@ export default function TextSearchOverlay({
         value={searchQuery}
         onChange={(e) => onSearchChange(e.target.value)}
         placeholder="Find in document..."
-        className="rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 text-xs py-1 px-2.5 w-44 text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#0E7490]/30"
+        className="rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 text-xs py-1 px-2.5 w-44 text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30"
         autoFocus
       />
 

@@ -176,17 +176,50 @@ html.dark {
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   DARK MODE BASICS & SCROLLBARS
+   macOS NATIVE CONTROLS, DARK MODE & OVERLAY SCROLLBARS
    ═══════════════════════════════════════════════════════════════ */
 html.dark {
   color-scheme: dark;
 }
 
-/* Custom Scrollbars */
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #a1a1aa; }
+/* macOS Form Controls Accent & Radii */
+input[type="checkbox"] {
+  border-radius: 4px;
+  accent-color: #007AFF;
+  cursor: pointer;
+}
+input[type="radio"] {
+  accent-color: #007AFF;
+  cursor: pointer;
+}
 
-html.dark ::-webkit-scrollbar-thumb { background: #27272a; }
-html.dark ::-webkit-scrollbar-thumb:hover { background: #3f3f46; }
+/* macOS Dynamic Overlay Scrollbars */
+::-webkit-scrollbar {
+  width: 7px;
+  height: 7px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.18);
+  border-radius: 9999px;
+  border: 1.5px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1.5px solid transparent;
+  background-clip: padding-box;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.22);
+  border: 1.5px solid transparent;
+  background-clip: padding-box;
+}
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.40);
+  border: 1.5px solid transparent;
+  background-clip: padding-box;
+}
