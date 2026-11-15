@@ -4,7 +4,7 @@ import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 // Setup same-origin pdf.js worker URL to avoid CORS/CSP issues in production
 if (typeof window !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+  pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdfjs/pdf.worker.mjs';
 }
 
 // Track cached PDF.js document to avoid re-parsing 50+ page PDFs on every click
@@ -27,13 +27,36 @@ export async function getPdfJsDocument(pdfBytes) {
 
   inFlightDocPromise = (async () => {
     try {
+      if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdfjs/pdf.worker.mjs';
+      }
+
       const loadingTask = pdfjsLib.getDocument({
         data,
-        cMapUrl: 'https://unpkg.com/pdfjs-dist@6.5.438/cmaps/',
+        cMapUrl: '/pdfjs/cmaps/',
         cMapPacked: true,
+        standardFontDataUrl: '/pdfjs/standard_fonts/',
       });
       cachedPdfDoc = await loadingTask.promise;
       return cachedPdfDoc;
+    } catch (err) {
+      console.warn('[pdfEngine] Error loading with static worker, attempting fallback with bundled worker:', err);
+      try {
+        if (pdfjsWorker) {
+          pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+        }
+        const fallbackTask = pdfjsLib.getDocument({
+          data,
+          cMapUrl: '/pdfjs/cmaps/',
+          cMapPacked: true,
+          standardFontDataUrl: '/pdfjs/standard_fonts/',
+        });
+        cachedPdfDoc = await fallbackTask.promise;
+        return cachedPdfDoc;
+      } catch (fallbackErr) {
+        console.error('[pdfEngine] PDF.js getDocument critical error:', fallbackErr);
+        throw fallbackErr;
+      }
     } finally {
       inFlightDocPromise = null;
     }

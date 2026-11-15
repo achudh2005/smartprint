@@ -129,7 +129,21 @@ export default function DocumentEditorPage() {
         if (!active) return;
 
         const mime = res.headers?.['content-type'] || 'application/pdf';
-        const docResult = await loadPdfDocument(res.data, mime);
+
+        // Auto-detect format from magic bytes for bulletproof MIME resolution
+        let resolvedMime = mime;
+        if (res.data && res.data.byteLength >= 4) {
+          const u8 = new Uint8Array(res.data.slice(0, 8));
+          if (u8[0] === 0x89 && u8[1] === 0x50 && u8[2] === 0x4E && u8[3] === 0x47) {
+            resolvedMime = 'image/png';
+          } else if (u8[0] === 0xFF && u8[1] === 0xD8 && u8[2] === 0xFF) {
+            resolvedMime = 'image/jpeg';
+          } else if (u8[0] === 0x25 && u8[1] === 0x50 && u8[2] === 0x44 && u8[3] === 0x46) {
+            resolvedMime = 'application/pdf';
+          }
+        }
+
+        const docResult = await loadPdfDocument(res.data, resolvedMime);
 
         setRawPdfBytes(docResult.bytes);
         setTotalPages(docResult.pageCount);
