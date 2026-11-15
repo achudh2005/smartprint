@@ -3,6 +3,7 @@
  * Platform-wide administration, tenant lifecycle (approve, suspend, activate),
  * user management, platform analytics, session revocation, and security audit log review.
  */
+const os = require('os');
 const crypto = require('crypto');
 const argon2 = require('argon2');
 const { prisma } = require('../database/client');
@@ -734,11 +735,540 @@ async function getAuditLogs(adminUser, { page = 1, limit = 50, action, shopId, s
   };
 }
 
+/**
+ * Dedicated Super Admin Portal Login
+ * Strictly enforces that user.role === 'SUPER_ADMIN'
+ */
+async function adminLogin({ email, password, ipAddress, userAgent }) {
+  const authService = require('./auth.service');
+  const result = await authService.login({ email, password, ipAddress, userAgent });
+
+  if (result.user.role !== 'SUPER_ADMIN') {
+    // Revoke the refresh token just issued because user is not a Super Admin
+    if (result.refreshToken) {
+      await prisma.refreshToken.updateMany({
+        where: { token: result.refreshToken },
+        data: { revoked: true },
+      }).catch(() => {});
+    }
+    const err = new Error('Access denied. This console is restricted to Super Administrator accounts.');
+    err.statusCode = 403;
+    throw err;
+  }
+
+  return result;
+}
+
+/**
+ * Super Admin Creates Any User (Owner, Manager, Staff, Super Admin)
+ */
+async function createUser(adminUser, { name, email, password, role = 'OWNER', status = 'ACTIVE', shopId }) {
+  const admin = await assertSuperAdmin(adminUser);
+
+  if (!name || !email) {
+    const err = new Error('Name and email are required.');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const normalizedEmail = email.trim().toLowerCase();
+  const existing = await prisma.user.findUnique({
+    where: { email: normalizedEmail },
+    select: { id: true },
+  });
+  if (existing) {
+    const err = new Error('A user account with this email address already exists.');
+    err.statusCode = 409;
+    throw err;
+  }
+
+  let tempPass = null;
+  let passwordToHash = password;
+  let mustChangePassword = false;
+
+  if (!passwordToHash) {
+    tempPass = generateTemporaryPassword(12);
+    passwordToHash = tempPass;
+    mustChangePassword = true;
+  }
+
+  const passwordHash = await argon2.hash(passwordToHash, ARGON2_OPTIONS);
+
+  const newUser = await prisma.user.create({
+    data: {
+      name: name.trim(),
+      email: normalizedEmail,
+      passwordHash,
+      role: role || 'OWNER',
+      status: status || 'ACTIVE',
+      emailVerified: true,
+      mustChangePassword,
+    },
+    select: {
+      id: true,
+      publicId: true,
+      name: true,
+      email: true,
+      role: true,
+      status: true,
+      mustChangePassword: true,
+      createdAt: true,
+    },
+  });
+
+  // Attach to shop if specified
+  if (shopId) {
+    const parsedShopId = parseInt(shopId, 10);
+    const shop = await prisma.shop.findUnique({ where: { id: parsedShopId } });
+    if (shop) {
+      await prisma.shopUser.create({
+        data: {
+          shopId: parsedShopId,
+          userId: newUser.id,
+          role: role === 'SUPER_ADMIN' ? 'OWNER' : role,
+          status: 'ACTIVE',
+        },
+      });
+    }
+  }
+
+  await prisma.auditLog.create({
+    data: {
+      userId: admin.id,
+      action: 'CREATE_USER',
+      resource: 'user',
+      resourceId: String(newUser.id),
+      newData: { email: newUser.email, role: newUser.role, status: newUser.status, shopId },
+    },
+  }).catch((e) => logger.warn('AuditLog error:', e.message));
+
+  return {
+    user: newUser,
+    temporaryPassword: tempPass,
+  };
+}
+
+/**
+ * Super Admin Permanently Deletes a User
+ */
+async function deleteUser(adminUser, targetUserId) {
+  const admin = await assertSuperAdmin(adminUser);
+  const targetId = parseInt(targetUserId, 10);
+
+  if (targetId === admin.id) {
+    const err = new Error('Cannot delete your own active Super Admin account.');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: targetId },
+    select: { id: true, name: true, email: true, role: true },
+  });
+  if (!user) {
+    const err = new Error('User not found.');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  await prisma.$transaction(async (tx) => {
+    // Cascades remove refreshTokens, emailOtps, shopUsers, notifications
+    await tx.refreshToken.deleteMany({ where: { userId: targetId } });
+    await tx.emailOtp.deleteMany({ where: { userId: targetId } });
+    await tx.shopUser.deleteMany({ where: { userId: targetId } });
+    await tx.notification.deleteMany({ where: { userId: targetId } });
+    await tx.user.delete({ where: { id: targetId } });
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: admin.id,
+      action: 'DELETE_USER',
+      resource: 'user',
+      resourceId: String(targetId),
+      oldData: { name: user.name, email: user.email, role: user.role },
+    },
+  }).catch((e) => logger.warn('AuditLog error:', e.message));
+
+  logger.info(`[SuperAdmin] Deleted user #${targetId} (${user.email}) by admin #${admin.id}`);
+  return { success: true, message: `User ${user.email} deleted permanently.` };
+}
+
+/**
+ * Super Admin Creates a Shop
+ */
+async function createShopDirect(adminUser, { name, address, phone, email, ownerId }) {
+  const admin = await assertSuperAdmin(adminUser);
+
+  if (!name) {
+    const err = new Error('Shop name is required.');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  let creatorUserId = admin.id;
+  if (ownerId) {
+    const parsedOwnerId = parseInt(ownerId, 10);
+    const owner = await prisma.user.findUnique({ where: { id: parsedOwnerId } });
+    if (owner) creatorUserId = owner.id;
+  }
+
+  const shop = await shopService.createShop(
+    {
+      name: name.trim(),
+      address: address ? address.trim() : null,
+      phone: phone ? phone.trim() : null,
+      email: email ? email.trim() : null,
+    },
+    creatorUserId
+  );
+
+  await prisma.auditLog.create({
+    data: {
+      userId: admin.id,
+      shopId: shop.id,
+      action: 'CREATE_SHOP',
+      resource: 'shop',
+      resourceId: String(shop.id),
+      newData: { name: shop.name, shopCode: shop.shopCode, creatorUserId },
+    },
+  }).catch((e) => logger.warn('AuditLog error:', e.message));
+
+  return shop;
+}
+
+/**
+ * Super Admin Permanently Deletes a Shop
+ * Performs a safe cascade transaction cleaning up all child relations
+ */
+async function deleteShop(adminUser, shopId) {
+  const admin = await assertSuperAdmin(adminUser);
+  const sId = parseInt(shopId, 10);
+
+  const shop = await prisma.shop.findUnique({ where: { id: sId } });
+  if (!shop) {
+    const err = new Error('Shop not found.');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  await prisma.$transaction(async (tx) => {
+    // 1. Gather orders and order files
+    const orders = await tx.order.findMany({ where: { shopId: sId }, select: { id: true } });
+    const orderIds = orders.map((o) => o.id);
+
+    if (orderIds.length > 0) {
+      const files = await tx.orderFile.findMany({ where: { orderId: { in: orderIds } }, select: { id: true } });
+      const fileIds = files.map((f) => f.id);
+
+      if (fileIds.length > 0) {
+        await tx.printJob.deleteMany({ where: { fileId: { in: fileIds } } });
+      }
+
+      await tx.payment.deleteMany({ where: { orderId: { in: orderIds } } });
+      await tx.orderStatusLog.deleteMany({ where: { orderId: { in: orderIds } } });
+      await tx.expiryLog.deleteMany({ where: { orderId: { in: orderIds } } });
+      await tx.orderFile.deleteMany({ where: { orderId: { in: orderIds } } });
+      await tx.order.deleteMany({ where: { shopId: sId } });
+    }
+
+    // 2. Delete customer sessions
+    await tx.customerSession.deleteMany({ where: { shopId: sId } });
+
+    // 3. Delete printers and configuration
+    await tx.printer.deleteMany({ where: { shopId: sId } });
+    await tx.pricingRule.deleteMany({ where: { shopId: sId } });
+    await tx.additionalService.deleteMany({ where: { shopId: sId } });
+    await tx.shopSettings.deleteMany({ where: { shopId: sId } });
+    await tx.shopUser.deleteMany({ where: { shopId: sId } });
+
+    // 4. Delete the shop itself
+    await tx.shop.delete({ where: { id: sId } });
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: admin.id,
+      action: 'DELETE_SHOP',
+      resource: 'shop',
+      resourceId: String(sId),
+      oldData: { name: shop.name, shopCode: shop.shopCode },
+    },
+  }).catch((e) => logger.warn('AuditLog error:', e.message));
+
+  logger.info(`[SuperAdmin] Shop #${sId} (${shop.name}) deleted permanently by admin #${admin.id}`);
+  return { success: true, message: `Shop "${shop.name}" and all associated data deleted permanently.` };
+}
+
+/**
+ * List all orders across all shops
+ */
+async function listAllOrders(adminUser, { page = 1, limit = 20, search, status, shopId } = {}) {
+  await assertSuperAdmin(adminUser);
+
+  const where = {};
+  if (status && status !== 'ALL') where.status = status;
+  if (shopId) where.shopId = parseInt(shopId, 10);
+  if (search) {
+    where.OR = [
+      { orderNumber: { contains: search } },
+      { customerName: { contains: search } },
+      { customerPhone: { contains: search } },
+      { customerEmail: { contains: search } },
+    ];
+  }
+
+  const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+
+  const [orders, total] = await Promise.all([
+    prisma.order.findMany({
+      where,
+      include: {
+        shop: { select: { id: true, name: true, shopCode: true } },
+        orderFiles: {
+          select: {
+            id: true,
+            fileName: true,
+            fileSizeBytes: true,
+            pageCount: true,
+            colorMode: true,
+            isPurged: true,
+          },
+        },
+        payments: { select: { id: true, amount: true, status: true, paymentMethod: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: parseInt(limit, 10),
+      skip: offset,
+    }),
+    prisma.order.count({ where }),
+  ]);
+
+  return {
+    orders,
+    pagination: {
+      total,
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+      totalPages: Math.ceil(total / parseInt(limit, 10)) || 1,
+    },
+  };
+}
+
+/**
+ * Permanently delete an order
+ */
+async function deleteOrder(adminUser, orderId) {
+  const admin = await assertSuperAdmin(adminUser);
+  const oId = parseInt(orderId, 10);
+
+  const order = await prisma.order.findUnique({
+    where: { id: oId },
+    select: { id: true, orderNumber: true, shopId: true },
+  });
+  if (!order) {
+    const err = new Error('Order not found.');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const files = await tx.orderFile.findMany({ where: { orderId: oId }, select: { id: true } });
+    const fileIds = files.map((f) => f.id);
+    if (fileIds.length > 0) {
+      await tx.printJob.deleteMany({ where: { fileId: { in: fileIds } } });
+    }
+    await tx.payment.deleteMany({ where: { orderId: oId } });
+    await tx.orderStatusLog.deleteMany({ where: { orderId: oId } });
+    await tx.expiryLog.deleteMany({ where: { orderId: oId } });
+    await tx.orderFile.deleteMany({ where: { orderId: oId } });
+    await tx.order.delete({ where: { id: oId } });
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: admin.id,
+      shopId: order.shopId,
+      action: 'DELETE_ORDER',
+      resource: 'order',
+      resourceId: String(oId),
+      oldData: { orderNumber: order.orderNumber },
+    },
+  }).catch((e) => logger.warn('AuditLog error:', e.message));
+
+  return { success: true, message: `Order #${order.orderNumber} deleted permanently.` };
+}
+
+/**
+ * List all printers across the entire network
+ */
+async function listAllPrinters(adminUser, { shopId } = {}) {
+  await assertSuperAdmin(adminUser);
+
+  const where = {};
+  if (shopId) where.shopId = parseInt(shopId, 10);
+
+  const printers = await prisma.printer.findMany({
+    where,
+    include: {
+      shop: { select: { id: true, name: true, shopCode: true } },
+      _count: { select: { printJobs: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  return { printers };
+}
+
+/**
+ * Delete a printer
+ */
+async function deletePrinter(adminUser, printerId) {
+  const admin = await assertSuperAdmin(adminUser);
+  const pId = parseInt(printerId, 10);
+
+  const printer = await prisma.printer.findUnique({ where: { id: pId } });
+  if (!printer) {
+    const err = new Error('Printer not found.');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  await prisma.printer.delete({ where: { id: pId } });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: admin.id,
+      shopId: printer.shopId,
+      action: 'DELETE_PRINTER',
+      resource: 'printer',
+      resourceId: String(pId),
+      oldData: { name: printer.name },
+    },
+  }).catch((e) => logger.warn('AuditLog error:', e.message));
+
+  return { success: true };
+}
+
+/**
+ * List all payments platform-wide
+ */
+async function listAllPayments(adminUser, { page = 1, limit = 25, status, search } = {}) {
+  await assertSuperAdmin(adminUser);
+
+  const where = {};
+  if (status && status !== 'ALL') where.status = status;
+  if (search) {
+    where.OR = [
+      { gatewayPaymentId: { contains: search } },
+      { gatewayOrderId: { contains: search } },
+    ];
+  }
+
+  const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+
+  const [payments, total] = await Promise.all([
+    prisma.payment.findMany({
+      where,
+      include: {
+        order: {
+          select: {
+            id: true,
+            orderNumber: true,
+            customerName: true,
+            shop: { select: { id: true, name: true, shopCode: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: parseInt(limit, 10),
+      skip: offset,
+    }),
+    prisma.payment.count({ where }),
+  ]);
+
+  return {
+    payments,
+    pagination: {
+      total,
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+      totalPages: Math.ceil(total / parseInt(limit, 10)) || 1,
+    },
+  };
+}
+
+/**
+ * Get Server Diagnostics & System Telemetry
+ */
+async function getSystemHealth(adminUser) {
+  await assertSuperAdmin(adminUser);
+
+  const mem = process.memoryUsage();
+  const [
+    userCount,
+    shopCount,
+    orderCount,
+    fileCount,
+    paymentCount,
+    printerCount,
+    auditCount,
+    sessionCount,
+  ] = await Promise.all([
+    prisma.user.count(),
+    prisma.shop.count(),
+    prisma.order.count(),
+    prisma.orderFile.count(),
+    prisma.payment.count(),
+    prisma.printer.count(),
+    prisma.auditLog.count(),
+    prisma.refreshToken.count(),
+  ]);
+
+  return {
+    process: {
+      nodeVersion: process.version,
+      pid: process.pid,
+      uptimeSeconds: Math.floor(process.uptime()),
+      memory: {
+        rssBytes: mem.rss,
+        heapTotalBytes: mem.heapTotal,
+        heapUsedBytes: mem.heapUsed,
+        externalBytes: mem.external,
+      },
+    },
+    system: {
+      platform: os.platform(),
+      release: os.release(),
+      arch: os.arch(),
+      cpus: os.cpus().length,
+      totalMemBytes: os.totalmem(),
+      freeMemBytes: os.freemem(),
+      uptimeSeconds: Math.floor(os.uptime()),
+    },
+    databaseCounts: {
+      users: userCount,
+      shops: shopCount,
+      orders: orderCount,
+      files: fileCount,
+      payments: paymentCount,
+      printers: printerCount,
+      auditLogs: auditCount,
+      sessions: sessionCount,
+    },
+  };
+}
+
 module.exports = {
   assertSuperAdmin,
+  adminLogin,
   getPlatformOverview,
   createShopOwner,
+  createUser,
+  deleteUser,
   listAllShops,
+  createShopDirect,
+  deleteShop,
   updateShopStatus,
   listAllUsers,
   updateUser,
@@ -747,5 +1277,11 @@ module.exports = {
   getUserSessions,
   getUserLoginHistory,
   resetUserPassword,
+  listAllOrders,
+  deleteOrder,
+  listAllPrinters,
+  deletePrinter,
+  listAllPayments,
+  getSystemHealth,
   getAuditLogs,
 };

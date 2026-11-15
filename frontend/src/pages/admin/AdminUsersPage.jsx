@@ -15,18 +15,32 @@ import {
   AlertTriangle,
   X,
   Lock,
+  Trash2,
+  UserPlus,
 } from 'lucide-react'
 import api from '../../lib/api'
 import toast from 'react-hot-toast'
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState([])
+  const [shops, setShops] = useState([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('ALL')
   const [actionLoading, setActionLoading] = useState(false)
 
-  // Modals state
+  // Add User Modal State
+  const [showAddUserModal, setShowAddUserModal] = useState(false)
+  const [addUserForm, setAddUserForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    role: 'OWNER',
+    status: 'ACTIVE',
+    shopId: '',
+  })
+
+  // Provision Shop Owner Modal State
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [createForm, setCreateForm] = useState({
     ownerName: '',
@@ -38,29 +52,33 @@ export default function AdminUsersPage() {
   const [createdCredentials, setCreatedCredentials] = useState(null)
   const [copied, setCopied] = useState(false)
 
-  // Active Sessions Modal
+  // Active Sessions Modal State
   const [selectedUserForSessions, setSelectedUserForSessions] = useState(null)
   const [sessions, setSessions] = useState([])
   const [sessionsLoading, setSessionsLoading] = useState(false)
 
-  // Login History Modal
+  // Login History Modal State
   const [selectedUserForHistory, setSelectedUserForHistory] = useState(null)
   const [historyLogs, setHistoryLogs] = useState([])
   const [historyLoading, setHistoryLoading] = useState(false)
 
-  // Reset Password Result Modal
+  // Reset Password Result Modal State
   const [resetResult, setResetResult] = useState(null)
 
   const loadUsers = async () => {
     try {
       setLoading(true)
-      const res = await api.get('/admin/users', {
-        params: {
-          search: search || undefined,
-          role: roleFilter !== 'ALL' ? roleFilter : undefined,
-        },
-      })
-      setUsers(res.data.data.users || [])
+      const [usersRes, shopsRes] = await Promise.all([
+        api.get('/admin/users', {
+          params: {
+            search: search || undefined,
+            role: roleFilter !== 'ALL' ? roleFilter : undefined,
+          },
+        }),
+        api.get('/admin/shops').catch(() => ({ data: { data: { shops: [] } } })),
+      ])
+      setUsers(usersRes.data.data.users || [])
+      setShops(shopsRes.data.data?.shops || [])
     } catch (err) {
       console.error('Failed to load users:', err)
       toast.error('Failed to load user accounts')
@@ -73,7 +91,35 @@ export default function AdminUsersPage() {
     loadUsers()
   }, [roleFilter])
 
-  // Create Shop Owner
+  // Direct Create User (Any Role)
+  const handleAddUserSubmit = async (e) => {
+    e.preventDefault()
+    if (!addUserForm.name || !addUserForm.email) {
+      toast.error('Name and email are required')
+      return
+    }
+
+    try {
+      setActionLoading(true)
+      const res = await api.post('/admin/users', addUserForm)
+      toast.success(`User ${addUserForm.email} created successfully!`)
+      if (res.data.data?.temporaryPassword) {
+        setCreatedCredentials({
+          user: res.data.data.user,
+          temporaryPassword: res.data.data.temporaryPassword,
+        })
+      }
+      setShowAddUserModal(false)
+      setAddUserForm({ name: '', email: '', password: '', role: 'OWNER', status: 'ACTIVE', shopId: '' })
+      await loadUsers()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to create user')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  // Provision Shop Owner + Shop
   const handleCreateSubmit = async (e) => {
     e.preventDefault()
     if (!createForm.ownerName || !createForm.ownerEmail || !createForm.shopName) {
@@ -88,9 +134,30 @@ export default function AdminUsersPage() {
       setShowCreateModal(false)
       setCreateForm({ ownerName: '', ownerEmail: '', shopName: '', shopPhone: '', shopAddress: '' })
       await loadUsers()
-      toast.success('Shop owner account provisioned!')
+      toast.success('Shop owner and shop provisioned!')
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to create shop owner')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  // Permanent Delete User
+  const handleDeleteUser = async (user) => {
+    if (
+      !window.confirm(
+        `PERMANENT DELETION WARNING:\n\nAre you sure you want to permanently delete user "${user.email}" (${user.name})?\n\nThis will remove their login, all active sessions, and shop memberships. This action is irreversible.`
+      )
+    )
+      return
+
+    try {
+      setActionLoading(true)
+      await api.delete(`/admin/users/${user.id}`)
+      toast.success(`User ${user.email} deleted permanently`)
+      await loadUsers()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete user')
     } finally {
       setActionLoading(false)
     }
@@ -114,7 +181,7 @@ export default function AdminUsersPage() {
   const handleUpdateStatus = async (user, newStatus) => {
     const confirmMsg =
       newStatus === 'SUSPENDED'
-        ? `Are you sure you want to SUSPEND ${user.email}? This will immediately terminate all active sessions.`
+        ? `Are you sure you want to SUSPEND ${user.email}? This terminates all active sessions immediately.`
         : newStatus === 'INACTIVE'
         ? `Deactivate ${user.email}? This terminates all active sessions.`
         : `Reactivate account for ${user.email}?`
@@ -220,29 +287,39 @@ export default function AdminUsersPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-xl font-semibold text-[var(--text)] tracking-tight flex items-center gap-2">
-            <Users className="text-[#0E7490]" size={18} strokeWidth={1.75} />
+          <h1 className="text-xl font-bold text-[var(--text)] tracking-tight flex items-center gap-2">
+            <Users className="text-[#0E7490]" size={20} strokeWidth={2} />
             User Accounts & Security Controls
           </h1>
-          <p className="text-sm text-[var(--text-muted)] mt-0.5">
-            Provision shop owners, monitor logged-in devices, terminate sessions, and manage credentials.
+          <p className="text-xs text-[var(--text-muted)] mt-0.5">
+            Create any role, provision shops, delete accounts permanently, manage active sessions, and reset passwords.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Add User Button */}
+          <button
+            onClick={() => setShowAddUserModal(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0E7490] hover:bg-[#155E75] text-white text-xs font-semibold rounded-lg shadow-sm transition-colors duration-150"
+          >
+            <UserPlus size={14} strokeWidth={2} />
+            Add User
+          </button>
+
+          {/* Provision Shop Owner */}
           <button
             onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#0E7490] hover:bg-[#155E75] text-white text-xs font-semibold rounded-lg shadow-sm transition-colors duration-150"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--surface-hover)] text-[var(--text)] text-xs font-semibold rounded-lg shadow-xs transition-colors duration-150"
           >
-            <Plus size={14} strokeWidth={2} />
-            Create Shop Owner
+            <Plus size={14} strokeWidth={2} className="text-[#0E7490]" />
+            Provision Shop Owner
           </button>
+
           <button
             onClick={loadUsers}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)] text-xs font-medium rounded-lg shadow-xs transition-colors duration-150"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-[var(--surface)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)] text-xs font-medium rounded-lg shadow-xs transition-colors duration-150"
           >
             <RefreshCw size={13} strokeWidth={1.75} className={loading ? 'animate-spin' : ''} />
-            Refresh
           </button>
         </div>
       </div>
@@ -289,7 +366,7 @@ export default function AdminUsersPage() {
                 <th className="py-2.5 px-4">Shop Name</th>
                 <th className="py-2.5 px-4">Status</th>
                 <th className="py-2.5 px-4">Last Login</th>
-                <th className="py-2.5 px-4 text-right">Security Actions</th>
+                <th className="py-2.5 px-4 text-right">Master Controls</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border)] text-[var(--text)]">
@@ -398,6 +475,15 @@ export default function AdminUsersPage() {
                             Activate
                           </button>
                         )}
+
+                        {/* Delete User */}
+                        <button
+                          onClick={() => handleDeleteUser(u)}
+                          title="Permanently Delete User"
+                          className="p-1.5 rounded-lg border border-red-200 dark:border-red-900/40 text-red-600 hover:bg-red-500/15 transition-colors"
+                        >
+                          <Trash2 size={13} strokeWidth={1.75} />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -407,6 +493,124 @@ export default function AdminUsersPage() {
           </table>
         </div>
       </div>
+
+      {/* ── ADD USER MODAL (ANY ROLE) ── */}
+      {showAddUserModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
+          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-scaleIn">
+            <div className="p-5 border-b border-[var(--border)] flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-semibold text-[var(--text)]">Create User Account</h3>
+                <p className="text-xs text-[var(--text-muted)]">Add any user role (Owner, Manager, Staff, Super Admin).</p>
+              </div>
+              <button
+                onClick={() => setShowAddUserModal(false)}
+                className="p-1.5 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-muted)]"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddUserSubmit} className="p-5 space-y-4">
+              <div>
+                <label className="label text-xs">Full Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={addUserForm.name}
+                  onChange={(e) => setAddUserForm({ ...addUserForm, name: e.target.value })}
+                  placeholder="e.g. Anand Kumar"
+                  className="input text-xs"
+                />
+              </div>
+
+              <div>
+                <label className="label text-xs">Email Address *</label>
+                <input
+                  type="email"
+                  required
+                  value={addUserForm.email}
+                  onChange={(e) => setAddUserForm({ ...addUserForm, email: e.target.value })}
+                  placeholder="e.g. anand@smartprint.app"
+                  className="input text-xs"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label text-xs">User Role</label>
+                  <select
+                    value={addUserForm.role}
+                    onChange={(e) => setAddUserForm({ ...addUserForm, role: e.target.value })}
+                    className="input text-xs"
+                  >
+                    <option value="OWNER">OWNER</option>
+                    <option value="MANAGER">MANAGER</option>
+                    <option value="STAFF">STAFF</option>
+                    <option value="SUPER_ADMIN">SUPER_ADMIN</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="label text-xs">Status</label>
+                  <select
+                    value={addUserForm.status}
+                    onChange={(e) => setAddUserForm({ ...addUserForm, status: e.target.value })}
+                    className="input text-xs"
+                  >
+                    <option value="ACTIVE">ACTIVE</option>
+                    <option value="INACTIVE">INACTIVE</option>
+                    <option value="SUSPENDED">SUSPENDED</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="label text-xs">Affiliate with Shop (Optional)</label>
+                <select
+                  value={addUserForm.shopId}
+                  onChange={(e) => setAddUserForm({ ...addUserForm, shopId: e.target.value })}
+                  className="input text-xs"
+                >
+                  <option value="">No Shop Affiliation (Standalone)</option>
+                  {shops.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} ({s.shopCode})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="label text-xs">Initial Password (Leave blank to generate)</label>
+                <input
+                  type="password"
+                  value={addUserForm.password}
+                  onChange={(e) => setAddUserForm({ ...addUserForm, password: e.target.value })}
+                  placeholder="Leave empty for auto-generated temporary password"
+                  className="input text-xs"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddUserModal(false)}
+                  className="px-4 py-2 border border-[var(--border)] rounded-lg text-xs font-medium text-[var(--text-muted)] hover:bg-[var(--surface-hover)]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-4 py-2 bg-[#0E7490] hover:bg-[#155E75] text-white rounded-lg text-xs font-semibold shadow-xs"
+                >
+                  {actionLoading ? 'Creating User...' : 'Create Account'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* ── CREATE SHOP OWNER MODAL ── */}
       {showCreateModal && (
@@ -523,7 +727,7 @@ export default function AdminUsersPage() {
                 <Check size={20} strokeWidth={2.5} />
               </div>
               <div>
-                <h3 className="text-base font-semibold text-[var(--text)]">Shop Owner Provisioned!</h3>
+                <h3 className="text-base font-semibold text-[var(--text)]">Account Provisioned!</h3>
                 <p className="text-xs text-[var(--text-muted)]">Copy credentials now — shown only once</p>
               </div>
             </div>
@@ -533,27 +737,31 @@ export default function AdminUsersPage() {
                 <span className="text-[var(--text-muted)]">Login ID (Email):</span>
                 <p className="font-mono font-semibold text-[var(--text)] select-all">{createdCredentials.user?.email}</p>
               </div>
-              <div>
-                <span className="text-[var(--text-muted)]">Shop Code:</span>
-                <p className="font-mono font-semibold text-[#0E7490] select-all">{createdCredentials.shop?.shopCode}</p>
-              </div>
-              <div>
-                <span className="text-[var(--text-muted)]">Temporary Password:</span>
-                <p className="font-mono font-bold text-sm text-amber-500 bg-amber-500/10 px-2.5 py-1.5 rounded-lg border border-amber-500/20 select-all tracking-wider">
-                  {createdCredentials.temporaryPassword}
-                </p>
-              </div>
+              {createdCredentials.shop && (
+                <div>
+                  <span className="text-[var(--text-muted)]">Shop Code:</span>
+                  <p className="font-mono font-semibold text-[#0E7490] select-all">{createdCredentials.shop?.shopCode}</p>
+                </div>
+              )}
+              {createdCredentials.temporaryPassword && (
+                <div>
+                  <span className="text-[var(--text-muted)]">Temporary Password:</span>
+                  <p className="font-mono font-bold text-sm text-amber-500 bg-amber-500/10 px-2.5 py-1.5 rounded-lg border border-amber-500/20 select-all tracking-wider">
+                    {createdCredentials.temporaryPassword}
+                  </p>
+                </div>
+              )}
             </div>
 
             <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
-              An email has also been dispatched to the owner. They will be required to choose a new password upon first login.
+              Account has been provisioned on the platform. The user will be required to change their password on first login.
             </p>
 
             <div className="flex gap-2">
               <button
                 onClick={() =>
                   copyToClipboard(
-                    `SmartPrint Account Provisioned\nEmail: ${createdCredentials.user?.email}\nTemporary Password: ${createdCredentials.temporaryPassword}\nShop Code: ${createdCredentials.shop?.shopCode}`
+                    `SmartPrint Account Provisioned\nEmail: ${createdCredentials.user?.email}\nPassword: ${createdCredentials.temporaryPassword || '(Manual)'}\n${createdCredentials.shop?.shopCode ? `Shop Code: ${createdCredentials.shop.shopCode}` : ''}`
                   )
                 }
                 className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-[var(--surface-hover)] border border-[var(--border)] hover:bg-[var(--border)] text-xs font-semibold rounded-lg text-[var(--text)]"

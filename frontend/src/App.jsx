@@ -27,10 +27,15 @@ import ShopPrintersPage from './pages/shop/ShopPrintersPage'
 import ShopAnalyticsPage from './pages/shop/ShopAnalyticsPage'
 
 // Super Admin Pages
+import AdminLoginPage from './pages/admin/AdminLoginPage'
 import AdminOverviewPage from './pages/admin/AdminOverviewPage'
 import AdminShopsPage from './pages/admin/AdminShopsPage'
 import AdminUsersPage from './pages/admin/AdminUsersPage'
+import AdminOrdersPage from './pages/admin/AdminOrdersPage'
+import AdminPrintersPage from './pages/admin/AdminPrintersPage'
+import AdminPaymentsPage from './pages/admin/AdminPaymentsPage'
 import AdminAuditLogsPage from './pages/admin/AdminAuditLogsPage'
+import AdminSystemHealthPage from './pages/admin/AdminSystemHealthPage'
 
 // Customer & Public Pages
 import ShopPortalPage from './pages/customer/ShopPortalPage'
@@ -127,7 +132,10 @@ export default function App() {
             }
           />
 
-          {/* Super Admin Protected Routes */}
+          {/* Super Admin Dedicated Login */}
+          <Route path="/admin/login" element={<AdminLoginPage />} />
+
+          {/* Super Admin Master Protected Routes */}
           <Route
             path="/admin"
             element={
@@ -137,9 +145,13 @@ export default function App() {
             }
           >
             <Route index element={<AdminOverviewPage />} />
-            <Route path="shops" element={<AdminShopsPage />} />
             <Route path="users" element={<AdminUsersPage />} />
+            <Route path="shops" element={<AdminShopsPage />} />
+            <Route path="orders" element={<AdminOrdersPage />} />
+            <Route path="printers" element={<AdminPrintersPage />} />
+            <Route path="payments" element={<AdminPaymentsPage />} />
             <Route path="audit-logs" element={<AdminAuditLogsPage />} />
+            <Route path="system" element={<AdminSystemHealthPage />} />
           </Route>
 
           {/* Redirects */}
