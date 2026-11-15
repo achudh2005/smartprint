@@ -44,7 +44,7 @@ export default function Header({ onMenuClick }) {
           className="flex items-center gap-2 px-2 py-1 rounded-lg hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors duration-150"
         >
           <div className="w-6 h-6 rounded-md bg-[var(--accent-tint)] border border-[var(--border)] flex items-center justify-center shrink-0 shadow-xs">
-            <span className="text-[11px] font-bold text-[#0E7490]">
+            <span className="text-[11px] font-bold text-[#007AFF] dark:text-[#0A84FF]">
               {user?.name?.[0]?.toUpperCase() || 'U'}
             </span>
           </div>

@@ -91,7 +91,7 @@ function SidebarContent({ user, onLogout, hideLogo }) {
               clsx(
                 'group flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-120',
                 isActive
-                  ? 'bg-[#0E7490]/12 dark:bg-[#22D3EE]/15 text-[#0E7490] dark:text-[#22D3EE] font-semibold shadow-xs'
+                  ? 'bg-[#007AFF]/12 dark:bg-[#0A84FF]/20 text-[#007AFF] dark:text-[#0A84FF] font-semibold shadow-xs'
                   : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
               )
             }
@@ -103,7 +103,7 @@ function SidebarContent({ user, onLogout, hideLogo }) {
                   strokeWidth={isActive ? 2.25 : 1.75}
                   className={clsx(
                     'shrink-0 transition-colors',
-                    isActive ? 'text-[#0E7490] dark:text-[#22D3EE]' : 'text-slate-400 dark:text-slate-500 group-hover:text-current'
+                    isActive ? 'text-[#007AFF] dark:text-[#0A84FF]' : 'text-slate-400 dark:text-slate-500 group-hover:text-current'
                   )}
                 />
                 <span>{label}</span>
@@ -117,7 +117,7 @@ function SidebarContent({ user, onLogout, hideLogo }) {
       <div className="p-3 border-t border-black/[0.08] dark:border-white/[0.08] space-y-2 shrink-0">
         <div className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl bg-black/[0.02] dark:bg-white/[0.03] border border-black/[0.04] dark:border-white/[0.04]">
           <div className="w-7 h-7 rounded-lg bg-[var(--accent-tint)] border border-[var(--border)] flex items-center justify-center shrink-0 shadow-xs">
-            <span className="text-xs font-bold text-[#0E7490]">
+            <span className="text-xs font-bold text-[#007AFF] dark:text-[#0A84FF]">
               {user?.name?.[0]?.toUpperCase() || 'U'}
             </span>
           </div>
