@@ -35,8 +35,8 @@ export default function Sidebar({ open, onClose }) {
       {/* Mobile drawer */}
       <aside
         className={clsx(
-          'fixed inset-y-0 left-0 z-30 w-64 mac-sheet transform transition-transform duration-150 lg:hidden',
-          open ? 'translate-x-0' : '-translate-x-full'
+          'fixed inset-y-0 left-0 z-50 w-64 bg-white/95 dark:bg-[#1E1E1E]/95 backdrop-blur-xl border-r border-black/[0.08] dark:border-white/[0.08] shadow-2xl transition-transform duration-200 ease-in-out lg:hidden flex flex-col',
+          open ? 'translate-x-0' : '-translate-x-full pointer-events-none'
         )}
       >
         <div className="flex items-center justify-between px-4 py-3.5 border-b border-black/[0.08] dark:border-white/[0.08]">
@@ -45,14 +45,15 @@ export default function Sidebar({ open, onClose }) {
             <LogoMark />
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
+            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-black/[0.05] dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
             aria-label="Close sidebar"
           >
-            <X size={15} strokeWidth={2} />
+            <X size={16} strokeWidth={2} />
           </button>
         </div>
-        <SidebarContent user={user} onLogout={handleLogout} hideLogo />
+        <SidebarContent user={user} onLogout={handleLogout} hideLogo onNavClick={onClose} />
       </aside>
     </>
   )
@@ -66,7 +67,7 @@ function LogoMark() {
   )
 }
 
-function SidebarContent({ user, onLogout, hideLogo }) {
+function SidebarContent({ user, onLogout, hideLogo, onNavClick }) {
   return (
     <div className="flex flex-col h-full">
       {/* macOS Window Titlebar Chrome with Traffic Lights */}
@@ -87,6 +88,7 @@ function SidebarContent({ user, onLogout, hideLogo }) {
           <NavLink
             key={to}
             to={to}
+            onClick={onNavClick}
             className={({ isActive }) =>
               clsx(
                 'group flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-120',
