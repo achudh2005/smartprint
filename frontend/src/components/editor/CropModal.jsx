@@ -31,7 +31,7 @@ export default function CropModal({ isOpen, onClose, currentPage, onApplyCrop })
             <MacTrafficLights size="sm" onClose={onClose} />
             <div className="h-3 w-px bg-black/[0.1] dark:bg-white/[0.1] mx-0.5" />
             <div className="flex items-center gap-1.5">
-              <Crop size={14} strokeWidth={2} className="text-[#0E7490]" />
+              <Crop size={14} strokeWidth={2} className="text-[#007AFF] dark:text-[#0A84FF]" />
               <h3 className="font-semibold text-xs text-[var(--text)]">Crop Margins</h3>
             </div>
           </div>
@@ -56,7 +56,7 @@ export default function CropModal({ isOpen, onClose, currentPage, onApplyCrop })
                 min="0"
                 value={top}
                 onChange={(e) => setTop(e.target.value)}
-                className="w-full rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-3 py-1.5 text-xs font-medium text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#0E7490]/30"
+                className="w-full rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-3 py-1.5 text-xs font-medium text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30"
               />
             </div>
             <div>
@@ -66,7 +66,7 @@ export default function CropModal({ isOpen, onClose, currentPage, onApplyCrop })
                 min="0"
                 value={bottom}
                 onChange={(e) => setBottom(e.target.value)}
-                className="w-full rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-3 py-1.5 text-xs font-medium text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#0E7490]/30"
+                className="w-full rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-3 py-1.5 text-xs font-medium text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30"
               />
             </div>
             <div>
@@ -76,7 +76,7 @@ export default function CropModal({ isOpen, onClose, currentPage, onApplyCrop })
                 min="0"
                 value={left}
                 onChange={(e) => setLeft(e.target.value)}
-                className="w-full rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-3 py-1.5 text-xs font-medium text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#0E7490]/30"
+                className="w-full rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-3 py-1.5 text-xs font-medium text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30"
               />
             </div>
             <div>
@@ -86,7 +86,7 @@ export default function CropModal({ isOpen, onClose, currentPage, onApplyCrop })
                 min="0"
                 value={right}
                 onChange={(e) => setRight(e.target.value)}
-                className="w-full rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-3 py-1.5 text-xs font-medium text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#0E7490]/30"
+                className="w-full rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-3 py-1.5 text-xs font-medium text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30"
               />
             </div>
           </div>

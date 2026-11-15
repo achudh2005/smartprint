@@ -29,7 +29,7 @@ export default function SplitModal({ isOpen, onClose, totalPages, onExtractPages
             <MacTrafficLights size="sm" onClose={onClose} />
             <div className="h-3 w-px bg-black/[0.1] dark:bg-white/[0.1] mx-0.5" />
             <div className="flex items-center gap-1.5">
-              <Scissors size={14} strokeWidth={2} className="text-[#0E7490]" />
+              <Scissors size={14} strokeWidth={2} className="text-[#007AFF] dark:text-[#0A84FF]" />
               <h3 className="font-semibold text-xs text-[var(--text)]">Extract & Split Pages</h3>
             </div>
           </div>
@@ -51,7 +51,7 @@ export default function SplitModal({ isOpen, onClose, totalPages, onExtractPages
               value={rangeInput}
               onChange={(e) => setRangeInput(e.target.value)}
               placeholder="e.g. 1-3, 5"
-              className="w-full rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-3 py-1.5 text-xs font-medium text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#0E7490]/30"
+              className="w-full rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-3 py-1.5 text-xs font-medium text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30"
             />
             <p className="text-[11px] text-[var(--text-muted)] mt-1">
               Specify comma-separated pages or ranges (e.g. 1-2, 4).

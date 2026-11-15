@@ -5,7 +5,7 @@ import {
   Plus, Minus, Settings2, Sparkles, Store, Clock, MapPin,
   Phone, ArrowRight, RefreshCw, Layers, ShieldCheck, File,
   Repeat, Ban, Info, CreditCard, Banknote, User, Download, Lock } from 'lucide-react'
-import { Card, CardHeader, CardBody, Button, Badge, Spinner, Alert, ThemeToggle, Toggle } from '../../components/ui'
+import { Card, CardHeader, CardBody, Button, Badge, Spinner, Alert, ThemeToggle, Toggle, MacTrafficLights } from '../../components/ui'
 import api from '../../lib/api'
 import { openRazorpayCheckout } from '../../lib/razorpay'
 import toast from 'react-hot-toast'
@@ -1222,21 +1222,25 @@ export default function ShopPortalPage() {
 
       {/* Document Preview Modal */}
       {previewFile && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-[var(--surface)] rounded-xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-xl overflow-hidden border border-[var(--border)]">
-            <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
-              <div className="flex items-center gap-2 min-w-0">
-                <FileText size={16} strokeWidth={1.75} className="text-[#0E7490] shrink-0" />
-                <h3 className="font-semibold text-[var(--text)] text-sm truncate">
-                  {previewFile.originalName}
-                </h3>
+        <div className="fixed inset-0 z-50 bg-black/40 dark:bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="mac-sheet rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden animate-scaleIn">
+            <div className="px-5 py-3 border-b border-black/[0.08] dark:border-white/[0.08] flex items-center justify-between">
+              <div className="flex items-center gap-3 min-w-0">
+                <MacTrafficLights size="sm" onClose={() => setPreviewFile(null)} />
+                <div className="h-3 w-px bg-black/[0.1] dark:bg-white/[0.1] mx-0.5" />
+                <div className="flex items-center gap-2 min-w-0">
+                  <FileText size={15} strokeWidth={1.75} className="text-[#007AFF] dark:text-[#0A84FF] shrink-0" />
+                  <h3 className="font-semibold text-[var(--text)] text-xs sm:text-sm truncate">
+                    {previewFile.originalName}
+                  </h3>
+                </div>
               </div>
               <button
                 onClick={() => setPreviewFile(null)}
-                className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)] min-h-[36px] min-w-[36px] flex items-center justify-center transition-colors"
+                className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-black/[0.05] dark:hover:bg-white/[0.05] min-h-[30px] min-w-[30px] flex items-center justify-center transition-colors"
                 aria-label="Close preview"
               >
-                <X size={16} strokeWidth={1.75} />
+                <X size={15} strokeWidth={1.75} />
               </button>
             </div>
 

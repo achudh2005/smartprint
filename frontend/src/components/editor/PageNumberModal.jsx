@@ -29,7 +29,7 @@ export default function PageNumberModal({ isOpen, onClose, pageNumbering, onSave
             <MacTrafficLights size="sm" onClose={onClose} />
             <div className="h-3 w-px bg-black/[0.1] dark:bg-white/[0.1] mx-0.5" />
             <div className="flex items-center gap-1.5">
-              <Hash size={14} strokeWidth={2} className="text-[#0E7490]" />
+              <Hash size={14} strokeWidth={2} className="text-[#007AFF] dark:text-[#0A84FF]" />
               <h3 className="font-semibold text-xs text-[var(--text)]">Page Numbering</h3>
             </div>
           </div>
@@ -57,7 +57,7 @@ export default function PageNumberModal({ isOpen, onClose, pageNumbering, onSave
             <select
               value={format}
               onChange={(e) => setFormat(e.target.value)}
-              className="w-full rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-3 py-1.5 text-xs font-medium text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#0E7490]/30"
+              className="w-full rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-3 py-1.5 text-xs font-medium text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30"
             >
               <option value="X_OF_Y">Page 1 of 5</option>
               <option value="NUMBER_ONLY">1, 2, 3...</option>
@@ -69,7 +69,7 @@ export default function PageNumberModal({ isOpen, onClose, pageNumbering, onSave
             <select
               value={position}
               onChange={(e) => setPosition(e.target.value)}
-              className="w-full rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-3 py-1.5 text-xs font-medium text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#0E7490]/30"
+              className="w-full rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-3 py-1.5 text-xs font-medium text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30"
             >
               <option value="BOTTOM_CENTER">Bottom Center</option>
               <option value="BOTTOM_RIGHT">Bottom Right</option>
@@ -86,7 +86,7 @@ export default function PageNumberModal({ isOpen, onClose, pageNumbering, onSave
               min="1"
               value={startNumber}
               onChange={(e) => setStartNumber(e.target.value)}
-              className="w-full rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-3 py-1.5 text-xs font-medium text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#0E7490]/30"
+              className="w-full rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-3 py-1.5 text-xs font-medium text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30"
             />
           </div>
         </div>

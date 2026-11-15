@@ -12,8 +12,10 @@ import {
   Activity,
   History,
   RotateCcw,
+  X,
 } from 'lucide-react'
 import ShopNavTabs from '../../components/shop/ShopNavTabs'
+import { MacTrafficLights } from '../../components/ui'
 import api from '../../lib/api'
 
 export default function ShopPrintersPage() {
@@ -393,80 +395,95 @@ export default function ShopPrintersPage() {
 
       {/* Add Printer Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-[var(--surface)] rounded-xl max-w-md w-full p-6 shadow-card border border-[var(--border)]">
-            <h3 className="text-base font-bold text-[var(--text)] mb-1">Add Printer Manually</h3>
-            <p className="text-xs text-[var(--text-muted)] mb-4">
-              Register a printer installed on your shop workstation or local network.
-            </p>
-
-            <form onSubmit={handleAddPrinter} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-[var(--text)] mb-1">Printer Name</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. HP LaserJet Pro M428fdw"
-                  value={newPrinter.name}
-                  onChange={(e) => setNewPrinter({ ...newPrinter, name: e.target.value })}
-                  className="input w-full"
-                />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 dark:bg-black/60 backdrop-blur-md p-4">
+          <div className="mac-sheet rounded-2xl max-w-md w-full overflow-hidden animate-scaleIn">
+            <div className="px-5 py-3.5 border-b border-black/[0.08] dark:border-white/[0.08] flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <MacTrafficLights size="sm" onClose={() => setShowAddModal(false)} />
+                <div className="h-3 w-px bg-black/[0.1] dark:bg-white/[0.1] mx-0.5" />
+                <h3 className="text-sm font-semibold text-[var(--text)]">Add Printer Manually</h3>
               </div>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="p-1 text-[var(--text-muted)] hover:text-[var(--text)] rounded-lg transition-colors duration-150"
+              >
+                <X size={15} strokeWidth={1.75} />
+              </button>
+            </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-[var(--text)] mb-1">Model / Driver</label>
-                <input
-                  type="text"
-                  placeholder="e.g. HP LaserJet Series"
-                  value={newPrinter.model}
-                  onChange={(e) => setNewPrinter({ ...newPrinter, model: e.target.value })}
-                  className="input w-full"
-                />
-              </div>
+            <div className="p-6">
+              <p className="text-xs text-[var(--text-muted)] mb-4">
+                Register a printer installed on your shop workstation or local network.
+              </p>
 
-              <div>
-                <label className="block text-xs font-semibold text-[var(--text)] mb-1">Connection Type</label>
-                <select
-                  value={newPrinter.connectionType}
-                  onChange={(e) => setNewPrinter({ ...newPrinter, connectionType: e.target.value })}
-                  className="input w-full"
-                >
-                  <option value="USB">USB Cable</option>
-                  <option value="NETWORK">LAN / WiFi Network</option>
-                  <option value="WINDOWS_SPOOLER">Windows Spooler</option>
-                </select>
-              </div>
+              <form onSubmit={handleAddPrinter} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--text)] mb-1">Printer Name</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. HP LaserJet Pro M428fdw"
+                    value={newPrinter.name}
+                    onChange={(e) => setNewPrinter({ ...newPrinter, name: e.target.value })}
+                    className="input w-full"
+                  />
+                </div>
 
-              <div className="flex items-center gap-2 pt-2">
-                <input
-                  type="checkbox"
-                  id="isDefault"
-                  checked={newPrinter.isDefault}
-                  onChange={(e) => setNewPrinter({ ...newPrinter, isDefault: e.target.checked })}
-                  className="rounded-sm border-[var(--border)] text-[#0E7490] focus:ring-[#22D3EE]/30"
-                />
-                <label htmlFor="isDefault" className="text-xs text-[var(--text)] font-medium">
-                  Set as shop default printer
-                </label>
-              </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--text)] mb-1">Model / Driver</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. HP LaserJet Series"
+                    value={newPrinter.model}
+                    onChange={(e) => setNewPrinter({ ...newPrinter, model: e.target.value })}
+                    className="input w-full"
+                  />
+                </div>
 
-              <div className="flex justify-end gap-2 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="btn btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={actionLoading}
-                  className="btn btn-primary"
-                >
-                  {actionLoading ? 'Saving...' : 'Save Printer'}
-                </button>
-              </div>
-            </form>
+                <div>
+                  <label className="block text-xs font-semibold text-[var(--text)] mb-1">Connection Type</label>
+                  <select
+                    value={newPrinter.connectionType}
+                    onChange={(e) => setNewPrinter({ ...newPrinter, connectionType: e.target.value })}
+                    className="input w-full"
+                  >
+                    <option value="USB">USB Cable</option>
+                    <option value="NETWORK">LAN / WiFi Network</option>
+                    <option value="WINDOWS_SPOOLER">Windows Spooler</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-2 pt-2">
+                  <input
+                    type="checkbox"
+                    id="isDefault"
+                    checked={newPrinter.isDefault}
+                    onChange={(e) => setNewPrinter({ ...newPrinter, isDefault: e.target.checked })}
+                    className="rounded-sm border-[var(--border)] text-[#007AFF] focus:ring-[#007AFF]/30"
+                  />
+                  <label htmlFor="isDefault" className="text-xs text-[var(--text)] font-medium">
+                    Set as shop default printer
+                  </label>
+                </div>
+
+                <div className="flex justify-end gap-2 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddModal(false)}
+                    className="btn btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={actionLoading}
+                    className="btn btn-primary"
+                  >
+                    {actionLoading ? 'Saving...' : 'Save Printer'}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}

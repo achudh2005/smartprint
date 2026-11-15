@@ -33,7 +33,7 @@ export default function StickyNoteModal({ isOpen, onClose, note, onSaveNote, onD
             <MacTrafficLights size="sm" onClose={onClose} />
             <div className="h-3 w-px bg-black/[0.1] dark:bg-white/[0.1] mx-0.5" />
             <div className="flex items-center gap-1.5">
-              <MessageSquare size={14} strokeWidth={2} className="text-[#0E7490]" />
+              <MessageSquare size={14} strokeWidth={2} className="text-[#007AFF] dark:text-[#0A84FF]" />
               <h3 className="font-semibold text-xs text-[var(--text)]">Sticky Note Comment</h3>
             </div>
           </div>
@@ -53,7 +53,7 @@ export default function StickyNoteModal({ isOpen, onClose, note, onSaveNote, onD
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder="Type your comment or instruction here..."
-              className="w-full rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-3 py-2 text-xs font-medium text-[var(--text)] leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#0E7490]/30"
+              className="w-full rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-3 py-2 text-xs font-medium text-[var(--text)] leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30"
               autoFocus
             />
           </div>
@@ -67,7 +67,7 @@ export default function StickyNoteModal({ isOpen, onClose, note, onSaveNote, onD
                   type="button"
                   onClick={() => setColor(c.hex)}
                   className={`w-5 h-5 rounded-full border-2 transition-all ${
-                    color === c.hex ? 'scale-110 border-[#0E7490]' : 'border-transparent'
+                    color === c.hex ? 'scale-110 border-[#007AFF]' : 'border-transparent'
                   }`}
                   style={{ backgroundColor: c.hex }}
                   title={c.label}

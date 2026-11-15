@@ -5,7 +5,7 @@ import {
   Download, Eye, Clock, ShieldCheck, User, Copy, Check, X,
   Layers, ChevronRight, RefreshCw, AlertCircle, Trash2, CreditCard, Banknote,
   PlusCircle, Flame, History, Phone, Lock, Edit3 } from 'lucide-react'
-import { PageHeader, Card, CardHeader, CardBody, Button, Spinner, Badge, Alert } from '../../components/ui'
+import { PageHeader, Card, CardHeader, CardBody, Button, Spinner, Badge, Alert, MacTrafficLights } from '../../components/ui'
 import ShopNavTabs from '../../components/shop/ShopNavTabs'
 import api from '../../lib/api'
 import { getSocket } from '../../lib/socket'
@@ -1114,14 +1114,18 @@ export default function OrderDetailPage() {
 
       {/* ── Document Preview Modal ── */}
       {previewFile && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-[var(--surface)] rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-card border border-[var(--border)] overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-[var(--border)] flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <FileText size={16} strokeWidth={1.75} className="text-[#0E7490]" />
-                <h3 className="font-semibold text-[var(--text)] text-sm truncate max-w-md">
-                  {previewFile.originalName}
-                </h3>
+        <div className="fixed inset-0 z-50 bg-black/40 dark:bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="mac-sheet rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-scaleIn">
+            <div className="px-5 py-3 border-b border-black/[0.08] dark:border-white/[0.08] flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <MacTrafficLights size="sm" onClose={() => setPreviewFile(null)} />
+                <div className="h-3 w-px bg-black/[0.1] dark:bg-white/[0.1] mx-0.5" />
+                <div className="flex items-center gap-2">
+                  <FileText size={15} strokeWidth={1.75} className="text-[#007AFF] dark:text-[#0A84FF]" />
+                  <h3 className="font-semibold text-[var(--text)] text-xs sm:text-sm truncate max-w-md">
+                    {previewFile.originalName}
+                  </h3>
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 
@@ -1263,95 +1267,116 @@ export default function OrderDetailPage() {
 
       {/* ── Counter Payment Modal ── */}
       {counterPayModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-[var(--surface)] rounded-xl w-full max-w-md p-6 shadow-card border border-[var(--border)] space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-[var(--text)] text-base">Record Counter Payment</h3>
+        <div className="fixed inset-0 z-50 bg-black/40 dark:bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="mac-sheet rounded-2xl w-full max-w-md overflow-hidden animate-scaleIn">
+            <div className="px-5 py-3.5 border-b border-black/[0.08] dark:border-white/[0.08] flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <MacTrafficLights size="sm" onClose={() => setCounterPayModalOpen(false)} />
+                <div className="h-3 w-px bg-black/[0.1] dark:bg-white/[0.1] mx-0.5" />
+                <h3 className="font-semibold text-[var(--text)] text-sm">Record Counter Payment</h3>
+              </div>
               <button
                 onClick={() => setCounterPayModalOpen(false)}
                 className="p-1 text-[var(--text-muted)] hover:text-[var(--text)] rounded-lg transition-colors duration-150"
               >
-                <X size={16} strokeWidth={1.75} />
+                <X size={15} strokeWidth={1.75} />
               </button>
             </div>
 
-            <form onSubmit={handleRecordCounterPayment} className="space-y-4 text-xs">
-              <div>
-                <label className="font-semibold text-[var(--text-muted)] uppercase tracking-wider block mb-1">Amount Collected (₹)</label>
-                <input
-                  type="number"
-                  step="0.5"
-                  value={counterAmount}
-                  onChange={(e) => setCounterAmount(e.target.value)}
-                  className="input text-sm font-bold tabular-nums"
-                  required
-                />
-              </div>
+            <div className="p-6">
+              <form onSubmit={handleRecordCounterPayment} className="space-y-4 text-xs">
+                <div>
+                  <label className="font-semibold text-[var(--text-muted)] uppercase tracking-wider block mb-1">Amount Collected (₹)</label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    value={counterAmount}
+                    onChange={(e) => setCounterAmount(e.target.value)}
+                    className="input text-sm font-bold tabular-nums"
+                    required
+                  />
+                </div>
 
-              <div>
-                <label className="font-semibold text-[var(--text-muted)] uppercase tracking-wider block mb-1">Payment Method</label>
-                <select
-                  value={counterMethod}
-                  onChange={(e) => setCounterMethod(e.target.value)}
-                  className="input"
-                >
-                  <option value="CASH">Cash at Counter</option>
-                  <option value="UPI">Store UPI / QR Scanner</option>
-                  <option value="CARD">Card POS Terminal</option>
-                </select>
-              </div>
+                <div>
+                  <label className="font-semibold text-[var(--text-muted)] uppercase tracking-wider block mb-1">Payment Method</label>
+                  <select
+                    value={counterMethod}
+                    onChange={(e) => setCounterMethod(e.target.value)}
+                    className="input"
+                  >
+                    <option value="CASH">Cash at Counter</option>
+                    <option value="UPI">Store UPI / QR Scanner</option>
+                    <option value="CARD">Card POS Terminal</option>
+                  </select>
+                </div>
 
-              <div>
-                <label className="font-semibold text-[var(--text-muted)] uppercase tracking-wider block mb-1">Receipt / Staff Notes</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Paid in cash, receipt #1042"
-                  value={counterNotes}
-                  onChange={(e) => setCounterNotes(e.target.value)}
-                  className="input"
-                />
-              </div>
+                <div>
+                  <label className="font-semibold text-[var(--text-muted)] uppercase tracking-wider block mb-1">Receipt / Staff Notes</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Paid in cash, receipt #1042"
+                    value={counterNotes}
+                    onChange={(e) => setCounterNotes(e.target.value)}
+                    className="input"
+                  />
+                </div>
 
-              <div className="flex justify-end gap-2 pt-2">
-                <Button variant="secondary" size="sm" type="button" onClick={() => setCounterPayModalOpen(false)}>
-                  Cancel
-                </Button>
-                <Button variant="primary" size="sm" type="submit" loading={processingPayment}>
-                  Confirm Collection
-                </Button>
-              </div>
-            </form>
+                <div className="flex justify-end gap-2 pt-2">
+                  <Button variant="secondary" size="sm" type="button" onClick={() => setCounterPayModalOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button variant="primary" size="sm" type="submit" loading={processingPayment}>
+                    Confirm Collection
+                  </Button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}
 
       {/* ── Reject Modal ── */}
       {rejectModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-[var(--surface)] rounded-xl w-full max-w-md p-6 shadow-card border border-[var(--border)] space-y-4">
-            <h3 className="font-semibold text-[var(--text)] text-base">Reject Print Order</h3>
-            <p className="text-xs text-[var(--text-muted)]">
-              Please enter a reason for rejecting this print order (e.g. unreadable font, corrupted document, paper out of stock):
-            </p>
-            <textarea
-              value={rejectReason}
-              onChange={(e) => setRejectReason(e.target.value)}
-              placeholder="Reason for rejection..."
-              rows={3}
-              className="input py-2 h-auto text-xs"
-              required
-            />
-            <div className="flex justify-end gap-2">
-              <Button variant="secondary" size="sm" onClick={() => setRejectModalOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={() => handleUpdateStatus('REJECTED', rejectReason || 'Order rejected by staff')}
+        <div className="fixed inset-0 z-50 bg-black/40 dark:bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="mac-sheet rounded-2xl w-full max-w-md overflow-hidden animate-scaleIn">
+            <div className="px-5 py-3.5 border-b border-black/[0.08] dark:border-white/[0.08] flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <MacTrafficLights size="sm" onClose={() => setRejectModalOpen(false)} />
+                <div className="h-3 w-px bg-black/[0.1] dark:bg-white/[0.1] mx-0.5" />
+                <h3 className="font-semibold text-[var(--text)] text-sm">Reject Print Order</h3>
+              </div>
+              <button
+                onClick={() => setRejectModalOpen(false)}
+                className="p-1 text-[var(--text-muted)] hover:text-[var(--text)] rounded-lg transition-colors duration-150"
               >
-                Confirm Rejection
-              </Button>
+                <X size={15} strokeWidth={1.75} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <p className="text-xs text-[var(--text-muted)]">
+                Please enter a reason for rejecting this print order (e.g. unreadable font, corrupted document, paper out of stock):
+              </p>
+              <textarea
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="Reason for rejection..."
+                rows={3}
+                className="input py-2 h-auto text-xs"
+                required
+              />
+              <div className="flex justify-end gap-2">
+                <Button variant="secondary" size="sm" onClick={() => setRejectModalOpen(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={() => handleUpdateStatus('REJECTED', rejectReason || 'Order rejected by staff')}
+                >
+                  Confirm Rejection
+                </Button>
+              </div>
             </div>
           </div>
         </div>

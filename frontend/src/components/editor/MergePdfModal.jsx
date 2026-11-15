@@ -50,7 +50,7 @@ export default function MergePdfModal({ isOpen, onClose, currentPage, onMergePdf
             <MacTrafficLights size="sm" onClose={onClose} />
             <div className="h-3 w-px bg-black/[0.1] dark:bg-white/[0.1] mx-0.5" />
             <div className="flex items-center gap-1.5">
-              <Layers size={14} strokeWidth={2} className="text-[#0E7490]" />
+              <Layers size={14} strokeWidth={2} className="text-[#007AFF] dark:text-[#0A84FF]" />
               <h3 className="font-semibold text-xs text-[var(--text)]">Insert Pages from PDF</h3>
             </div>
           </div>
@@ -68,15 +68,15 @@ export default function MergePdfModal({ isOpen, onClose, currentPage, onMergePdf
             <label className="text-xs font-semibold text-[var(--text)] block mb-1.5">
               Select PDF to Merge
             </label>
-            <div className="border border-dashed border-black/20 dark:border-white/20 hover:border-[#0E7490] dark:hover:border-[#22D3EE] rounded-xl p-5 text-center bg-black/[0.02] dark:bg-white/[0.03] transition-all">
-              <div className="w-9 h-9 rounded-xl bg-black/[0.04] dark:bg-white/[0.06] border border-black/[0.06] dark:border-white/[0.08] flex items-center justify-center mx-auto mb-2 text-[#0E7490]">
+            <div className="border border-dashed border-black/20 dark:border-white/20 hover:border-[#007AFF] dark:hover:border-[#0A84FF] rounded-xl p-5 text-center bg-black/[0.02] dark:bg-white/[0.03] transition-all">
+              <div className="w-9 h-9 rounded-xl bg-black/[0.04] dark:bg-white/[0.06] border border-black/[0.06] dark:border-white/[0.08] flex items-center justify-center mx-auto mb-2 text-[#007AFF] dark:text-[#0A84FF]">
                 <Upload size={17} strokeWidth={2} />
               </div>
               <input
                 type="file"
                 accept="application/pdf,.pdf"
                 onChange={handleFileChange}
-                className="text-xs text-[var(--text-muted)] w-full file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#0E7490] file:text-white hover:file:bg-[#155E75] cursor-pointer"
+                className="text-xs text-[var(--text-muted)] w-full file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#007AFF] file:text-white hover:file:bg-[#0062D2] cursor-pointer"
               />
               {selectedFile ? (
                 <div className="mt-3 flex items-center justify-center gap-1.5 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg">
@@ -99,7 +99,7 @@ export default function MergePdfModal({ isOpen, onClose, currentPage, onMergePdf
             <select
               value={insertPosition}
               onChange={(e) => setInsertPosition(e.target.value)}
-              className="w-full rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-3 py-1.5 text-xs font-medium text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#0E7490]/30"
+              className="w-full rounded-lg bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 px-3 py-1.5 text-xs font-medium text-[var(--text)] focus:outline-none focus:ring-2 focus:ring-[#007AFF]/30"
             >
               <option value="AFTER_CURRENT">After current page (Page {currentPage})</option>
               <option value="BEFORE_CURRENT">Before current page (Page {currentPage})</option>
