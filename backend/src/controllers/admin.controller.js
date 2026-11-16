@@ -227,6 +227,54 @@ const getAuditLogs = async (req, res, next) => {
   }
 };
 
+const bulkActionUsers = async (req, res, next) => {
+  try {
+    const data = await adminService.bulkActionUsers(req.user, req.body);
+    return sendSuccess(res, data, `Bulk action '${req.body.action}' executed successfully.`);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const updateAdminNote = async (req, res, next) => {
+  try {
+    const targetUserId = parseInt(req.params.userId, 10);
+    const data = await adminService.updateAdminNote(req.user, targetUserId, req.body.note);
+    return sendSuccess(res, data, 'Admin internal note updated.');
+  } catch (err) {
+    next(err);
+  }
+};
+
+const updateSessionLimit = async (req, res, next) => {
+  try {
+    const targetUserId = parseInt(req.params.userId, 10);
+    const data = await adminService.updateSessionLimit(req.user, targetUserId, req.body.maxActiveSessions);
+    return sendSuccess(res, data, 'Session limit updated successfully.');
+  } catch (err) {
+    next(err);
+  }
+};
+
+const impersonateUser = async (req, res, next) => {
+  try {
+    const targetUserId = parseInt(req.params.userId, 10);
+    const data = await adminService.impersonateUser(req.user, targetUserId);
+    return sendSuccess(res, data, `Impersonating user #${targetUserId}. Session valid for 15 minutes.`);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const broadcastMessage = async (req, res, next) => {
+  try {
+    const data = await adminService.broadcastMessage(req.user, req.body);
+    return sendSuccess(res, data, 'Platform announcement dispatched to shop owners.');
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   adminLogin,
   getOverview,
@@ -239,6 +287,11 @@ module.exports = {
   updateShopStatus,
   getUsers,
   updateUser,
+  bulkActionUsers,
+  updateAdminNote,
+  updateSessionLimit,
+  impersonateUser,
+  broadcastMessage,
   getUserSessions,
   getUserLoginHistory,
   revokeSession,

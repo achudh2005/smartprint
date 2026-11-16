@@ -6,6 +6,7 @@
 const os = require('os');
 const crypto = require('crypto');
 const argon2 = require('argon2');
+const jwt = require('jsonwebtoken');
 const { prisma } = require('../database/client');
 const logger = require('../utils/logger');
 const shopService = require('./shop.service');
@@ -139,15 +140,66 @@ async function getPlatformOverview(adminUser) {
     else totalActiveBytes += BigInt(f.fileSizeBytes || 0);
   });
 
+  // Look for users who were auto-suspended due to brute-force in the past 24 hours
+  const autoSuspendedAudits = await prisma.auditLog.findMany({
+    where: {
+      action: 'AUTO_SUSPENDED_BRUTE_FORCE',
+      createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+    },
+    take: 10,
+    orderBy: { createdAt: 'desc' },
+  });
+
+  const autoSuspendedUserIds = autoSuspendedAudits
+    .map((a) => parseInt(a.resourceId, 10))
+    .filter(Boolean);
+
+  const autoSuspendedUsers = autoSuspendedUserIds.length > 0
+    ? await prisma.user.findMany({
+        where: { id: { in: autoSuspendedUserIds } },
+        select: { id: true, email: true, name: true, status: true },
+      })
+    : [];
+  const autoSuspendedMap = new Map(autoSuspendedUsers.map((u) => [u.id, u]));
+
   // Calculate suspicious activity flags (emails or IPs with 3+ failed logins in last hour)
   const failedAttemptsByTarget = {};
   failedLoginsSample.forEach((log) => {
     const key = log.resourceId || log.ipAddress || 'unknown';
     failedAttemptsByTarget[key] = (failedAttemptsByTarget[key] || 0) + 1;
   });
-  const suspiciousTargets = Object.entries(failedAttemptsByTarget)
+
+  const suspiciousTargets = [];
+
+  // Add auto-suspended users first with distinct flag
+  autoSuspendedAudits.forEach((audit) => {
+    const uId = parseInt(audit.resourceId, 10);
+    const u = autoSuspendedMap.get(uId);
+    if (u) {
+      suspiciousTargets.push({
+        email: u.email,
+        userId: u.id,
+        name: u.name,
+        failedAttempts: audit.newData?.threshold || 5,
+        isAutoSuspended: u.status === 'SUSPENDED',
+        status: u.status,
+        timestamp: audit.createdAt,
+      });
+    }
+  });
+
+  // Then add remaining targets with repeated failures
+  Object.entries(failedAttemptsByTarget)
     .filter(([_, count]) => count >= 3)
-    .map(([target, count]) => ({ target, count }));
+    .forEach(([target, count]) => {
+      if (!suspiciousTargets.some((st) => st.email === target)) {
+        suspiciousTargets.push({
+          email: target,
+          failedAttempts: count,
+          isAutoSuspended: false,
+        });
+      }
+    });
 
   return {
     kpis: {
@@ -292,38 +344,66 @@ async function createShopOwner(adminUser, { ownerName, ownerEmail, shopName, sho
 }
 
 /**
- * List all shops on platform with pagination & filters
+ * List all shops on platform with pagination, filters & sorting
  */
-async function listAllShops(adminUser, { page = 1, limit = 20, status, search } = {}) {
+async function listAllShops(adminUser, { page = 1, limit = 50, status, search, tier, sortBy, sortOrder = 'desc', dateFrom, dateTo } = {}) {
   await assertSuperAdmin(adminUser);
 
   const where = {};
   if (status && status !== 'ALL') {
     where.status = status;
   }
+  if (tier && tier !== 'ALL') {
+    where.subscriptionTier = tier;
+  }
   if (search) {
     where.OR = [
       { name: { contains: search } },
       { shopCode: { contains: search } },
       { email: { contains: search } },
+      { phone: { contains: search } },
+      { address: { contains: search } },
     ];
   }
 
+  if (dateFrom || dateTo) {
+    where.createdAt = {};
+    if (dateFrom) where.createdAt.gte = new Date(dateFrom);
+    if (dateTo) where.createdAt.lte = new Date(dateTo);
+  }
+
+  const allowedSortFields = ['name', 'createdAt', 'status', 'subscriptionTier'];
+  const activeSortBy = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
+  const activeSortOrder = sortOrder === 'asc' ? 'asc' : 'desc';
+  const orderBy = { [activeSortBy]: activeSortOrder };
+
   const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
 
-  const [shops, total] = await Promise.all([
+  const [shopsRaw, total] = await Promise.all([
     prisma.shop.findMany({
       where,
       include: {
         _count: { select: { orders: true, printers: true, shopUsers: true } },
         shopSettings: true,
+        shopUsers: {
+          where: { role: 'OWNER' },
+          include: {
+            user: { select: { id: true, name: true, email: true } },
+          },
+        },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy,
       take: parseInt(limit, 10),
       skip: offset,
     }),
     prisma.shop.count({ where }),
   ]);
+
+  const shops = shopsRaw.map((s) => ({
+    ...s,
+    tier: s.subscriptionTier,
+    owner: s.shopUsers?.[0]?.user || null,
+  }));
 
   return {
     shops,
@@ -382,9 +462,9 @@ async function updateShopStatus(adminUser, shopId, { status, reason, subscriptio
 }
 
 /**
- * List all users across the platform
+ * List all users across the platform with pagination, filters & sorting
  */
-async function listAllUsers(adminUser, { page = 1, limit = 20, role, status, search } = {}) {
+async function listAllUsers(adminUser, { page = 1, limit = 50, role, status, search, sortBy, sortOrder = 'desc', dateFrom, dateTo } = {}) {
   await assertSuperAdmin(adminUser);
 
   const where = {};
@@ -394,8 +474,20 @@ async function listAllUsers(adminUser, { page = 1, limit = 20, role, status, sea
     where.OR = [
       { name: { contains: search } },
       { email: { contains: search } },
+      { shopUsers: { some: { shop: { name: { contains: search } } } } },
     ];
   }
+
+  if (dateFrom || dateTo) {
+    where.createdAt = {};
+    if (dateFrom) where.createdAt.gte = new Date(dateFrom);
+    if (dateTo) where.createdAt.lte = new Date(dateTo);
+  }
+
+  const allowedSortFields = ['name', 'email', 'role', 'status', 'createdAt', 'lastLoginAt'];
+  const activeSortBy = allowedSortFields.includes(sortBy) ? sortBy : 'createdAt';
+  const activeSortOrder = sortOrder === 'asc' ? 'asc' : 'desc';
+  const orderBy = { [activeSortBy]: activeSortOrder };
 
   const offset = (parseInt(page, 10) - 1) * parseInt(limit, 10);
 
@@ -411,6 +503,8 @@ async function listAllUsers(adminUser, { page = 1, limit = 20, role, status, sea
         status: true,
         emailVerified: true,
         mustChangePassword: true,
+        adminNote: true,
+        maxActiveSessions: true,
         lastLoginAt: true,
         createdAt: true,
         shopUsers: {
@@ -419,7 +513,7 @@ async function listAllUsers(adminUser, { page = 1, limit = 20, role, status, sea
           },
         },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy,
       take: parseInt(limit, 10),
       skip: offset,
     }),
@@ -1259,6 +1353,326 @@ async function getSystemHealth(adminUser) {
   };
 }
 
+/**
+ * Bulk action on users (Suspend, Activate, Revoke Sessions)
+ * Writes an individual AuditLog per affected user with admin.id as actor.
+ */
+async function bulkActionUsers(adminUser, { userIds, action }) {
+  const admin = await assertSuperAdmin(adminUser);
+  if (!Array.isArray(userIds) || userIds.length === 0) {
+    const err = new Error('userIds must be a non-empty array of user IDs.');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const allowedActions = ['SUSPEND', 'ACTIVATE', 'REVOKE_SESSIONS'];
+  if (!allowedActions.includes(action)) {
+    const err = new Error(`Invalid action. Must be one of: ${allowedActions.join(', ')}`);
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const results = [];
+  for (const id of userIds) {
+    const targetId = parseInt(id, 10);
+    if (isNaN(targetId)) continue;
+
+    // Prevent Super Admin from suspending or revoking their own account via bulk action
+    if (targetId === admin.id && action !== 'REVOKE_SESSIONS') {
+      continue;
+    }
+
+    try {
+      if (action === 'SUSPEND') {
+        await prisma.user.update({
+          where: { id: targetId },
+          data: { status: 'SUSPENDED' },
+        });
+        await prisma.refreshToken.updateMany({
+          where: { userId: targetId, revoked: false },
+          data: { revoked: true },
+        });
+        await prisma.auditLog.create({
+          data: {
+            userId: admin.id,
+            action: 'BULK_ACTION_SUSPEND',
+            resource: 'User',
+            resourceId: String(targetId),
+            newData: { reason: 'Bulk suspended by Super Admin' },
+          },
+        });
+      } else if (action === 'ACTIVATE') {
+        await prisma.user.update({
+          where: { id: targetId },
+          data: { status: 'ACTIVE' },
+        });
+        await prisma.auditLog.create({
+          data: {
+            userId: admin.id,
+            action: 'BULK_ACTION_ACTIVATE',
+            resource: 'User',
+            resourceId: String(targetId),
+            newData: { reason: 'Bulk reactivated by Super Admin' },
+          },
+        });
+      } else if (action === 'REVOKE_SESSIONS') {
+        await prisma.refreshToken.updateMany({
+          where: { userId: targetId, revoked: false },
+          data: { revoked: true },
+        });
+        await prisma.auditLog.create({
+          data: {
+            userId: admin.id,
+            action: 'BULK_ACTION_REVOKE_SESSIONS',
+            resource: 'User',
+            resourceId: String(targetId),
+            newData: { reason: 'Bulk forced logout by Super Admin' },
+          },
+        });
+      }
+      results.push({ id: targetId, success: true });
+    } catch (e) {
+      logger.error(`[BulkAction] Error processing user #${targetId}:`, e.message);
+      results.push({ id: targetId, success: false, error: e.message });
+    }
+  }
+
+  return { action, processedCount: results.filter((r) => r.success).length, total: userIds.length, results };
+}
+
+/**
+ * Update internal admin-only note on a user
+ */
+async function updateAdminNote(adminUser, targetUserId, note) {
+  const admin = await assertSuperAdmin(adminUser);
+  const targetId = parseInt(targetUserId, 10);
+
+  const existing = await prisma.user.findUnique({
+    where: { id: targetId },
+    select: { id: true, adminNote: true, email: true },
+  });
+  if (!existing) {
+    const err = new Error('User not found.');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const updated = await prisma.user.update({
+    where: { id: targetId },
+    data: { adminNote: note || null },
+    select: { id: true, email: true, adminNote: true },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: admin.id,
+      action: 'USER_NOTE_UPDATED',
+      resource: 'User',
+      resourceId: String(targetId),
+      oldData: { adminNote: existing.adminNote },
+      newData: { adminNote: updated.adminNote },
+    },
+  });
+
+  return updated;
+}
+
+/**
+ * Update concurrent active session limit on a user
+ */
+async function updateSessionLimit(adminUser, targetUserId, maxActiveSessions) {
+  const admin = await assertSuperAdmin(adminUser);
+  const targetId = parseInt(targetUserId, 10);
+
+  const limitVal = maxActiveSessions !== null && maxActiveSessions !== undefined && maxActiveSessions !== ''
+    ? parseInt(maxActiveSessions, 10)
+    : null;
+
+  if (limitVal !== null && (isNaN(limitVal) || limitVal < 1)) {
+    const err = new Error('maxActiveSessions must be a positive integer or null (to use system default 3).');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  const existing = await prisma.user.findUnique({
+    where: { id: targetId },
+    select: { id: true, maxActiveSessions: true, email: true },
+  });
+  if (!existing) {
+    const err = new Error('User not found.');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  const updated = await prisma.user.update({
+    where: { id: targetId },
+    data: { maxActiveSessions: limitVal },
+    select: { id: true, email: true, maxActiveSessions: true },
+  });
+
+  await prisma.auditLog.create({
+    data: {
+      userId: admin.id,
+      action: 'USER_SESSION_LIMIT_UPDATED',
+      resource: 'User',
+      resourceId: String(targetId),
+      oldData: { maxActiveSessions: existing.maxActiveSessions },
+      newData: { maxActiveSessions: updated.maxActiveSessions },
+    },
+  });
+
+  return updated;
+}
+
+/**
+ * Super Admin Impersonates Shop Owner / User (Support "Login As")
+ * Issues 15-minute token, records IMPERSONATION_START in AuditLog
+ */
+async function impersonateUser(adminUser, targetUserId) {
+  const admin = await assertSuperAdmin(adminUser);
+  const targetId = parseInt(targetUserId, 10);
+
+  const target = await prisma.user.findUnique({
+    where: { id: targetId },
+    select: {
+      id: true,
+      publicId: true,
+      name: true,
+      email: true,
+      role: true,
+      status: true,
+      shopUsers: {
+        include: {
+          shop: { select: { id: true, name: true, shopCode: true } },
+        },
+      },
+    },
+  });
+
+  if (!target) {
+    const err = new Error('Target user account not found.');
+    err.statusCode = 404;
+    throw err;
+  }
+
+  if (target.status !== 'ACTIVE') {
+    const err = new Error(`Cannot impersonate an account with status '${target.status}'. Please activate the account first.`);
+    err.statusCode = 400;
+    throw err;
+  }
+
+  // Issue 15-minute impersonation access token
+  const impersonationToken = jwt.sign(
+    {
+      sub: target.id,
+      publicId: target.publicId,
+      email: target.email,
+      role: target.role,
+      isImpersonated: true,
+      impersonatedBy: admin.id,
+      adminEmail: admin.email,
+    },
+    process.env.JWT_SECRET || 'smartprint_jwt_fallback_secret_production_guard_9281749102',
+    { expiresIn: '15m' }
+  );
+
+  // Write immediate AuditLog
+  await prisma.auditLog.create({
+    data: {
+      userId: admin.id,
+      action: 'IMPERSONATION_START',
+      resource: 'User',
+      resourceId: String(target.id),
+      newData: {
+        targetEmail: target.email,
+        targetRole: target.role,
+        targetName: target.name,
+        expiresIn: '15m',
+      },
+    },
+  });
+
+  logger.info(`[Impersonation] Super Admin #${admin.id} (${admin.email}) started impersonating user #${target.id} (${target.email})`);
+
+  return {
+    accessToken: impersonationToken,
+    user: target,
+    impersonatedBy: {
+      id: admin.id,
+      email: admin.email,
+      name: admin.name,
+    },
+    expiresInMinutes: 15,
+  };
+}
+
+/**
+ * Broadcast platform message to shop owners
+ */
+async function broadcastMessage(adminUser, { subject, message, targetUserIds }) {
+  const admin = await assertSuperAdmin(adminUser);
+
+  if (!subject || !message) {
+    const err = new Error('Subject and message are required for broadcast.');
+    err.statusCode = 400;
+    throw err;
+  }
+
+  let recipients;
+  if (Array.isArray(targetUserIds) && targetUserIds.length > 0) {
+    recipients = await prisma.user.findMany({
+      where: { id: { in: targetUserIds.map((id) => parseInt(id, 10)) }, status: 'ACTIVE' },
+      select: { id: true, email: true, name: true },
+    });
+  } else {
+    recipients = await prisma.user.findMany({
+      where: { role: 'OWNER', status: 'ACTIVE' },
+      select: { id: true, email: true, name: true },
+    });
+  }
+
+  // Send via email provider
+  const emailProvider = emailService.getEmailProvider();
+  let deliveredCount = 0;
+  for (const r of recipients) {
+    try {
+      if (emailProvider && typeof emailProvider.sendEmail === 'function') {
+        await emailProvider.sendEmail({
+          to: r.email,
+          subject: `[SmartPrint Platform] ${subject}`,
+          text: `Dear ${r.name || 'Shop Owner'},\n\n${message}\n\nSmartPrint Administration`,
+        });
+        deliveredCount++;
+      }
+    } catch (err) {
+      logger.warn(`[Broadcast] Failed to send email to ${r.email}:`, err.message);
+    }
+  }
+
+  // Log single AuditLog entry
+  await prisma.auditLog.create({
+    data: {
+      userId: admin.id,
+      action: 'PLATFORM_BROADCAST',
+      resource: 'Platform',
+      resourceId: 'all',
+      newData: {
+        subject: subject.slice(0, 100),
+        recipientCount: recipients.length,
+        deliveredCount,
+        sampleRecipients: recipients.slice(0, 3).map((r) => r.email),
+      },
+    },
+  });
+
+  return {
+    success: true,
+    subject,
+    recipientCount: recipients.length,
+    deliveredCount,
+  };
+}
+
 module.exports = {
   assertSuperAdmin,
   adminLogin,
@@ -1272,6 +1686,11 @@ module.exports = {
   updateShopStatus,
   listAllUsers,
   updateUser,
+  bulkActionUsers,
+  updateAdminNote,
+  updateSessionLimit,
+  impersonateUser,
+  broadcastMessage,
   revokeSession,
   revokeAllUserSessions,
   getUserSessions,

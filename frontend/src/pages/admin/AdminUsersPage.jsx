@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   Users,
   Search,
-  Shield,
   UserCheck,
   UserX,
   RefreshCw,
@@ -12,24 +12,59 @@ import {
   Laptop,
   Copy,
   Check,
-  AlertTriangle,
-  X,
-  Lock,
+  Download,
+  FileEdit,
+  Sliders,
+  LogIn,
+  ArrowUpDown,
   Trash2,
   UserPlus,
+  ShieldAlert,
 } from 'lucide-react'
 import api from '../../lib/api'
+import {
+  Card,
+  CardBody,
+  Badge,
+  Button,
+  Input,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  TableSkeleton,
+  EmptyState,
+  Modal,
+} from '../../components/ui'
+import { parseUserAgent } from '../../lib/deviceParser'
+import { exportToCsv } from '../../lib/csvExport'
+import { useAuth } from '../../hooks/useAuth'
 import toast from 'react-hot-toast'
 
 export default function AdminUsersPage() {
+  const { user: currentAdmin, updateUser } = useAuth()
+  const navigate = useNavigate()
+
   const [users, setUsers] = useState([])
   const [shops, setShops] = useState([])
   const [loading, setLoading] = useState(true)
+
+  // Filters & Search
   const [search, setSearch] = useState('')
   const [roleFilter, setRoleFilter] = useState('ALL')
-  const [actionLoading, setActionLoading] = useState(false)
+  const [statusFilter, setStatusFilter] = useState('ALL')
+  const [sortBy, setSortBy] = useState('createdAt')
+  const [sortOrder, setSortOrder] = useState('desc')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
 
-  // Add User Modal State
+  // Selection & Bulk Actions
+  const [selectedUserIds, setSelectedUserIds] = useState([])
+  const [bulkLoading, setBulkLoading] = useState(false)
+
+  // Modals
   const [showAddUserModal, setShowAddUserModal] = useState(false)
   const [addUserForm, setAddUserForm] = useState({
     name: '',
@@ -40,9 +75,8 @@ export default function AdminUsersPage() {
     shopId: '',
   })
 
-  // Provision Shop Owner Modal State
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [createForm, setCreateForm] = useState({
+  const [showCreateShopOwnerModal, setShowCreateShopOwnerModal] = useState(false)
+  const [createOwnerForm, setCreateOwnerForm] = useState({
     ownerName: '',
     ownerEmail: '',
     shopName: '',
@@ -52,18 +86,29 @@ export default function AdminUsersPage() {
   const [createdCredentials, setCreatedCredentials] = useState(null)
   const [copied, setCopied] = useState(false)
 
-  // Active Sessions Modal State
+  // Active Sessions Modal
   const [selectedUserForSessions, setSelectedUserForSessions] = useState(null)
   const [sessions, setSessions] = useState([])
   const [sessionsLoading, setSessionsLoading] = useState(false)
 
-  // Login History Modal State
+  // Login History Modal
   const [selectedUserForHistory, setSelectedUserForHistory] = useState(null)
   const [historyLogs, setHistoryLogs] = useState([])
   const [historyLoading, setHistoryLoading] = useState(false)
 
-  // Reset Password Result Modal State
+  // Admin Note Modal
+  const [noteUser, setNoteUser] = useState(null)
+  const [noteContent, setNoteContent] = useState('')
+  const [noteLoading, setNoteLoading] = useState(false)
+
+  // Session Limit Modal
+  const [limitUser, setLimitUser] = useState(null)
+  const [sessionLimitVal, setSessionLimitVal] = useState('')
+  const [limitLoading, setLimitLoading] = useState(false)
+
+  // Password Reset Result Modal
   const [resetResult, setResetResult] = useState(null)
+  const [actionLoading, setActionLoading] = useState(false)
 
   const loadUsers = async () => {
     try {
@@ -73,12 +118,18 @@ export default function AdminUsersPage() {
           params: {
             search: search || undefined,
             role: roleFilter !== 'ALL' ? roleFilter : undefined,
+            status: statusFilter !== 'ALL' ? statusFilter : undefined,
+            sortBy,
+            sortOrder,
+            dateFrom: dateFrom || undefined,
+            dateTo: dateTo || undefined,
           },
         }),
         api.get('/admin/shops').catch(() => ({ data: { data: { shops: [] } } })),
       ])
       setUsers(usersRes.data.data.users || [])
       setShops(shopsRes.data.data?.shops || [])
+      setSelectedUserIds([])
     } catch (err) {
       console.error('Failed to load users:', err)
       toast.error('Failed to load user accounts')
@@ -89,9 +140,68 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     loadUsers()
-  }, [roleFilter])
+  }, [roleFilter, statusFilter, sortBy, sortOrder])
 
-  // Direct Create User (Any Role)
+  // Sorting helper
+  const handleSort = (field) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortBy(field)
+      setSortOrder('desc')
+    }
+  }
+
+  // Selection helpers
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedUserIds(users.map((u) => u.id))
+    } else {
+      setSelectedUserIds([])
+    }
+  }
+
+  const toggleSelectUser = (id) => {
+    setSelectedUserIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    )
+  }
+
+  // Bulk Actions
+  const handleBulkAction = async (action) => {
+    if (selectedUserIds.length === 0) return
+
+    const actionLabels = {
+      SUSPEND: 'suspend',
+      ACTIVATE: 'reactivate',
+      REVOKE_SESSIONS: 'force logout (terminate all active sessions for)',
+    }
+
+    if (
+      !window.confirm(
+        `Are you sure you want to ${actionLabels[action]} ${selectedUserIds.length} selected user(s)?`
+      )
+    )
+      return
+
+    try {
+      setBulkLoading(true)
+      const res = await api.post('/admin/users/bulk-action', {
+        userIds: selectedUserIds,
+        action,
+      })
+      toast.success(
+        `Bulk ${actionLabels[action]} completed for ${res.data.data.processedCount} user(s)!`
+      )
+      await loadUsers()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Bulk action failed')
+    } finally {
+      setBulkLoading(false)
+    }
+  }
+
+  // Direct Create User
   const handleAddUserSubmit = async (e) => {
     e.preventDefault()
     if (!addUserForm.name || !addUserForm.email) {
@@ -119,42 +229,135 @@ export default function AdminUsersPage() {
     }
   }
 
-  // Provision Shop Owner + Shop
-  const handleCreateSubmit = async (e) => {
+  // Provision Shop Owner
+  const handleCreateOwnerSubmit = async (e) => {
     e.preventDefault()
-    if (!createForm.ownerName || !createForm.ownerEmail || !createForm.shopName) {
-      toast.error('Owner Name, Email, and Shop Name are required')
+    if (!createOwnerForm.ownerName || !createOwnerForm.ownerEmail || !createOwnerForm.shopName) {
+      toast.error('Owner name, email, and shop name are required')
       return
     }
 
     try {
       setActionLoading(true)
-      const res = await api.post('/admin/shop-owners', createForm)
+      const res = await api.post('/admin/shop-owners', createOwnerForm)
+      toast.success(`Shop Owner & Shop created successfully!`)
       setCreatedCredentials(res.data.data)
-      setShowCreateModal(false)
-      setCreateForm({ ownerName: '', ownerEmail: '', shopName: '', shopPhone: '', shopAddress: '' })
+      setShowCreateShopOwnerModal(false)
+      setCreateOwnerForm({ ownerName: '', ownerEmail: '', shopName: '', shopPhone: '', shopAddress: '' })
       await loadUsers()
-      toast.success('Shop owner and shop provisioned!')
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to create shop owner')
+      toast.error(err.response?.data?.message || 'Failed to provision shop owner')
     } finally {
       setActionLoading(false)
     }
   }
 
-  // Permanent Delete User
-  const handleDeleteUser = async (user) => {
+  // Impersonate / "Login As"
+  const handleImpersonate = async (targetUser) => {
     if (
       !window.confirm(
-        `PERMANENT DELETION WARNING:\n\nAre you sure you want to permanently delete user "${user.email}" (${user.name})?\n\nThis will remove their login, all active sessions, and shop memberships. This action is irreversible.`
+        `SUPPORT IMPERSONATION WARNING:\n\nYou are about to log in as ${targetUser.name} (${targetUser.email}).\n\nThis will issue a temporary 15-minute access session and record an IMPERSONATION_START security audit log.\n\nProceed?`
       )
     )
       return
 
     try {
       setActionLoading(true)
+      const res = await api.post(`/admin/users/${targetUser.id}/impersonate`)
+      const { accessToken, user } = res.data.data
+
+      // Save original admin tokens
+      localStorage.setItem('originalAdminAccessToken', localStorage.getItem('accessToken'))
+      localStorage.setItem('originalAdminRefreshToken', localStorage.getItem('refreshToken'))
+      localStorage.setItem('originalAdminUser', JSON.stringify(currentAdmin))
+      localStorage.setItem('impersonationActive', 'true')
+      localStorage.setItem('impersonatedUser', JSON.stringify(user))
+
+      // Switch to impersonated user token
+      localStorage.setItem('accessToken', accessToken)
+      updateUser(user)
+
+      toast.success(`Now viewing platform as ${user.name || user.email}`)
+      navigate('/dashboard')
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to initiate impersonation')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  // Admin Note Save
+  const handleSaveAdminNote = async () => {
+    if (!noteUser) return
+    try {
+      setNoteLoading(true)
+      await api.patch(`/admin/users/${noteUser.id}/notes`, { note: noteContent })
+      toast.success(`Internal note updated for ${noteUser.email}`)
+      setNoteUser(null)
+      await loadUsers()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update note')
+    } finally {
+      setNoteLoading(false)
+    }
+  }
+
+  // Session Limit Save
+  const handleSaveSessionLimit = async () => {
+    if (!limitUser) return
+    try {
+      setLimitLoading(true)
+      await api.patch(`/admin/users/${limitUser.id}/session-limit`, {
+        maxActiveSessions: sessionLimitVal ? parseInt(sessionLimitVal, 10) : null,
+      })
+      toast.success(`Session limit updated for ${limitUser.email}`)
+      setLimitUser(null)
+      await loadUsers()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update session limit')
+    } finally {
+      setLimitLoading(false)
+    }
+  }
+
+  // Password Reset
+  const handleResetPassword = async (user) => {
+    if (!window.confirm(`Issue administrative password reset for ${user.email}? This will revoke all active sessions.`)) return
+    try {
+      setActionLoading(true)
+      const res = await api.post(`/admin/users/${user.id}/reset-password`)
+      setResetResult(res.data.data)
+      toast.success(`Temporary password generated for ${user.email}`)
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to reset password')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  // Status Change
+  const handleUpdateStatus = async (user, newStatus) => {
+    const actionText = newStatus === 'SUSPENDED' ? 'suspend' : 'reactivate'
+    if (!window.confirm(`Are you sure you want to ${actionText} ${user.email}?`)) return
+    try {
+      setActionLoading(true)
+      await api.patch(`/admin/users/${user.id}`, { status: newStatus })
+      toast.success(`User ${user.email} status updated to ${newStatus}`)
+      await loadUsers()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update user status')
+    } finally {
+      setActionLoading(false)
+    }
+  }
+
+  // Delete User
+  const handleDeleteUser = async (user) => {
+    if (!window.confirm(`PERMANENT DELETION:\nAre you sure you want to delete ${user.email}? This cannot be undone.`)) return
+    try {
+      setActionLoading(true)
       await api.delete(`/admin/users/${user.id}`)
-      toast.success(`User ${user.email} deleted permanently`)
+      toast.success(`User ${user.email} deleted`)
       await loadUsers()
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to delete user')
@@ -163,68 +366,7 @@ export default function AdminUsersPage() {
     }
   }
 
-  // Update Role
-  const handleUpdateRole = async (userId, role) => {
-    try {
-      setActionLoading(true)
-      await api.patch(`/admin/users/${userId}`, { role })
-      toast.success(`Role updated to ${role}`)
-      await loadUsers()
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to update role')
-    } finally {
-      setActionLoading(false)
-    }
-  }
-
-  // Update Status (ACTIVE, SUSPENDED, INACTIVE)
-  const handleUpdateStatus = async (user, newStatus) => {
-    const confirmMsg =
-      newStatus === 'SUSPENDED'
-        ? `Are you sure you want to SUSPEND ${user.email}? This terminates all active sessions immediately.`
-        : newStatus === 'INACTIVE'
-        ? `Deactivate ${user.email}? This terminates all active sessions.`
-        : `Reactivate account for ${user.email}?`
-
-    if (!window.confirm(confirmMsg)) return
-
-    try {
-      setActionLoading(true)
-      await api.patch(`/admin/users/${user.id}`, { status: newStatus })
-      toast.success(`User status changed to ${newStatus}`)
-      await loadUsers()
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to update status')
-    } finally {
-      setActionLoading(false)
-    }
-  }
-
-  // Reset Password
-  const handleResetPassword = async (user) => {
-    if (
-      !window.confirm(
-        `Reset password for ${user.email}?\n\nA new temporary password will be generated, all active sessions will be terminated, and credentials will be emailed to the owner.`
-      )
-    )
-      return
-
-    try {
-      setActionLoading(true)
-      const res = await api.post(`/admin/users/${user.id}/reset-password`)
-      setResetResult({
-        email: user.email,
-        temporaryPassword: res.data.data?.temporaryPassword,
-      })
-      toast.success('Password reset successfully')
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to reset password')
-    } finally {
-      setActionLoading(false)
-    }
-  }
-
-  // Load Sessions
+  // Sessions Modal
   const openSessionsModal = async (user) => {
     setSelectedUserForSessions(user)
     setSessionsLoading(true)
@@ -238,7 +380,6 @@ export default function AdminUsersPage() {
     }
   }
 
-  // Revoke Single Session
   const handleRevokeSession = async (sessionId) => {
     try {
       await api.post(`/admin/sessions/${sessionId}/revoke`)
@@ -249,19 +390,17 @@ export default function AdminUsersPage() {
     }
   }
 
-  // Revoke All Sessions
   const handleRevokeAllSessions = async (userId) => {
-    if (!window.confirm('Force logout this user from ALL active devices?')) return
     try {
       await api.post(`/admin/users/${userId}/revoke-all-sessions`)
-      toast.success('All sessions revoked')
+      toast.success('All active sessions terminated')
       setSessions([])
     } catch (err) {
-      toast.error('Failed to revoke all sessions')
+      toast.error('Failed to revoke sessions')
     }
   }
 
-  // Load Login History
+  // History Modal
   const openHistoryModal = async (user) => {
     setSelectedUserForHistory(user)
     setHistoryLoading(true)
@@ -278,179 +417,462 @@ export default function AdminUsersPage() {
   const copyToClipboard = (text) => {
     navigator.clipboard.writeText(text)
     setCopied(true)
-    toast.success('Copied to clipboard!')
+    toast.success('Copied to clipboard')
     setTimeout(() => setCopied(false), 2000)
   }
 
+  // Export CSV
+  const handleExportCsv = () => {
+    const columns = [
+      { label: 'User ID', key: 'id' },
+      { label: 'Name', key: 'name' },
+      { label: 'Email', key: 'email' },
+      { label: 'Role', key: 'role' },
+      { label: 'Status', key: 'status' },
+      { label: 'Shop Name', accessor: (u) => u.shopUsers?.[0]?.shop?.name || '' },
+      { label: 'Shop Code', accessor: (u) => u.shopUsers?.[0]?.shop?.shopCode || '' },
+      { label: 'Max Active Sessions', accessor: (u) => u.maxActiveSessions ?? 'Default (3)' },
+      { label: 'Admin Note', key: 'adminNote' },
+      { label: 'Last Login', accessor: (u) => (u.lastLoginAt ? new Date(u.lastLoginAt).toISOString() : '') },
+      { label: 'Created At', accessor: (u) => new Date(u.createdAt).toISOString() },
+    ]
+
+    const success = exportToCsv(`smartprint_users_${new Date().toISOString().slice(0, 10)}`, users, columns)
+    if (success) {
+      toast.success(`Exported ${users.length} users to CSV`)
+    } else {
+      toast.error('No users to export')
+    }
+  }
+
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-xl font-bold text-[var(--text)] tracking-tight flex items-center gap-2">
-            <Users className="text-[#0E7490]" size={20} strokeWidth={2} />
-            User Accounts & Security Controls
+          <h1 className="font-display text-2xl font-bold text-[var(--text)] tracking-tight flex items-center gap-2">
+            <Users className="text-[#007AFF] dark:text-[#0A84FF]" size={22} strokeWidth={2} />
+            <span>Platform User Accounts & Access Controls</span>
           </h1>
-          <p className="text-xs text-[var(--text-muted)] mt-0.5">
-            Create any role, provision shops, delete accounts permanently, manage active sessions, and reset passwords.
+          <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5">
+            Directory of shop owners, managers, staff, and super administrators with session monitoring and bulk controls.
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Add User Button */}
-          <button
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleExportCsv}
+            disabled={users.length === 0}
+            className="text-xs"
+          >
+            <Download size={13} strokeWidth={1.75} />
+            <span>Export CSV</span>
+          </Button>
+
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => setShowAddUserModal(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#0E7490] hover:bg-[#155E75] text-white text-xs font-semibold rounded-lg shadow-sm transition-colors duration-150"
+            className="text-xs"
           >
             <UserPlus size={14} strokeWidth={2} />
-            Add User
-          </button>
+            <span>Add User</span>
+          </Button>
 
-          {/* Provision Shop Owner */}
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] hover:bg-[var(--surface-hover)] text-[var(--text)] text-xs font-semibold rounded-lg shadow-xs transition-colors duration-150"
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setShowCreateShopOwnerModal(true)}
+            className="text-xs"
           >
-            <Plus size={14} strokeWidth={2} className="text-[#0E7490]" />
-            Provision Shop Owner
-          </button>
+            <Plus size={14} strokeWidth={2} />
+            <span>Provision Shop Owner</span>
+          </Button>
 
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={loadUsers}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-[var(--surface)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)] text-xs font-medium rounded-lg shadow-xs transition-colors duration-150"
+            loading={loading}
+            className="text-xs"
           >
             <RefreshCw size={13} strokeWidth={1.75} className={loading ? 'animate-spin' : ''} />
-          </button>
+            <span>Refresh</span>
+          </Button>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-3 flex flex-col sm:flex-row items-center justify-between gap-3">
-        <form onSubmit={(e) => { e.preventDefault(); loadUsers(); }} className="relative w-full sm:w-80">
-          <Search className="absolute left-3 top-2.5 text-[var(--text-muted)]" size={14} strokeWidth={1.75} />
-          <input
-            type="text"
-            placeholder="Search by name, email..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="input pl-9 h-9 text-xs"
-          />
-        </form>
+      <Card className="p-3.5 space-y-3">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-3">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault()
+              loadUsers()
+            }}
+            className="relative w-full md:w-80"
+          >
+            <Search className="absolute left-3 top-2.5 text-[var(--text-muted)]" size={14} strokeWidth={1.75} />
+            <input
+              type="text"
+              placeholder="Search by name, email, shop..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="input pl-9 h-9 text-xs w-full"
+            />
+          </form>
 
-        <div className="flex items-center gap-1 w-full sm:w-auto overflow-x-auto">
-          {['ALL', 'OWNER', 'MANAGER', 'STAFF', 'SUPER_ADMIN'].map((r) => (
-            <button
-              key={r}
-              onClick={() => setRoleFilter(r)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors duration-150 ${
-                roleFilter === r
-                  ? 'bg-[#0E7490] text-white shadow-xs'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)]'
-              }`}
-            >
-              {r}
-            </button>
-          ))}
+          {/* Role Filters */}
+          <div className="flex items-center gap-1.5 w-full md:w-auto overflow-x-auto scrollbar-none pb-1 md:pb-0">
+            {['ALL', 'OWNER', 'MANAGER', 'STAFF', 'SUPER_ADMIN'].map((r) => (
+              <button
+                key={r}
+                onClick={() => setRoleFilter(r)}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors duration-150 cursor-pointer ${
+                  roleFilter === r
+                    ? 'bg-[#007AFF] text-white shadow-xs font-semibold'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
+                }`}
+              >
+                {r}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+
+        {/* Secondary Filter Row: Status, Date Range */}
+        <div className="flex flex-wrap items-center gap-3 pt-1 border-t border-[var(--border)] text-xs text-[var(--text-muted)]">
+          <div className="flex items-center gap-1.5">
+            <span className="font-medium">Status:</span>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="input h-8 text-xs py-1 px-2 w-auto font-medium"
+            >
+              <option value="ALL">All Statuses</option>
+              <option value="ACTIVE">ACTIVE</option>
+              <option value="SUSPENDED">SUSPENDED</option>
+              <option value="INACTIVE">INACTIVE</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="font-medium">Created:</span>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="input h-8 text-xs py-1 px-2 w-auto"
+            />
+            <span>to</span>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="input h-8 text-xs py-1 px-2 w-auto"
+            />
+            {(dateFrom || dateTo) && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setDateFrom('')
+                  setDateTo('')
+                  loadUsers()
+                }}
+                className="text-xs h-7 px-2"
+              >
+                Clear Dates
+              </Button>
+            )}
+          </div>
+        </div>
+      </Card>
+
+      {/* Bulk Action Bar */}
+      {selectedUserIds.length > 0 && (
+        <div className="bg-[#007AFF]/10 dark:bg-[#0A84FF]/15 border border-[#007AFF]/30 rounded-xl p-3 flex flex-wrap items-center justify-between gap-3 animate-scaleIn">
+          <div className="flex items-center gap-2 text-xs font-semibold text-[#007AFF] dark:text-[#0A84FF]">
+            <Check size={16} strokeWidth={2.5} />
+            <span>{selectedUserIds.length} user account{selectedUserIds.length > 1 ? 's' : ''} selected</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={bulkLoading}
+              onClick={() => handleBulkAction('ACTIVATE')}
+              className="text-xs h-7 px-2.5 text-emerald-600"
+            >
+              <UserCheck size={12} strokeWidth={2} />
+              <span>Bulk Reactivate</span>
+            </Button>
+
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={bulkLoading}
+              onClick={() => handleBulkAction('SUSPEND')}
+              className="text-xs h-7 px-2.5 text-red-600"
+            >
+              <UserX size={12} strokeWidth={2} />
+              <span>Bulk Suspend</span>
+            </Button>
+
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={bulkLoading}
+              onClick={() => handleBulkAction('REVOKE_SESSIONS')}
+              className="text-xs h-7 px-2.5 text-amber-600"
+            >
+              <Laptop size={12} strokeWidth={2} />
+              <span>Bulk Force Logout</span>
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedUserIds([])}
+              className="text-xs h-7 px-2 text-[var(--text-muted)]"
+            >
+              Deselect All
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Users Table */}
-      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl overflow-hidden shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-[var(--surface-hover)] text-[var(--text-muted)] border-b border-[var(--border)] uppercase tracking-wider text-[11px] font-semibold sticky top-0">
+      <Card className="overflow-hidden">
+        {loading ? (
+          <TableSkeleton rows={7} cols={8} />
+        ) : users.length === 0 ? (
+          <EmptyState
+            icon={Users}
+            title="No users found"
+            description="No user accounts match the current filters or search criteria."
+          />
+        ) : (
+          <Table>
+            <TableHeader>
               <tr>
-                <th className="py-2.5 px-4">User</th>
-                <th className="py-2.5 px-4">Email</th>
-                <th className="py-2.5 px-4">Role</th>
-                <th className="py-2.5 px-4">Shop Name</th>
-                <th className="py-2.5 px-4">Status</th>
-                <th className="py-2.5 px-4">Last Login</th>
-                <th className="py-2.5 px-4 text-right">Master Controls</th>
+                <TableHead className="w-10">
+                  <input
+                    type="checkbox"
+                    checked={users.length > 0 && selectedUserIds.length === users.length}
+                    onChange={handleSelectAll}
+                    className="rounded border-[var(--border)] text-[#007AFF] cursor-pointer"
+                    aria-label="Select all users"
+                  />
+                </TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort('name')}
+                    className="inline-flex items-center gap-1 font-semibold uppercase tracking-wider text-[11px] text-[var(--text-muted)] hover:text-[var(--text)]"
+                  >
+                    <span>User</span>
+                    <ArrowUpDown size={11} />
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort('email')}
+                    className="inline-flex items-center gap-1 font-semibold uppercase tracking-wider text-[11px] text-[var(--text-muted)] hover:text-[var(--text)]"
+                  >
+                    <span>Email & ID</span>
+                    <ArrowUpDown size={11} />
+                  </button>
+                </TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead>Shop Name</TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort('status')}
+                    className="inline-flex items-center gap-1 font-semibold uppercase tracking-wider text-[11px] text-[var(--text-muted)] hover:text-[var(--text)]"
+                  >
+                    <span>Status</span>
+                    <ArrowUpDown size={11} />
+                  </button>
+                </TableHead>
+                <TableHead>
+                  <button
+                    onClick={() => handleSort('lastLoginAt')}
+                    className="inline-flex items-center gap-1 font-semibold uppercase tracking-wider text-[11px] text-[var(--text-muted)] hover:text-[var(--text)]"
+                  >
+                    <span>Last Login</span>
+                    <ArrowUpDown size={11} />
+                  </button>
+                </TableHead>
+                <TableHead className="text-right">Master Controls</TableHead>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--border)] text-[var(--text)]">
-              {users.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="py-10 text-center text-[var(--text-muted)]">
-                    No users match criteria.
-                  </td>
-                </tr>
-              ) : (
-                users.map((u) => (
-                  <tr key={u.id} className="hover:bg-[var(--surface-hover)] transition-colors duration-150 h-12">
-                    <td className="py-2.5 px-4 font-semibold text-xs text-[var(--text)]">
-                      {u.name || 'Unnamed'}
+            </TableHeader>
+            <TableBody>
+              {users.map((u) => {
+                const shop = u.shopUsers?.[0]?.shop
+                const isSelected = selectedUserIds.includes(u.id)
+
+                return (
+                  <TableRow
+                    key={u.id}
+                    className={isSelected ? 'bg-[#007AFF]/5 dark:bg-[#0A84FF]/10' : ''}
+                  >
+                    {/* Checkbox */}
+                    <TableCell className="w-10">
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelectUser(u.id)}
+                        className="rounded border-[var(--border)] text-[#007AFF] cursor-pointer"
+                        aria-label={`Select user ${u.email}`}
+                      />
+                    </TableCell>
+
+                    {/* Name + Note Indicator */}
+                    <TableCell>
+                      <div>
+                        <div className="font-bold text-xs text-[var(--text)] flex items-center gap-1.5">
+                          <span>{u.name}</span>
+                          {u.adminNote && (
+                            <span
+                              className="w-1.5 h-1.5 rounded-full bg-amber-500"
+                              title={`Admin Note: ${u.adminNote}`}
+                            />
+                          )}
+                        </div>
+                        <div className="text-[10px] text-[var(--text-muted)] font-mono">
+                          ID: #{u.id} • Max Sessions: {u.maxActiveSessions ?? '3 (Default)'}
+                        </div>
+                      </div>
+                    </TableCell>
+
+                    {/* Email */}
+                    <TableCell>
+                      <div className="font-mono text-xs text-[var(--text)] truncate max-w-[180px]">
+                        {u.email}
+                      </div>
                       {u.mustChangePassword && (
-                        <span className="block text-[10px] text-amber-500 font-normal">Must change pass</span>
+                        <span className="text-[10px] text-amber-500 font-semibold block">
+                          Must change password
+                        </span>
                       )}
-                    </td>
-                    <td className="py-2.5 px-4 text-[var(--text-muted)] font-mono text-xs">{u.email}</td>
-                    <td className="py-2.5 px-4">
-                      <select
-                        value={u.role}
-                        onChange={(e) => handleUpdateRole(u.id, e.target.value)}
-                        className="px-2 py-1 bg-[var(--surface-hover)] border border-[var(--border)] rounded-md text-xs font-medium text-[var(--text)] focus:outline-hidden"
+                    </TableCell>
+
+                    {/* Role */}
+                    <TableCell>
+                      <Badge
+                        variant={
+                          u.role === 'SUPER_ADMIN' ? 'red' : u.role === 'OWNER' ? 'blue' : 'gray'
+                        }
                       >
-                        <option value="OWNER">OWNER</option>
-                        <option value="MANAGER">MANAGER</option>
-                        <option value="STAFF">STAFF</option>
-                        <option value="SUPER_ADMIN">SUPER_ADMIN</option>
-                      </select>
-                    </td>
-                    <td className="py-2.5 px-4 text-[var(--text-muted)]">
-                      {u.shopUsers && u.shopUsers.length > 0 ? (
-                        u.shopUsers.map((su) => su.shop?.name).join(', ')
+                        {u.role}
+                      </Badge>
+                    </TableCell>
+
+                    {/* Shop */}
+                    <TableCell>
+                      {shop ? (
+                        <div>
+                          <span className="font-semibold text-xs text-[var(--text)] block truncate max-w-[140px]">
+                            {shop.name}
+                          </span>
+                          <span className="text-[10px] font-mono text-[#007AFF] dark:text-[#0A84FF] block">
+                            {shop.shopCode}
+                          </span>
+                        </div>
                       ) : (
-                        <span className="text-[var(--text-muted)] italic">None</span>
+                        <span className="text-[var(--text-muted)] text-xs">-</span>
                       )}
-                    </td>
-                    <td className="py-2.5 px-4">
-                      <span
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium border ${
+                    </TableCell>
+
+                    {/* Status */}
+                    <TableCell>
+                      <Badge
+                        variant={
                           u.status === 'ACTIVE'
-                            ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800'
+                            ? 'green'
                             : u.status === 'SUSPENDED'
-                            ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800'
-                            : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800'
-                        }`}
+                            ? 'red'
+                            : 'yellow'
+                        }
+                        dot
                       >
-                        <span
-                          className={`w-1 h-1 rounded-full ${
-                            u.status === 'ACTIVE' ? 'bg-green-500' : u.status === 'SUSPENDED' ? 'bg-red-500' : 'bg-amber-500'
-                          }`}
-                        />
                         {u.status}
-                      </span>
-                    </td>
-                    <td className="py-2.5 px-4 text-xs font-mono text-[var(--text-muted)]">
+                      </Badge>
+                    </TableCell>
+
+                    {/* Last Login */}
+                    <TableCell className="font-mono text-xs text-[var(--text-muted)] whitespace-nowrap">
                       {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString() : 'Never'}
-                    </td>
-                    <td className="py-2.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        {/* View Sessions */}
+                    </TableCell>
+
+                    {/* Master Controls */}
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        {/* Impersonate / Login As */}
+                        {u.role !== 'SUPER_ADMIN' && u.status === 'ACTIVE' && (
+                          <button
+                            onClick={() => handleImpersonate(u)}
+                            title="Login As / Impersonate for Support (15-min session)"
+                            className="p-1.5 rounded-lg border border-[#007AFF]/30 bg-[#007AFF]/10 hover:bg-[#007AFF]/20 text-[#007AFF] dark:text-[#0A84FF] transition-colors cursor-pointer"
+                          >
+                            <LogIn size={13} strokeWidth={2} />
+                          </button>
+                        )}
+
+                        {/* Admin Internal Note */}
+                        <button
+                          onClick={() => {
+                            setNoteUser(u)
+                            setNoteContent(u.adminNote || '')
+                          }}
+                          title="Internal Admin-Only Note"
+                          className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                            u.adminNote
+                              ? 'border-amber-500/30 bg-amber-500/10 text-amber-600'
+                              : 'border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)]'
+                          }`}
+                        >
+                          <FileEdit size={13} strokeWidth={1.75} />
+                        </button>
+
+                        {/* Session Limit Config */}
+                        <button
+                          onClick={() => {
+                            setLimitUser(u)
+                            setSessionLimitVal(u.maxActiveSessions !== null ? String(u.maxActiveSessions) : '')
+                          }}
+                          title="Configure Max Active Sessions"
+                          className="p-1.5 rounded-lg border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
+                        >
+                          <Sliders size={13} strokeWidth={1.75} />
+                        </button>
+
+                        {/* Sessions Modal */}
                         <button
                           onClick={() => openSessionsModal(u)}
-                          title="Active Devices & Sessions"
-                          className="p-1.5 rounded-lg border border-[var(--border)] hover:bg-[var(--surface-hover)] text-[var(--text-muted)] hover:text-[#0E7490] transition-colors"
+                          title="Inspect Active Device Sessions"
+                          className="p-1.5 rounded-lg border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
                         >
                           <Laptop size={13} strokeWidth={1.75} />
                         </button>
 
-                        {/* View Login History */}
+                        {/* Login History Modal */}
                         <button
                           onClick={() => openHistoryModal(u)}
-                          title="Login History"
-                          className="p-1.5 rounded-lg border border-[var(--border)] hover:bg-[var(--surface-hover)] text-[var(--text-muted)] hover:text-[#0E7490] transition-colors"
+                          title="View Login History & Audit Trail"
+                          className="p-1.5 rounded-lg border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
                         >
                           <History size={13} strokeWidth={1.75} />
                         </button>
 
-                        {/* Reset Password */}
+                        {/* Password Reset */}
                         <button
                           onClick={() => handleResetPassword(u)}
                           title="Reset Password (Generates temp password & forces change)"
-                          className="p-1.5 rounded-lg border border-[var(--border)] hover:bg-[var(--surface-hover)] text-[var(--text-muted)] hover:text-amber-500 transition-colors"
+                          className="p-1.5 rounded-lg border border-[var(--border)] text-[var(--text-muted)] hover:text-amber-500 hover:bg-[var(--surface-hover)] transition-colors cursor-pointer"
                         >
                           <KeyRound size={13} strokeWidth={1.75} />
                         </button>
@@ -459,516 +881,477 @@ export default function AdminUsersPage() {
                         {u.status === 'ACTIVE' ? (
                           <button
                             onClick={() => handleUpdateStatus(u, 'SUSPENDED')}
-                            title="Suspend Account (Terminates all sessions)"
-                            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium bg-red-500/10 text-red-600 border border-red-500/20 hover:bg-red-500/20 transition-colors"
+                            title="Suspend Account"
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium bg-red-500/10 text-red-600 border border-red-500/20 hover:bg-red-500/20 transition-colors cursor-pointer"
                           >
                             <UserX size={12} strokeWidth={1.75} />
-                            Suspend
+                            <span>Suspend</span>
                           </button>
                         ) : (
                           <button
                             onClick={() => handleUpdateStatus(u, 'ACTIVE')}
                             title="Reactivate Account"
-                            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium bg-green-500/10 text-green-600 border border-green-500/20 hover:bg-green-500/20 transition-colors"
+                            className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-medium bg-green-500/10 text-green-600 border border-green-500/20 hover:bg-green-500/20 transition-colors cursor-pointer"
                           >
                             <UserCheck size={12} strokeWidth={1.75} />
-                            Activate
+                            <span>Activate</span>
                           </button>
                         )}
 
                         {/* Delete User */}
-                        <button
-                          onClick={() => handleDeleteUser(u)}
-                          title="Permanently Delete User"
-                          className="p-1.5 rounded-lg border border-red-200 dark:border-red-900/40 text-red-600 hover:bg-red-500/15 transition-colors"
-                        >
-                          <Trash2 size={13} strokeWidth={1.75} />
-                        </button>
+                        {u.id !== currentAdmin.id && (
+                          <button
+                            onClick={() => handleDeleteUser(u)}
+                            title="Permanently Delete User"
+                            className="p-1.5 rounded-lg border border-red-200 dark:border-red-900/40 text-red-600 hover:bg-red-500/15 transition-colors cursor-pointer"
+                          >
+                            <Trash2 size={13} strokeWidth={1.75} />
+                          </button>
+                        )}
                       </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        )}
+      </Card>
 
-      {/* ── ADD USER MODAL (ANY ROLE) ── */}
-      {showAddUserModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-scaleIn">
-            <div className="p-5 border-b border-[var(--border)] flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-semibold text-[var(--text)]">Create User Account</h3>
-                <p className="text-xs text-[var(--text-muted)]">Add any user role (Owner, Manager, Staff, Super Admin).</p>
-              </div>
-              <button
-                onClick={() => setShowAddUserModal(false)}
-                className="p-1.5 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-muted)]"
-              >
-                <X size={16} />
-              </button>
-            </div>
+      {/* ── ADMIN NOTE MODAL ── */}
+      <Modal
+        isOpen={!!noteUser}
+        onClose={() => setNoteUser(null)}
+        title={`Admin Internal Note: ${noteUser?.email}`}
+        subtitle="Confidential admin remarks — NEVER visible to shop owners or customers"
+      >
+        <div className="space-y-4">
+          <div className="space-y-1">
+            <label className="label">Internal Remarks & Follow-ups</label>
+            <textarea
+              rows={4}
+              value={noteContent}
+              onChange={(e) => setNoteContent(e.target.value)}
+              placeholder="e.g. Called owner regarding overdue invoice. Verified shop phone."
+              className="input h-auto min-h-[100px] py-2 text-xs"
+            />
+          </div>
 
-            <form onSubmit={handleAddUserSubmit} className="p-5 space-y-4">
-              <div>
-                <label className="label text-xs">Full Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={addUserForm.name}
-                  onChange={(e) => setAddUserForm({ ...addUserForm, name: e.target.value })}
-                  placeholder="e.g. Anand Kumar"
-                  className="input text-xs"
-                />
-              </div>
-
-              <div>
-                <label className="label text-xs">Email Address *</label>
-                <input
-                  type="email"
-                  required
-                  value={addUserForm.email}
-                  onChange={(e) => setAddUserForm({ ...addUserForm, email: e.target.value })}
-                  placeholder="e.g. anand@smartprint.app"
-                  className="input text-xs"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="label text-xs">User Role</label>
-                  <select
-                    value={addUserForm.role}
-                    onChange={(e) => setAddUserForm({ ...addUserForm, role: e.target.value })}
-                    className="input text-xs"
-                  >
-                    <option value="OWNER">OWNER</option>
-                    <option value="MANAGER">MANAGER</option>
-                    <option value="STAFF">STAFF</option>
-                    <option value="SUPER_ADMIN">SUPER_ADMIN</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="label text-xs">Status</label>
-                  <select
-                    value={addUserForm.status}
-                    onChange={(e) => setAddUserForm({ ...addUserForm, status: e.target.value })}
-                    className="input text-xs"
-                  >
-                    <option value="ACTIVE">ACTIVE</option>
-                    <option value="INACTIVE">INACTIVE</option>
-                    <option value="SUSPENDED">SUSPENDED</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="label text-xs">Affiliate with Shop (Optional)</label>
-                <select
-                  value={addUserForm.shopId}
-                  onChange={(e) => setAddUserForm({ ...addUserForm, shopId: e.target.value })}
-                  className="input text-xs"
-                >
-                  <option value="">No Shop Affiliation (Standalone)</option>
-                  {shops.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name} ({s.shopCode})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="label text-xs">Initial Password (Leave blank to generate)</label>
-                <input
-                  type="password"
-                  value={addUserForm.password}
-                  onChange={(e) => setAddUserForm({ ...addUserForm, password: e.target.value })}
-                  placeholder="Leave empty for auto-generated temporary password"
-                  className="input text-xs"
-                />
-              </div>
-
-              <div className="flex justify-end gap-2.5 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAddUserModal(false)}
-                  className="px-4 py-2 border border-[var(--border)] rounded-lg text-xs font-medium text-[var(--text-muted)] hover:bg-[var(--surface-hover)]"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={actionLoading}
-                  className="px-4 py-2 bg-[#0E7490] hover:bg-[#155E75] text-white rounded-lg text-xs font-semibold shadow-xs"
-                >
-                  {actionLoading ? 'Creating User...' : 'Create Account'}
-                </button>
-              </div>
-            </form>
+          <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border)]">
+            <Button variant="secondary" onClick={() => setNoteUser(null)} disabled={noteLoading}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={handleSaveAdminNote} loading={noteLoading}>
+              Save Note
+            </Button>
           </div>
         </div>
-      )}
+      </Modal>
 
-      {/* ── CREATE SHOP OWNER MODAL ── */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-scaleIn">
-            <div className="p-5 border-b border-[var(--border)] flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-semibold text-[var(--text)]">Provision New Shop Owner</h3>
-                <p className="text-xs text-[var(--text-muted)]">Creates user, shop, sets up defaults, and generates credentials.</p>
-              </div>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="p-1.5 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-muted)]"
-              >
-                <X size={16} />
-              </button>
-            </div>
+      {/* ── SESSION LIMIT CONFIGURATION MODAL ── */}
+      <Modal
+        isOpen={!!limitUser}
+        onClose={() => setLimitUser(null)}
+        title={`Session Limit: ${limitUser?.email}`}
+        subtitle="Restrict concurrent active login sessions to stop credential sharing"
+      >
+        <div className="space-y-4">
+          <Input
+            label="Maximum Concurrent Active Sessions"
+            type="number"
+            min="1"
+            max="20"
+            placeholder="Leave blank for system default (3)"
+            value={sessionLimitVal}
+            onChange={(e) => setSessionLimitVal(e.target.value)}
+            hint="When this limit is exceeded upon new login, the oldest active session is automatically revoked."
+          />
 
-            <form onSubmit={handleCreateSubmit} className="p-5 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="label text-xs">Owner Full Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={createForm.ownerName}
-                    onChange={(e) => setCreateForm({ ...createForm, ownerName: e.target.value })}
-                    placeholder="e.g. Rahul Sharma"
-                    className="input text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="label text-xs">Owner Email Address *</label>
-                  <input
-                    type="email"
-                    required
-                    value={createForm.ownerEmail}
-                    onChange={(e) => setCreateForm({ ...createForm, ownerEmail: e.target.value })}
-                    placeholder="e.g. rahul@printshop.in"
-                    className="input text-xs"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="label text-xs">Shop Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={createForm.shopName}
-                  onChange={(e) => setCreateForm({ ...createForm, shopName: e.target.value })}
-                  placeholder="e.g. Apex Fast Print Hub"
-                  className="input text-xs"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="label text-xs">Shop Phone Number</label>
-                  <input
-                    type="tel"
-                    value={createForm.shopPhone}
-                    onChange={(e) => setCreateForm({ ...createForm, shopPhone: e.target.value })}
-                    placeholder="+91 98765 43210"
-                    className="input text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="label text-xs">Shop Address / City</label>
-                  <input
-                    type="text"
-                    value={createForm.shopAddress}
-                    onChange={(e) => setCreateForm({ ...createForm, shopAddress: e.target.value })}
-                    placeholder="MG Road, Bangalore"
-                    className="input text-xs"
-                  />
-                </div>
-              </div>
-
-              <div className="p-3 bg-[var(--surface-hover)] rounded-xl border border-[var(--border)] text-xs text-[var(--text-muted)] space-y-1">
-                <p className="font-semibold text-[var(--text)]">Administrative Security Notice:</p>
-                <p>&bull; A strong 12-character temporary password will be generated automatically.</p>
-                <p>&bull; Account will be created with <code className="text-[#0E7490]">mustChangePassword = true</code>.</p>
-                <p>&bull; Credentials will be displayed once here and emailed directly to the owner.</p>
-              </div>
-
-              <div className="flex justify-end gap-2.5 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 border border-[var(--border)] rounded-lg text-xs font-medium text-[var(--text-muted)] hover:bg-[var(--surface-hover)]"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={actionLoading}
-                  className="px-4 py-2 bg-[#0E7490] hover:bg-[#155E75] text-white rounded-lg text-xs font-semibold shadow-xs"
-                >
-                  {actionLoading ? 'Provisioning...' : 'Provision Account & Shop'}
-                </button>
-              </div>
-            </form>
+          <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border)]">
+            <Button variant="secondary" onClick={() => setLimitUser(null)} disabled={limitLoading}>
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={handleSaveSessionLimit} loading={limitLoading}>
+              Update Limit
+            </Button>
           </div>
         </div>
-      )}
-
-      {/* ── SHOW CREATED CREDENTIALS MODAL ── */}
-      {createdCredentials && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-[var(--surface)] border border-green-500/30 rounded-2xl w-full max-w-md shadow-2xl p-6 space-y-4 animate-scaleIn">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-green-500/15 text-green-600 flex items-center justify-center">
-                <Check size={20} strokeWidth={2.5} />
-              </div>
-              <div>
-                <h3 className="text-base font-semibold text-[var(--text)]">Account Provisioned!</h3>
-                <p className="text-xs text-[var(--text-muted)]">Copy credentials now — shown only once</p>
-              </div>
-            </div>
-
-            <div className="p-4 bg-[var(--surface-hover)] border border-[var(--border)] rounded-xl space-y-2 text-xs">
-              <div>
-                <span className="text-[var(--text-muted)]">Login ID (Email):</span>
-                <p className="font-mono font-semibold text-[var(--text)] select-all">{createdCredentials.user?.email}</p>
-              </div>
-              {createdCredentials.shop && (
-                <div>
-                  <span className="text-[var(--text-muted)]">Shop Code:</span>
-                  <p className="font-mono font-semibold text-[#0E7490] select-all">{createdCredentials.shop?.shopCode}</p>
-                </div>
-              )}
-              {createdCredentials.temporaryPassword && (
-                <div>
-                  <span className="text-[var(--text-muted)]">Temporary Password:</span>
-                  <p className="font-mono font-bold text-sm text-amber-500 bg-amber-500/10 px-2.5 py-1.5 rounded-lg border border-amber-500/20 select-all tracking-wider">
-                    {createdCredentials.temporaryPassword}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
-              Account has been provisioned on the platform. The user will be required to change their password on first login.
-            </p>
-
-            <div className="flex gap-2">
-              <button
-                onClick={() =>
-                  copyToClipboard(
-                    `SmartPrint Account Provisioned\nEmail: ${createdCredentials.user?.email}\nPassword: ${createdCredentials.temporaryPassword || '(Manual)'}\n${createdCredentials.shop?.shopCode ? `Shop Code: ${createdCredentials.shop.shopCode}` : ''}`
-                  )
-                }
-                className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-[var(--surface-hover)] border border-[var(--border)] hover:bg-[var(--border)] text-xs font-semibold rounded-lg text-[var(--text)]"
-              >
-                {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
-                {copied ? 'Copied' : 'Copy Credentials'}
-              </button>
-              <button
-                onClick={() => setCreatedCredentials(null)}
-                className="px-4 py-2 bg-[#0E7490] hover:bg-[#155E75] text-white text-xs font-semibold rounded-lg"
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── RESET PASSWORD RESULT MODAL ── */}
-      {resetResult && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-[var(--surface)] border border-amber-500/30 rounded-2xl w-full max-w-md shadow-2xl p-6 space-y-4 animate-scaleIn">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/15 text-amber-600 flex items-center justify-center">
-                <KeyRound size={20} strokeWidth={2} />
-              </div>
-              <div>
-                <h3 className="text-base font-semibold text-[var(--text)]">Password Reset Complete</h3>
-                <p className="text-xs text-[var(--text-muted)]">Active sessions terminated everywhere</p>
-              </div>
-            </div>
-
-            <div className="p-4 bg-[var(--surface-hover)] border border-[var(--border)] rounded-xl space-y-2 text-xs">
-              <div>
-                <span className="text-[var(--text-muted)]">Account:</span>
-                <p className="font-mono font-semibold text-[var(--text)] select-all">{resetResult.email}</p>
-              </div>
-              <div>
-                <span className="text-[var(--text-muted)]">New Temporary Password:</span>
-                <p className="font-mono font-bold text-sm text-amber-500 bg-amber-500/10 px-2.5 py-1.5 rounded-lg border border-amber-500/20 select-all tracking-wider">
-                  {resetResult.temporaryPassword}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <button
-                onClick={() =>
-                  copyToClipboard(
-                    `SmartPrint Password Reset\nEmail: ${resetResult.email}\nTemporary Password: ${resetResult.temporaryPassword}`
-                  )
-                }
-                className="flex-1 inline-flex items-center justify-center gap-2 px-3 py-2 bg-[var(--surface-hover)] border border-[var(--border)] hover:bg-[var(--border)] text-xs font-semibold rounded-lg text-[var(--text)]"
-              >
-                {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
-                {copied ? 'Copied' : 'Copy Password'}
-              </button>
-              <button
-                onClick={() => setResetResult(null)}
-                className="px-4 py-2 bg-[#0E7490] hover:bg-[#155E75] text-white text-xs font-semibold rounded-lg"
-              >
-                Done
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      </Modal>
 
       {/* ── ACTIVE SESSIONS MODAL ── */}
-      {selectedUserForSessions && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden animate-scaleIn">
-            <div className="p-5 border-b border-[var(--border)] flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-semibold text-[var(--text)] flex items-center gap-2">
-                  <Laptop size={16} className="text-[#0E7490]" />
-                  Active Sessions & Devices ({selectedUserForSessions.email})
-                </h3>
-                <p className="text-xs text-[var(--text-muted)]">Currently logged-in browser sessions and mobile devices.</p>
-              </div>
-              <div className="flex items-center gap-2">
-                {sessions.length > 0 && (
-                  <button
-                    onClick={() => handleRevokeAllSessions(selectedUserForSessions.id)}
-                    className="px-2.5 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-600 border border-red-500/20 text-xs font-medium rounded-lg transition-colors"
-                  >
-                    Revoke All
-                  </button>
-                )}
-                <button
-                  onClick={() => setSelectedUserForSessions(null)}
-                  className="p-1.5 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-muted)]"
-                >
-                  <X size={16} />
-                </button>
-              </div>
+      <Modal
+        isOpen={!!selectedUserForSessions}
+        onClose={() => setSelectedUserForSessions(null)}
+        title={`Active Sessions: ${selectedUserForSessions?.email}`}
+        subtitle="Inspect authenticated browser sessions and terminate active credentials"
+        maxWidth="max-w-2xl"
+      >
+        <div className="space-y-4">
+          {sessions.length > 0 && (
+            <div className="flex justify-end">
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => handleRevokeAllSessions(selectedUserForSessions.id)}
+                className="text-xs"
+              >
+                Revoke All Active Sessions
+              </Button>
             </div>
+          )}
 
-            <div className="p-5 max-h-96 overflow-y-auto">
-              {sessionsLoading ? (
-                <div className="py-8 text-center text-xs text-[var(--text-muted)]">Loading active sessions...</div>
-              ) : sessions.length === 0 ? (
-                <div className="py-8 text-center text-xs text-[var(--text-muted)]">
-                  No active sessions currently found for this user.
-                </div>
-              ) : (
-                <div className="divide-y divide-[var(--border)]">
-                  {sessions.map((sess) => (
-                    <div key={sess.id} className="py-3 flex items-start justify-between gap-4">
-                      <div className="space-y-1 text-xs">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono font-semibold text-[var(--text)]">{sess.ipAddress || 'Unknown IP'}</span>
-                          <span className="text-[10px] text-green-600 bg-green-500/10 px-1.5 py-0.5 rounded font-medium">
-                            Active
-                          </span>
-                        </div>
-                        <p className="text-[11px] text-[var(--text-muted)] font-mono max-w-md truncate">
-                          {sess.userAgent || 'Unknown Browser / OS'}
-                        </p>
-                        <div className="flex items-center gap-3 text-[10px] text-[var(--text-muted)] font-mono">
-                          <span>Created: {new Date(sess.createdAt).toLocaleString()}</span>
-                          {sess.lastUsedAt && (
-                            <span>Last active: {new Date(sess.lastUsedAt).toLocaleString()}</span>
-                          )}
-                        </div>
-                      </div>
-
-                      <button
-                        onClick={() => handleRevokeSession(sess.id)}
-                        className="px-2.5 py-1 text-xs font-medium text-red-600 hover:bg-red-500/10 rounded-lg border border-red-500/20 transition-colors"
-                      >
-                        Revoke
-                      </button>
+          {sessionsLoading ? (
+            <TableSkeleton rows={3} cols={3} />
+          ) : sessions.length === 0 ? (
+            <EmptyState
+              icon={Laptop}
+              title="No active sessions found"
+              description="This user currently has no active authenticated refresh tokens."
+            />
+          ) : (
+            <div className="divide-y divide-[var(--border)] max-h-96 overflow-y-auto">
+              {sessions.map((sess) => (
+                <div key={sess.id} className="py-3 flex items-start justify-between gap-4 text-xs">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-[var(--text)]">
+                        {parseUserAgent(sess.userAgent)}
+                      </span>
+                      <Badge variant="green" dot>Active</Badge>
                     </div>
-                  ))}
+                    <p className="font-mono text-[11px] text-[var(--text-muted)]">
+                      IP: {sess.ipAddress || 'Unknown IP'} • Created: {new Date(sess.createdAt).toLocaleString()}
+                    </p>
+                    {sess.lastUsedAt && (
+                      <p className="text-[10px] text-[var(--text-muted)] font-mono">
+                        Last Activity: {new Date(sess.lastUsedAt).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={() => handleRevokeSession(sess.id)}
+                    className="text-xs h-7 px-2"
+                  >
+                    Revoke
+                  </Button>
                 </div>
-              )}
+              ))}
             </div>
-          </div>
+          )}
         </div>
-      )}
+      </Modal>
 
       {/* ── LOGIN HISTORY MODAL ── */}
-      {selectedUserForHistory && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl w-full max-w-2xl shadow-2xl overflow-hidden animate-scaleIn">
-            <div className="p-5 border-b border-[var(--border)] flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-semibold text-[var(--text)] flex items-center gap-2">
-                  <History size={16} className="text-[#0E7490]" />
-                  Login History ({selectedUserForHistory.email})
-                </h3>
-                <p className="text-xs text-[var(--text-muted)]">Historical authentication attempts, device signatures, and IPs.</p>
-              </div>
-              <button
-                onClick={() => setSelectedUserForHistory(null)}
-                className="p-1.5 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-muted)]"
+      <Modal
+        isOpen={!!selectedUserForHistory}
+        onClose={() => setSelectedUserForHistory(null)}
+        title={`Login History: ${selectedUserForHistory?.email}`}
+        subtitle="Recent authentication attempts and security audit trail"
+        maxWidth="max-w-2xl"
+      >
+        <div className="space-y-4">
+          {historyLoading ? (
+            <TableSkeleton rows={4} cols={3} />
+          ) : historyLogs.length === 0 ? (
+            <EmptyState
+              icon={History}
+              title="No login events recorded"
+              description="No authentication history records found for this account."
+            />
+          ) : (
+            <div className="divide-y divide-[var(--border)] max-h-96 overflow-y-auto">
+              {historyLogs.map((log) => {
+                const isSuccess = log.action === 'LOGIN_SUCCESS'
+                return (
+                  <div key={log.id} className="py-2.5 flex items-center justify-between text-xs">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant={isSuccess ? 'green' : 'red'} dot>
+                          {log.action}
+                        </Badge>
+                        <span className="font-semibold text-[var(--text)]">
+                          {parseUserAgent(log.userAgent)}
+                        </span>
+                      </div>
+                      <p className="text-[11px] font-mono text-[var(--text-muted)] mt-0.5">
+                        IP: {log.ipAddress || 'N/A'} • {new Date(log.createdAt).toLocaleString()}
+                      </p>
+                    </div>
+                    <span className="text-[10px] font-mono text-[var(--text-muted)]">
+                      {isSuccess ? 'Authorized' : log.newData?.reason || 'Rejected'}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      {/* ── PROVISION SHOP OWNER MODAL ── */}
+      <Modal
+        isOpen={showCreateShopOwnerModal}
+        onClose={() => setShowCreateShopOwnerModal(false)}
+        title="Provision New Shop Owner Account"
+        subtitle="Creates shop owner credentials, registers shop, and issues temporary access"
+        maxWidth="max-w-lg"
+      >
+        <form onSubmit={handleCreateOwnerSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Input
+              label="Owner Full Name *"
+              required
+              value={createOwnerForm.ownerName}
+              onChange={(e) => setCreateOwnerForm({ ...createOwnerForm, ownerName: e.target.value })}
+              placeholder="e.g. Ramesh Kumar"
+            />
+            <Input
+              label="Owner Email Address *"
+              type="email"
+              required
+              value={createOwnerForm.ownerEmail}
+              onChange={(e) => setCreateOwnerForm({ ...createOwnerForm, ownerEmail: e.target.value })}
+              placeholder="e.g. ramesh@printhub.com"
+            />
+          </div>
+
+          <Input
+            label="Shop Name *"
+            required
+            value={createOwnerForm.shopName}
+            onChange={(e) => setCreateOwnerForm({ ...createOwnerForm, shopName: e.target.value })}
+            placeholder="e.g. Apex Fast Print Hub"
+          />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Input
+              label="Shop Phone"
+              value={createOwnerForm.shopPhone}
+              onChange={(e) => setCreateOwnerForm({ ...createOwnerForm, shopPhone: e.target.value })}
+              placeholder="+91 9876543210"
+            />
+            <Input
+              label="Shop Address"
+              value={createOwnerForm.shopAddress}
+              onChange={(e) => setCreateOwnerForm({ ...createOwnerForm, shopAddress: e.target.value })}
+              placeholder="Room 101, Complex B"
+            />
+          </div>
+
+          <div className="p-3 bg-black/[0.03] dark:bg-white/[0.04] rounded-xl border border-[var(--border)] text-xs text-[var(--text-muted)] space-y-1">
+            <p className="font-semibold text-[var(--text)]">Administrative Security Notice:</p>
+            <p>&bull; A strong 12-character temporary password is generated automatically.</p>
+            <p>&bull; <code className="text-[#007AFF]">mustChangePassword</code> is enabled by default.</p>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border)]">
+            <Button
+              variant="secondary"
+              type="button"
+              onClick={() => setShowCreateShopOwnerModal(false)}
+              disabled={actionLoading}
+            >
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit" loading={actionLoading}>
+              Provision Account
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* ── ADD USER MODAL (ANY ROLE) ── */}
+      <Modal
+        isOpen={showAddUserModal}
+        onClose={() => setShowAddUserModal(false)}
+        title="Create Platform User Account"
+        subtitle="Add any user role (Owner, Manager, Staff, Super Admin)"
+      >
+        <form onSubmit={handleAddUserSubmit} className="space-y-4">
+          <Input
+            label="Full Name *"
+            required
+            value={addUserForm.name}
+            onChange={(e) => setAddUserForm({ ...addUserForm, name: e.target.value })}
+            placeholder="e.g. John Doe"
+          />
+
+          <Input
+            label="Email Address *"
+            type="email"
+            required
+            value={addUserForm.email}
+            onChange={(e) => setAddUserForm({ ...addUserForm, email: e.target.value })}
+            placeholder="user@example.com"
+          />
+
+          <Input
+            label="Custom Password (Optional)"
+            type="password"
+            placeholder="Leave empty to auto-generate temporary password"
+            value={addUserForm.password}
+            onChange={(e) => setAddUserForm({ ...addUserForm, password: e.target.value })}
+          />
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1">
+              <label className="label">User Role</label>
+              <select
+                value={addUserForm.role}
+                onChange={(e) => setAddUserForm({ ...addUserForm, role: e.target.value })}
+                className="input text-xs"
               >
-                <X size={16} />
-              </button>
+                <option value="OWNER">OWNER</option>
+                <option value="MANAGER">MANAGER</option>
+                <option value="STAFF">STAFF</option>
+                <option value="SUPER_ADMIN">SUPER_ADMIN</option>
+              </select>
             </div>
 
-            <div className="p-5 max-h-96 overflow-y-auto">
-              {historyLoading ? (
-                <div className="py-8 text-center text-xs text-[var(--text-muted)]">Loading login history...</div>
-              ) : historyLogs.length === 0 ? (
-                <div className="py-8 text-center text-xs text-[var(--text-muted)]">No login activity logged yet.</div>
-              ) : (
-                <table className="w-full text-left text-xs">
-                  <thead className="text-[10px] uppercase font-semibold text-[var(--text-muted)] border-b border-[var(--border)]">
-                    <tr>
-                      <th className="py-2">Time</th>
-                      <th className="py-2">Result</th>
-                      <th className="py-2">IP Address</th>
-                      <th className="py-2">Client / Device</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[var(--border)]">
-                    {historyLogs.map((log) => (
-                      <tr key={log.id} className="h-9">
-                        <td className="py-2 font-mono text-[11px] text-[var(--text-muted)] whitespace-nowrap">
-                          {new Date(log.createdAt).toLocaleString()}
-                        </td>
-                        <td className="py-2 font-mono">
-                          <span
-                            className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold border ${
-                              log.action === 'LOGIN_SUCCESS'
-                                ? 'bg-green-500/10 text-green-600 border-green-500/20'
-                                : 'bg-red-500/10 text-red-600 border-red-500/20'
-                            }`}
-                          >
-                            {log.action}
-                          </span>
-                        </td>
-                        <td className="py-2 font-mono text-[11px]">{log.ipAddress || '-'}</td>
-                        <td className="py-2 font-mono text-[10px] text-[var(--text-muted)] max-w-xs truncate">
-                          {log.userAgent || '-'}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
+            <div className="space-y-1">
+              <label className="label">Account Status</label>
+              <select
+                value={addUserForm.status}
+                onChange={(e) => setAddUserForm({ ...addUserForm, status: e.target.value })}
+                className="input text-xs"
+              >
+                <option value="ACTIVE">ACTIVE</option>
+                <option value="INACTIVE">INACTIVE</option>
+                <option value="SUSPENDED">SUSPENDED</option>
+              </select>
             </div>
           </div>
+
+          <div className="space-y-1">
+            <label className="label">Associated Shop (Optional)</label>
+            <select
+              value={addUserForm.shopId}
+              onChange={(e) => setAddUserForm({ ...addUserForm, shopId: e.target.value })}
+              className="input text-xs"
+            >
+              <option value="">-- No Shop Associated --</option>
+              {shops.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name} ({s.shopCode})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2 border-t border-[var(--border)]">
+            <Button
+              variant="secondary"
+              type="button"
+              onClick={() => setShowAddUserModal(false)}
+              disabled={actionLoading}
+            >
+              Cancel
+            </Button>
+            <Button variant="primary" type="submit" loading={actionLoading}>
+              Create User
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* ── SHOW CREATED CREDENTIALS MODAL ── */}
+      <Modal
+        isOpen={!!createdCredentials}
+        onClose={() => setCreatedCredentials(null)}
+        title="Account Credentials Issued"
+        subtitle="Copy credentials now — shown only once"
+      >
+        <div className="space-y-4">
+          <div className="p-4 bg-black/[0.03] dark:bg-white/[0.04] border border-[var(--border)] rounded-xl space-y-2 text-xs">
+            <div>
+              <span className="text-[var(--text-muted)]">Login ID (Email):</span>
+              <p className="font-mono font-semibold text-[var(--text)] select-all">
+                {createdCredentials?.user?.email}
+              </p>
+            </div>
+            {createdCredentials?.shop && (
+              <div>
+                <span className="text-[var(--text-muted)]">Shop Code:</span>
+                <p className="font-mono font-semibold text-[#007AFF] select-all">
+                  {createdCredentials.shop?.shopCode}
+                </p>
+              </div>
+            )}
+            {createdCredentials?.temporaryPassword && (
+              <div>
+                <span className="text-[var(--text-muted)]">Temporary Password:</span>
+                <p className="font-mono font-bold text-sm text-amber-500 bg-amber-500/10 px-2.5 py-1.5 rounded-lg border border-amber-500/20 select-all tracking-wider mt-1">
+                  {createdCredentials.temporaryPassword}
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              onClick={() =>
+                copyToClipboard(
+                  `SmartPrint Account Provisioned\nEmail: ${createdCredentials?.user?.email}\nPassword: ${
+                    createdCredentials?.temporaryPassword || '(Manual)'
+                  }\n${createdCredentials?.shop?.shopCode ? `Shop Code: ${createdCredentials.shop.shopCode}` : ''}`
+                )
+              }
+              className="flex-1 text-xs"
+            >
+              {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+              <span>{copied ? 'Copied' : 'Copy Credentials'}</span>
+            </Button>
+            <Button variant="primary" onClick={() => setCreatedCredentials(null)} className="text-xs">
+              Done
+            </Button>
+          </div>
         </div>
-      )}
+      </Modal>
+
+      {/* ── RESET PASSWORD RESULT MODAL ── */}
+      <Modal
+        isOpen={!!resetResult}
+        onClose={() => setResetResult(null)}
+        title="Password Reset Complete"
+        subtitle="Temporary password generated. Active sessions revoked."
+      >
+        <div className="space-y-4">
+          <div className="p-4 bg-black/[0.03] dark:bg-white/[0.04] border border-[var(--border)] rounded-xl space-y-2 text-xs">
+            <div>
+              <span className="text-[var(--text-muted)]">Account:</span>
+              <p className="font-mono font-semibold text-[var(--text)] select-all">{resetResult?.email}</p>
+            </div>
+            <div>
+              <span className="text-[var(--text-muted)]">New Temporary Password:</span>
+              <p className="font-mono font-bold text-sm text-amber-500 bg-amber-500/10 px-2.5 py-1.5 rounded-lg border border-amber-500/20 select-all tracking-wider mt-1">
+                {resetResult?.temporaryPassword}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              onClick={() =>
+                copyToClipboard(
+                  `SmartPrint Password Reset\nEmail: ${resetResult?.email}\nTemporary Password: ${resetResult?.temporaryPassword}`
+                )
+              }
+              className="flex-1 text-xs"
+            >
+              {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+              <span>{copied ? 'Copied' : 'Copy Password'}</span>
+            </Button>
+            <Button variant="primary" onClick={() => setResetResult(null)} className="text-xs">
+              Done
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

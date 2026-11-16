@@ -18,12 +18,19 @@ router.use(authorize('SUPER_ADMIN'));
 router.get('/overview', adminController.getOverview);
 router.get('/system-health', adminController.getSystemHealth);
 
-// User Management (Full CRUD)
+// User Management (Full CRUD & Advanced Controls)
 router.get('/users', adminController.getUsers);
 router.post('/users', adminController.createUser);
+router.post('/users/bulk-action', adminController.bulkActionUsers);
 router.patch('/users/:userId', adminController.updateUser);
 router.delete('/users/:userId', adminController.deleteUser);
 router.post('/users/:userId/reset-password', adminController.resetPassword);
+router.patch('/users/:userId/notes', adminController.updateAdminNote);
+router.patch('/users/:userId/session-limit', adminController.updateSessionLimit);
+router.post('/users/:userId/impersonate', adminController.impersonateUser);
+
+// Platform Announcements & Broadcasts
+router.post('/broadcast', adminController.broadcastMessage);
 
 // Shop Owner Creation (Super Admin provision)
 router.post('/shop-owners', adminController.createShopOwner);

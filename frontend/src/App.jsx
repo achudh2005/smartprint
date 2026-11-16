@@ -8,6 +8,7 @@ import { useAuth } from './hooks/useAuth'
 import DashboardLayout from './layouts/DashboardLayout'
 import AuthLayout from './layouts/AuthLayout'
 import AdminLayout from './components/admin/AdminLayout'
+import ImpersonationBanner from './components/admin/ImpersonationBanner'
 
 // Pages
 import LoginPage from './pages/auth/LoginPage'
@@ -77,6 +78,7 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
+        <ImpersonationBanner />
         <Routes>
           {/* Public auth routes */}
           <Route element={<AuthLayout />}>

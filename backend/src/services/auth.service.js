@@ -38,7 +38,47 @@ function generateRefreshToken() {
   return uuidv4().replace(/-/g, '') + uuidv4().replace(/-/g, '');
 }
 
+const DEFAULT_MAX_ACTIVE_SESSIONS = 3;
+const BRUTE_FORCE_THRESHOLD = 5;
+const BRUTE_FORCE_WINDOW_MINUTES = 15;
+
 async function saveRefreshToken(userId, token, ipAddress = null, userAgent = null) {
+  // Check active session limits
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { maxActiveSessions: true },
+    });
+
+    const maxSessions = user?.maxActiveSessions ?? DEFAULT_MAX_ACTIVE_SESSIONS;
+
+    const activeTokens = await prisma.refreshToken.findMany({
+      where: {
+        userId,
+        revoked: false,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    // If active sessions are at or over the limit, revoke the oldest active sessions
+    if (activeTokens.length >= maxSessions) {
+      const overflowCount = activeTokens.length - maxSessions + 1;
+      const tokensToRevoke = activeTokens.slice(0, overflowCount);
+      for (const t of tokensToRevoke) {
+        await prisma.refreshToken.update({
+          where: { id: t.id },
+          data: {
+            revoked: true,
+          },
+        });
+        logger.info(`[Auth] Revoked oldest session token #${t.id} for user #${userId} (limit: ${maxSessions})`);
+      }
+    }
+  } catch (err) {
+    logger.warn('[Auth] Error checking session limits:', err.message);
+  }
+
   const expiresAt = new Date();
   const days = parseInt((process.env.JWT_REFRESH_EXPIRES_IN || '30d').replace('d', ''));
   expiresAt.setDate(expiresAt.getDate() + days);
@@ -53,6 +93,71 @@ async function saveRefreshToken(userId, token, ipAddress = null, userAgent = nul
       lastUsedAt: new Date(),
     },
   });
+}
+
+/**
+ * Checks if repeated failed logins exceed brute-force threshold within window.
+ * If exceeded, automatically suspends the user and writes AUTO_SUSPENDED_BRUTE_FORCE AuditLog.
+ */
+async function checkAndApplyBruteForceProtection(userId, email, ipAddress, userAgent) {
+  try {
+    if (!userId && !email) return;
+
+    const since = new Date(Date.now() - BRUTE_FORCE_WINDOW_MINUTES * 60 * 1000);
+
+    let whereClause = {
+      action: 'LOGIN_FAILED',
+      createdAt: { gte: since },
+    };
+
+    if (userId) {
+      whereClause.userId = userId;
+    } else {
+      whereClause.resourceId = email;
+    }
+
+    const failedCount = await prisma.auditLog.count({ where: whereClause });
+
+    if (failedCount >= BRUTE_FORCE_THRESHOLD) {
+      const user = userId
+        ? await prisma.user.findUnique({ where: { id: userId }, select: { id: true, status: true, email: true } })
+        : await prisma.user.findUnique({ where: { email }, select: { id: true, status: true, email: true } });
+
+      if (user && user.status !== 'SUSPENDED') {
+        logger.warn(`[Security] Brute-force threshold (${BRUTE_FORCE_THRESHOLD} failed attempts) reached for user ${user.email}. Auto-suspending account.`);
+
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { status: 'SUSPENDED' },
+        });
+
+        // Revoke all active sessions
+        await prisma.refreshToken.updateMany({
+          where: { userId: user.id, revoked: false },
+          data: { revoked: true },
+        });
+
+        // Record distinctive AuditLog
+        await prisma.auditLog.create({
+          data: {
+            userId: user.id,
+            action: 'AUTO_SUSPENDED_BRUTE_FORCE',
+            resource: 'User',
+            resourceId: String(user.id),
+            ipAddress: ipAddress ? String(ipAddress).slice(0, 45) : null,
+            userAgent: userAgent ? String(userAgent).slice(0, 512) : null,
+            newData: {
+              reason: `${failedCount} consecutive failed login attempts within ${BRUTE_FORCE_WINDOW_MINUTES} minutes`,
+              threshold: BRUTE_FORCE_THRESHOLD,
+              email: user.email,
+            },
+          },
+        });
+      }
+    }
+  } catch (err) {
+    logger.warn('[Security] Error applying brute force protection:', err.message);
+  }
 }
 
 // Internal helper: issue tokens and return the standard login payload.
@@ -206,6 +311,8 @@ async function login({ email, password, ipAddress = null, userAgent = null }) {
       },
     }).catch((e) => logger.warn('Failed to write audit log:', e.message));
 
+    await checkAndApplyBruteForceProtection(null, normalizedEmail, safeIp, safeAgent);
+
     const err = new Error('Invalid email or password.');
     err.statusCode = 401;
     throw err;
@@ -260,6 +367,8 @@ async function login({ email, password, ipAddress = null, userAgent = null }) {
         newData: { reason: 'Invalid password' },
       },
     }).catch((e) => logger.warn('Failed to write audit log:', e.message));
+
+    await checkAndApplyBruteForceProtection(user.id, normalizedEmail, safeIp, safeAgent);
 
     const err = new Error('Invalid email or password.');
     err.statusCode = 401;
