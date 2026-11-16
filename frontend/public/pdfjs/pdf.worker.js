@@ -8,6 +8,22 @@ if (typeof Promise.withResolvers === 'undefined') {
     return { promise, resolve, reject };
   };
 }
+
+if (typeof ArrayBuffer.prototype.transferToFixedLength === 'undefined') {
+  ArrayBuffer.prototype.transferToFixedLength = function (newByteLength) {
+    const len = newByteLength === undefined ? this.byteLength : newByteLength;
+    const copy = new ArrayBuffer(len);
+    const minLen = Math.min(this.byteLength, len);
+    new Uint8Array(copy, 0, minLen).set(new Uint8Array(this, 0, minLen));
+    return copy;
+  };
+}
+
+if (typeof ArrayBuffer.prototype.transfer === 'undefined') {
+  ArrayBuffer.prototype.transfer = function (newByteLength) {
+    return this.transferToFixedLength(newByteLength);
+  };
+}
 /**
  * @licstart The following is the entire license notice for the
  * JavaScript code in this page

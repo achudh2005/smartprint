@@ -967,7 +967,7 @@ export default function DocumentEditorPage() {
 
         {/* Canvas & Document Viewport */}
         <main
-          className={`flex-1 overflow-auto flex items-center justify-center p-8 relative ${
+          className={`flex-1 overflow-auto flex p-6 sm:p-8 relative ${
             canvasTheme === 'dark' ? 'bg-slate-900' : 'bg-slate-100 dark:bg-slate-950'
           }`}
         >
@@ -979,8 +979,10 @@ export default function DocumentEditorPage() {
           )}
 
           <div
-            className="relative shadow-2xl rounded-sm transition-all bg-white"
+            className="m-auto relative shadow-2xl rounded-sm transition-all bg-white"
             style={{
+              width: pageViewport ? `${pageViewport.width}px` : undefined,
+              height: pageViewport ? `${pageViewport.height}px` : undefined,
               transform: `rotate(${rotations[currentPage] || 0}deg)`,
               transformOrigin: 'center center',
             }}
