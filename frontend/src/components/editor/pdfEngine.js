@@ -1,10 +1,22 @@
+// Polyfill Promise.withResolvers for browsers and mobile engines lacking ES2024
+if (typeof Promise.withResolvers === 'undefined') {
+  Promise.withResolvers = function () {
+    let resolve, reject;
+    const promise = new Promise((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+    return { promise, resolve, reject };
+  };
+}
+
 import { PDFDocument, rgb, degrees, StandardFonts } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
 // Setup same-origin pdf.js worker URL to avoid CORS/CSP issues in production
 if (typeof window !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdfjs/pdf.worker.mjs';
+  pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker || '/pdfjs/pdf.worker.mjs';
 }
 
 // Track cached PDF.js document to avoid re-parsing 50+ page PDFs on every click
@@ -28,7 +40,7 @@ export async function getPdfJsDocument(pdfBytes) {
   inFlightDocPromise = (async () => {
     try {
       if (!pdfjsLib.GlobalWorkerOptions.workerSrc) {
-        pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdfjs/pdf.worker.mjs';
+        pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker || '/pdfjs/pdf.worker.mjs';
       }
 
       const loadingTask = pdfjsLib.getDocument({
@@ -40,13 +52,12 @@ export async function getPdfJsDocument(pdfBytes) {
       cachedPdfDoc = await loadingTask.promise;
       return cachedPdfDoc;
     } catch (err) {
-      console.warn('[pdfEngine] Error loading with static worker, attempting fallback with bundled worker:', err);
+      console.warn('[pdfEngine] Error loading with primary worker, attempting fallback with static worker:', err);
       try {
-        if (pdfjsWorker) {
-          pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
-        }
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdfjs/pdf.worker.mjs';
+        const fallbackData = (pdfBytes instanceof Uint8Array ? pdfBytes : new Uint8Array(pdfBytes)).slice();
         const fallbackTask = pdfjsLib.getDocument({
-          data,
+          data: fallbackData,
           cMapUrl: '/pdfjs/cmaps/',
           cMapPacked: true,
           standardFontDataUrl: '/pdfjs/standard_fonts/',

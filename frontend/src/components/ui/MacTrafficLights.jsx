@@ -17,9 +17,19 @@ export default function MacTrafficLights({
       <button
         type="button"
         tabIndex={-1}
-        onClick={onClose}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose?.();
+        }}
+        onTouchEnd={(e) => {
+          if (onClose) {
+            e.preventDefault();
+            e.stopPropagation();
+            onClose();
+          }
+        }}
         disabled={!onClose}
-        className={`${dotSize} rounded-full mac-dot-red flex items-center justify-center transition-all active:brightness-90 ${
+        className={`${dotSize} rounded-full mac-dot-red flex items-center justify-center transition-all active:brightness-90 touch-manipulation ${
           onClose ? 'cursor-pointer' : 'cursor-default'
         }`}
         title={onClose ? 'Close' : undefined}

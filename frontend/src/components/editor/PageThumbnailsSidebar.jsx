@@ -83,7 +83,9 @@ function PageThumbnailItem({
       >
         <canvas
           ref={canvasRef}
-          className={`w-full h-full object-contain ${rendered ? 'block' : 'hidden'}`}
+          className={`absolute inset-0 w-full h-full object-contain transition-opacity duration-200 ${
+            rendered ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          }`}
         />
         {!rendered && (
           <span className="text-xs font-display font-bold text-slate-400 opacity-40 select-none">

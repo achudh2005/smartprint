@@ -46,11 +46,20 @@ export default function Sidebar({ open, onClose }) {
           </div>
           <button
             type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-black/[0.05] dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onClose?.();
+            }}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onClose?.();
+            }}
+            className="w-10 h-10 -mr-1.5 rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-black/[0.06] dark:hover:bg-white/[0.08] active:scale-95 flex items-center justify-center transition-all cursor-pointer touch-manipulation"
             aria-label="Close sidebar"
           >
-            <X size={16} strokeWidth={2} />
+            <X size={18} strokeWidth={2.2} />
           </button>
         </div>
         <SidebarContent user={user} onLogout={handleLogout} hideLogo onNavClick={onClose} />

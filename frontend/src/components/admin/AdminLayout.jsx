@@ -176,11 +176,20 @@ export default function AdminLayout() {
           </div>
           <button
             type="button"
-            onClick={() => setMobileMenuOpen(false)}
-            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-black/[0.05] dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setMobileMenuOpen(false);
+            }}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setMobileMenuOpen(false);
+            }}
+            className="w-10 h-10 -mr-1.5 rounded-xl text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-black/[0.06] dark:hover:bg-white/[0.08] active:scale-95 flex items-center justify-center transition-all cursor-pointer touch-manipulation"
             aria-label="Close sidebar"
           >
-            <X size={16} strokeWidth={2} />
+            <X size={18} strokeWidth={2.2} />
           </button>
         </div>
         <SidebarContent onNavClick={() => setMobileMenuOpen(false)} />
@@ -189,8 +198,12 @@ export default function AdminLayout() {
       {/* Mobile Drawer Backdrop Overlay */}
       {mobileMenuOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs lg:hidden transition-opacity duration-200"
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs lg:hidden transition-opacity duration-200 cursor-pointer touch-manipulation"
           onClick={() => setMobileMenuOpen(false)}
+          onTouchEnd={(e) => {
+            e.preventDefault();
+            setMobileMenuOpen(false);
+          }}
         />
       )}
 

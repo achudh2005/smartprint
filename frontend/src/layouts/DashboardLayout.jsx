@@ -14,8 +14,12 @@ export default function DashboardLayout() {
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs lg:hidden transition-opacity duration-200"
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs lg:hidden transition-opacity duration-200 cursor-pointer touch-manipulation"
           onClick={() => setSidebarOpen(false)}
+          onTouchEnd={(e) => {
+            e.preventDefault();
+            setSidebarOpen(false);
+          }}
         />
       )}
 
