@@ -44,10 +44,8 @@ const resendOtpLimiter = rateLimit({
   message: { success: false, message: 'Too many resend requests. Please wait before requesting another code.' },
 });
 
-// POST /api/v1/auth/register
+// POST /api/v1/auth/register (Locked down to Super Admin only - public registration disabled)
 router.post('/register',
-  authLimiter,
-  authController.registerValidation,
   authController.register
 );
 
