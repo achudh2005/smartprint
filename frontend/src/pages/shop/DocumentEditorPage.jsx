@@ -967,7 +967,7 @@ export default function DocumentEditorPage() {
 
         {/* Canvas & Document Viewport */}
         <main
-          className={`flex-1 overflow-auto flex p-6 sm:p-8 relative ${
+          className={`flex-1 overflow-auto relative ${
             canvasTheme === 'dark' ? 'bg-slate-900' : 'bg-slate-100 dark:bg-slate-950'
           }`}
         >
@@ -978,17 +978,18 @@ export default function DocumentEditorPage() {
             </div>
           )}
 
-          <div
-            className="m-auto relative shadow-2xl rounded-sm transition-all bg-white"
-            style={{
-              width: pageViewport ? `${pageViewport.width}px` : undefined,
-              height: pageViewport ? `${pageViewport.height}px` : undefined,
-              transform: `rotate(${rotations[currentPage] || 0}deg)`,
-              transformOrigin: 'center center',
-            }}
-          >
-            {/* Background PDF Render Canvas */}
-            <canvas ref={pdfCanvasRef} className="block shadow-md" />
+          <div className="min-w-full min-h-full p-4 sm:p-8 flex items-center justify-center w-fit h-fit">
+            <div
+              className="relative shadow-2xl rounded-sm transition-all bg-white shrink-0"
+              style={{
+                width: pageViewport ? `${pageViewport.width}px` : undefined,
+                height: pageViewport ? `${pageViewport.height}px` : undefined,
+                transform: `rotate(${rotations[currentPage] || 0}deg)`,
+                transformOrigin: 'center center',
+              }}
+            >
+              {/* Background PDF Render Canvas */}
+              <canvas ref={pdfCanvasRef} className="block shadow-md" />
 
             {/* Interactive Annotation & Marking Canvas Overlay */}
             <div
@@ -1251,7 +1252,8 @@ export default function DocumentEditorPage() {
               )}
             </div>
           </div>
-        </main>
+        </div>
+      </main>
       </div>
 
       {/* ── Subcomponent Modals ── */}

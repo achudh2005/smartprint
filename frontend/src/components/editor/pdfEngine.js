@@ -1,4 +1,4 @@
-// Polyfill Promise.withResolvers and ArrayBuffer.prototype.transferToFixedLength for ES2024 / PDF.js compatibility
+// Polyfill modern ES features for cross-browser / mobile engine / PDF.js compatibility
 if (typeof Promise.withResolvers === 'undefined') {
   Promise.withResolvers = function () {
     let resolve, reject;
@@ -8,6 +8,18 @@ if (typeof Promise.withResolvers === 'undefined') {
     });
     return { promise, resolve, reject };
   };
+}
+
+if (typeof Promise.try !== 'function') {
+  Promise.try = function (fn, ...args) {
+    return new Promise((resolve) => {
+      resolve(fn(...args));
+    });
+  };
+}
+
+if (typeof Iterator === 'undefined') {
+  globalThis.Iterator = class Iterator {};
 }
 
 if (typeof ArrayBuffer.prototype.transferToFixedLength === 'undefined') {
@@ -26,9 +38,19 @@ if (typeof ArrayBuffer.prototype.transfer === 'undefined') {
   };
 }
 
+if (typeof Uint8Array.prototype.toHex === 'undefined') {
+  Uint8Array.prototype.toHex = function () {
+    let hex = '';
+    for (let i = 0; i < this.length; i++) {
+      hex += this[i].toString(16).padStart(2, '0');
+    }
+    return hex;
+  };
+}
+
 import { PDFDocument, rgb, degrees, StandardFonts } from 'pdf-lib';
-import * as pdfjsLib from 'pdfjs-dist';
-import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
+import pdfjsWorker from 'pdfjs-dist/legacy/build/pdf.worker.min.mjs?url';
 
 // Setup same-origin pdf.js worker URL to avoid CORS/CSP issues in production
 if (typeof window !== 'undefined') {
