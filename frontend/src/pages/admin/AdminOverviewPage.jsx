@@ -1,22 +1,26 @@
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import {
   Store,
   Users,
-  ShoppingBag,
-  TrendingUp,
-  HardDrive,
-  ShieldCheck,
   ShieldAlert,
   RefreshCw,
-  Clock,
   KeyRound,
   AlertTriangle,
+  ArrowRight,
+  UserCheck,
+  TrendingUp,
+  Activity,
+  CheckCircle2,
 } from 'lucide-react'
 import api from '../../lib/api'
+import { StatCard, Card, CardHeader, CardBody, Badge, Button, TableSkeleton } from '../../components/ui'
+import toast from 'react-hot-toast'
 
 export default function AdminOverviewPage() {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [reactivatingUserId, setReactivatingUserId] = useState(null)
 
   const loadOverview = async () => {
     try {
@@ -25,6 +29,7 @@ export default function AdminOverviewPage() {
       setData(res.data.data)
     } catch (err) {
       console.error('Failed to load admin overview:', err)
+      toast.error('Failed to load platform metrics')
     } finally {
       setLoading(false)
     }
@@ -34,243 +39,247 @@ export default function AdminOverviewPage() {
     loadOverview()
   }, [])
 
+  const handleQuickReactivate = async (userId) => {
+    try {
+      setReactivatingUserId(userId)
+      await api.patch(`/admin/users/${userId}/status`, { status: 'ACTIVE' })
+      toast.success(`User #${userId} account reactivated successfully!`)
+      await loadOverview()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to reactivate user')
+    } finally {
+      setReactivatingUserId(null)
+    }
+  }
+
   const kpis = data?.kpis || {}
   const suspiciousTargets = data?.suspiciousTargets || []
   const recentShops = data?.recentShops || []
   const recentAudits = data?.recentAudits || []
 
-  const formatBytes = (bytesStr) => {
-    const bytes = Number(bytesStr || 0)
-    if (!bytes || isNaN(bytes) || bytes <= 0) return '0 B'
-    const k = 1024
-    const sizes = ['B', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    if (i < 0 || i >= sizes.length) return `${bytes} B`
-    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`
-  }
-
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-bold text-[var(--text)] tracking-tight">Platform Control Center</h1>
-          <p className="text-sm text-[var(--text-muted)] mt-0.5">
-            Global metrics, tenant health, authentication tracking, and platform-wide monitoring.
+          <h1 className="font-display text-2xl font-bold text-[var(--text)] tracking-tight">Platform Overview</h1>
+          <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5">
+            Real-time multi-tenant telemetry, security alerts, and system health.
           </p>
         </div>
 
-        <button
+        <Button
+          variant="secondary"
+          size="sm"
           onClick={loadOverview}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)] text-xs font-medium rounded-lg shadow-xs transition-colors duration-150 self-start sm:self-auto"
+          loading={loading}
+          className="self-start sm:self-auto text-xs"
         >
           <RefreshCw size={13} strokeWidth={1.75} className={loading ? 'animate-spin' : ''} />
-          Refresh Metrics
-        </button>
+          <span>Refresh Metrics</span>
+        </Button>
       </div>
 
-      {/* Suspicious Activity Banner */}
+      {/* Suspicious Activity / Brute-Force Alerts */}
       {suspiciousTargets.length > 0 && (
-        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex items-start gap-3">
-          <AlertTriangle className="text-red-500 shrink-0 mt-0.5" size={18} strokeWidth={2} />
-          <div className="space-y-1">
-            <h3 className="text-sm font-semibold text-red-600 dark:text-red-400">
-              Suspicious Activity Detected ({suspiciousTargets.length} alert{suspiciousTargets.length > 1 ? 's' : ''})
-            </h3>
-            <p className="text-xs text-[var(--text-muted)]">
-              Multiple repeated failed login attempts were recorded within the past hour:
-            </p>
-            <div className="flex flex-wrap gap-2 pt-1">
-              {suspiciousTargets.map((item, idx) => (
-                <span
-                  key={idx}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-mono bg-red-500/15 text-red-700 dark:text-red-300 border border-red-500/20"
-                >
-                  <strong>{item.target}</strong>: {item.count} failed attempts
-                </span>
-              ))}
+        <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-4 sm:p-5">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-xl bg-red-500/20 text-red-500 flex items-center justify-center shrink-0">
+              <AlertTriangle size={18} strokeWidth={2} />
+            </div>
+            <div className="space-y-2 flex-1 min-w-0">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="text-sm font-bold text-red-600 dark:text-red-400">
+                  Suspicious Login Failures Detected ({suspiciousTargets.length} Incident{suspiciousTargets.length > 1 ? 's' : ''})
+                </h3>
+                <Badge variant="red" dot>Brute-Force Risk</Badge>
+              </div>
+              <p className="text-xs text-[var(--text-muted)] leading-relaxed">
+                Repeated failed logins detected within the last 15–60 minutes. Accounts with 5+ failures are automatically locked to safeguard shop data.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 pt-1">
+                {suspiciousTargets.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between p-2.5 rounded-xl bg-white/60 dark:bg-black/40 border border-red-500/20 text-xs"
+                  >
+                    <div className="min-w-0 mr-2">
+                      <p className="font-mono font-semibold text-[var(--text)] truncate">{item.email}</p>
+                      <p className="text-[11px] text-red-500 font-medium">
+                        {item.failedAttempts} failure{item.failedAttempts > 1 ? 's' : ''} {item.isAutoSuspended ? '• Auto-Suspended' : ''}
+                      </p>
+                    </div>
+                    {item.userId && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="text-[11px] h-7 px-2 shrink-0"
+                        loading={reactivatingUserId === item.userId}
+                        onClick={() => handleQuickReactivate(item.userId)}
+                      >
+                        <UserCheck size={12} className="text-emerald-500" />
+                        <span>Unlock</span>
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Primary KPI Grid */}
+      {/* Primary KPI Grid (using shared StatCard component) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Total Shops */}
-        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Total Shops</span>
-            <div className="w-7 h-7 rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] flex items-center justify-center">
-              <Store size={14} strokeWidth={1.75} className="text-[#0E7490]" />
-            </div>
-          </div>
-          <div className="text-2xl font-bold text-[var(--text)] tracking-tight tabular-nums">
-            {kpis.totalShops || 0}
-          </div>
-          <div className="text-xs text-[var(--text-muted)] mt-2 flex items-center justify-between">
-            <span className="text-green-600 dark:text-green-400 font-medium">{kpis.activeShops || 0} Active</span>
-            <span className="text-red-600 dark:text-red-400 font-medium">{kpis.suspendedShops || 0} Suspended</span>
-          </div>
-        </div>
+        <StatCard
+          label="Total Shop Owners"
+          value={loading ? '...' : (kpis.totalShopOwners ?? (kpis.totalUsers || 0))}
+          icon={Users}
+          description={`${kpis.activeUsers || 0} active, ${kpis.suspendedUsers || 0} suspended`}
+        />
 
-        {/* Shop Owners & Accounts */}
-        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Shop Owners</span>
-            <div className="w-7 h-7 rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] flex items-center justify-center">
-              <Users size={14} strokeWidth={1.75} className="text-[#0E7490]" />
-            </div>
-          </div>
-          <div className="text-2xl font-bold text-[var(--text)] tracking-tight tabular-nums">
-            {kpis.totalShopOwners ?? (kpis.totalUsers || 0)}
-          </div>
-          <div className="text-xs text-[var(--text-muted)] mt-2 flex items-center gap-3">
-            <span className="text-green-600 dark:text-green-400 font-medium">{kpis.activeUsers || 0} Active</span>
-            <span className="text-amber-500 font-medium">{kpis.inactiveUsers || 0} Inactive</span>
-            <span className="text-red-500 font-medium">{kpis.suspendedUsers || 0} Suspended</span>
-          </div>
-        </div>
+        <StatCard
+          label="Active Shops"
+          value={loading ? '...' : (kpis.activeShops || 0)}
+          icon={Store}
+          description={`${kpis.totalShops || 0} total registered shops`}
+        />
 
-        {/* Logins Today & Week */}
-        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Successful Logins</span>
-            <div className="w-7 h-7 rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] flex items-center justify-center">
-              <KeyRound size={14} strokeWidth={1.75} className="text-[#0E7490]" />
-            </div>
-          </div>
-          <div className="text-2xl font-bold text-[var(--text)] tracking-tight tabular-nums">
-            {kpis.todayLogins ?? 0}
-          </div>
-          <div className="text-xs text-[var(--text-muted)] mt-2 flex items-center justify-between">
-            <span>Today: {kpis.todayLogins ?? 0}</span>
-            <span className="text-[#0E7490] font-medium">{kpis.weekLogins ?? 0} this week</span>
-          </div>
-        </div>
+        <StatCard
+          label="Logins Today"
+          value={loading ? '...' : (kpis.todayLogins ?? 0)}
+          icon={KeyRound}
+          description={`${kpis.weekLogins ?? 0} logins this week`}
+        />
 
-        {/* Security & Failed Logins */}
-        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Failed Logins (1h)</span>
-            <div className="w-7 h-7 rounded-lg bg-[var(--surface-hover)] border border-[var(--border)] flex items-center justify-center">
-              <ShieldAlert size={14} strokeWidth={1.75} className={kpis.failedLoginsHour > 0 ? 'text-red-500' : 'text-zinc-400'} />
-            </div>
-          </div>
-          <div className={`text-2xl font-bold tracking-tight tabular-nums ${kpis.failedLoginsHour > 0 ? 'text-red-500' : 'text-[var(--text)]'}`}>
-            {kpis.failedLoginsHour ?? 0}
-          </div>
-          <p className="text-xs text-[var(--text-muted)] mt-2">
-            {kpis.failedLoginsHour === 0 ? 'No brute-force or auth failures' : 'Auth rejections in past 60 min'}
-          </p>
-        </div>
+        <StatCard
+          label="Failed Logins (1h)"
+          value={loading ? '...' : (kpis.failedLoginsHour ?? 0)}
+          icon={ShieldAlert}
+          change={kpis.failedLoginsHour > 0 ? 'Alert' : 'Nominal'}
+          changeType={kpis.failedLoginsHour > 0 ? 'negative' : 'positive'}
+          description={kpis.failedLoginsHour === 0 ? 'No brute-force activity' : 'Auth failures in past hour'}
+        />
       </div>
 
-      {/* Secondary Metrics: Revenue & Orders & Storage */}
+      {/* Secondary Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Platform Revenue</span>
-            <TrendingUp size={14} className="text-green-600" />
+        <Card className="p-4 sm:p-5">
+          <div className="flex items-center justify-between text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">
+            <span>Platform Revenue</span>
+            <TrendingUp size={14} className="text-emerald-500" />
           </div>
-          <div className="text-xl font-bold text-[var(--text)]">
+          <div className="text-2xl font-bold tracking-tight text-[var(--text)] tabular-nums">
             ₹{(kpis.totalPlatformRevenue || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
           </div>
-          <p className="text-xs text-[var(--text-muted)] mt-1">Processed across all tenant shops</p>
-        </div>
+          <p className="text-xs text-[var(--text-muted)] mt-1.5">Gross order revenue across all active shops</p>
+        </Card>
 
-        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Total Customer Orders</span>
-            <ShoppingBag size={14} className="text-[#0E7490]" />
+        <Card className="p-4 sm:p-5">
+          <div className="flex items-center justify-between text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">
+            <span>Completed Orders</span>
+            <CheckCircle2 size={14} className="text-blue-500" />
           </div>
-          <div className="text-xl font-bold text-[var(--text)]">
-            {(kpis.totalOrders || 0).toLocaleString()}
+          <div className="text-2xl font-bold tracking-tight text-[var(--text)] tabular-nums">
+            {(kpis.completedOrders || 0).toLocaleString()}
           </div>
-          <p className="text-xs text-[var(--text-muted)] mt-1">Cloud print orders fulfilled</p>
-        </div>
+          <p className="text-xs text-[var(--text-muted)] mt-1.5">{kpis.totalOrders || 0} total orders processed</p>
+        </Card>
 
-        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-semibold text-[var(--text-muted)] uppercase tracking-wider">Storage Footprint</span>
-            <HardDrive size={14} className="text-[#0E7490]" />
+        <Card className="p-4 sm:p-5">
+          <div className="flex items-center justify-between text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wider mb-2">
+            <span>Live Security State</span>
+            <Activity size={14} className="text-[#007AFF]" />
           </div>
-          <div className="text-xl font-bold text-[var(--text)]">
-            {formatBytes(kpis.storage?.activeBytes)} active
+          <div className="text-2xl font-bold tracking-tight text-emerald-500">
+            Guarded
           </div>
-          <p className="text-xs text-[var(--text-muted)] mt-1">
-            {formatBytes(kpis.storage?.purgedBytes)} auto-purged
-          </p>
-        </div>
+          <p className="text-xs text-[var(--text-muted)] mt-1.5">Brute-force auto-lock & session limits active</p>
+        </Card>
       </div>
 
-      {/* Recent Activity Sections */}
+      {/* Recent Shops & Recent Audit Logs */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Shops */}
-        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-[var(--text)] mb-4 flex items-center justify-between">
-            <span>Recently Provisioned Shops</span>
-            <span className="text-xs font-normal text-[var(--text-muted)]">Latest 5</span>
-          </h2>
-          {recentShops.length === 0 ? (
-            <p className="text-xs text-[var(--text-muted)] py-4 text-center">No shops created yet.</p>
-          ) : (
-            <div className="divide-y divide-[var(--border)]">
-              {recentShops.map((shop) => (
-                <div key={shop.id} className="py-3 flex items-center justify-between">
-                  <div>
-                    <p className="text-xs font-semibold text-[var(--text)]">{shop.name}</p>
-                    <p className="text-[11px] text-[var(--text-muted)] font-mono">Code: {shop.shopCode}</p>
-                  </div>
-                  <div className="text-right">
-                    <span
-                      className={`inline-block px-2 py-0.5 rounded text-[10px] font-medium border ${
-                        shop.status === 'ACTIVE'
-                          ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400'
-                          : 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400'
-                      }`}
-                    >
-                      {shop.status}
-                    </span>
-                    <p className="text-[10px] text-[var(--text-muted)] mt-1">
-                      {shop._count?.orders || 0} orders
-                    </p>
-                  </div>
-                </div>
-              ))}
+        <Card>
+          <CardHeader className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--border)]">
+            <div>
+              <h2 className="text-sm font-semibold text-[var(--text)]">Recently Provisioned Shops</h2>
+              <p className="text-xs text-[var(--text-muted)]">Latest tenant shops registered</p>
             </div>
-          )}
-        </div>
-
-        {/* Recent Audit Events */}
-        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-[var(--text)] mb-4 flex items-center justify-between">
-            <span>Latest Security & Audit Events</span>
-            <span className="text-xs font-normal text-[var(--text-muted)]">Live Log</span>
-          </h2>
-          {recentAudits.length === 0 ? (
-            <p className="text-xs text-[var(--text-muted)] py-4 text-center">No audit records found.</p>
-          ) : (
-            <div className="divide-y divide-[var(--border)]">
-              {recentAudits.slice(0, 5).map((log) => (
-                <div key={log.id} className="py-3 flex items-start justify-between gap-3">
-                  <div className="space-y-0.5">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-[11px] font-semibold text-[#0E7490]">{log.action}</span>
-                      <span className="text-[10px] text-[var(--text-muted)] font-mono">
-                        {new Date(log.createdAt).toLocaleTimeString()}
-                      </span>
+            <Link to="/admin/shops" className="text-xs font-semibold text-[#007AFF] dark:text-[#0A84FF] hover:underline flex items-center gap-1">
+              <span>View All</span>
+              <ArrowRight size={12} />
+            </Link>
+          </CardHeader>
+          <CardBody className="p-0">
+            {loading ? (
+              <TableSkeleton rows={4} cols={3} />
+            ) : recentShops.length === 0 ? (
+              <div className="p-8 text-center text-xs text-[var(--text-muted)]">No shops registered yet.</div>
+            ) : (
+              <div className="divide-y divide-[var(--border)]">
+                {recentShops.map((s) => (
+                  <div key={s.id} className="p-3.5 sm:px-5 flex items-center justify-between text-xs hover:bg-[rgba(0,122,255,0.04)] transition-colors">
+                    <div className="min-w-0 mr-3">
+                      <p className="font-semibold text-[var(--text)] truncate">{s.name}</p>
+                      <p className="text-[11px] text-[var(--text-muted)] truncate">Owner: {s.owner?.email || s.owner?.name || 'N/A'}</p>
                     </div>
-                    <p className="text-xs text-[var(--text-muted)]">
-                      {log.user ? `${log.user.name || log.user.email} (${log.user.role})` : 'System Event'}
-                    </p>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Badge variant={s.status === 'ACTIVE' ? 'green' : 'red'} dot>
+                        {s.status}
+                      </Badge>
+                    </div>
                   </div>
-                  <span className="text-[11px] font-mono text-[var(--text-muted)] shrink-0">
-                    {log.ipAddress || '-'}
-                  </span>
-                </div>
-              ))}
+                ))}
+              </div>
+            )}
+          </CardBody>
+        </Card>
+
+        {/* Recent Security Audits */}
+        <Card>
+          <CardHeader className="flex items-center justify-between px-5 py-3.5 border-b border-[var(--border)]">
+            <div>
+              <h2 className="text-sm font-semibold text-[var(--text)]">Live Security Audit Log</h2>
+              <p className="text-xs text-[var(--text-muted)]">Most recent administrative & auth events</p>
             </div>
-          )}
-        </div>
+            <Link to="/admin/audit-logs" className="text-xs font-semibold text-[#007AFF] dark:text-[#0A84FF] hover:underline flex items-center gap-1">
+              <span>View All Logs</span>
+              <ArrowRight size={12} />
+            </Link>
+          </CardHeader>
+          <CardBody className="p-0">
+            {loading ? (
+              <TableSkeleton rows={4} cols={3} />
+            ) : recentAudits.length === 0 ? (
+              <div className="p-8 text-center text-xs text-[var(--text-muted)]">No security logs recorded yet.</div>
+            ) : (
+              <div className="divide-y divide-[var(--border)]">
+                {recentAudits.map((a) => (
+                  <div key={a.id} className="p-3.5 sm:px-5 flex items-center justify-between text-xs hover:bg-[rgba(0,122,255,0.04)] transition-colors">
+                    <div className="min-w-0 mr-3">
+                      <p className="font-mono font-medium text-[var(--text)] truncate">{a.action}</p>
+                      <p className="text-[11px] text-[var(--text-muted)] truncate">
+                        Actor: {a.user?.name || a.user?.email || 'System'} • {new Date(a.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                    <Badge
+                      variant={
+                        a.action === 'LOGIN_SUCCESS' ? 'green'
+                        : a.action === 'LOGIN_FAILED' || a.action?.includes('SUSPEND') ? 'red'
+                        : 'blue'
+                      }
+                      dot
+                    >
+                      {a.action}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardBody>
+        </Card>
       </div>
     </div>
   )

@@ -1,4 +1,5 @@
-import { Outlet, NavLink, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { Outlet, NavLink, useNavigate, Link } from 'react-router-dom'
 import {
   ShieldAlert,
   Store,
@@ -11,13 +12,20 @@ import {
   CreditCard,
   Cpu,
   ArrowUpRight,
+  Menu,
+  X,
+  ShieldCheck,
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import ThemeToggle from '../ui/ThemeToggle'
+import MacTrafficLights from '../ui/MacTrafficLights'
+import { BrandMark } from '../ui/BrandMark'
+import clsx from 'clsx'
 
 export default function AdminLayout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   const handleLogout = () => {
     logout()
@@ -27,29 +35,29 @@ export default function AdminLayout() {
   // Verify Super Admin access
   if (!user || user.role !== 'SUPER_ADMIN') {
     return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-[#09090B] text-zinc-100">
-        <div className="bg-[#121215] border border-zinc-800 rounded-2xl p-8 max-w-md w-full text-center shadow-2xl space-y-4">
-          <div className="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center mx-auto">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-[var(--bg)] text-[var(--text)]">
+        <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-8 max-w-md w-full text-center shadow-2xl space-y-4">
+          <div className="w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 flex items-center justify-center mx-auto">
             <ShieldAlert size={24} strokeWidth={2} />
           </div>
           <div>
-            <h2 className="text-base font-bold text-white tracking-tight">Super Admin Restricted</h2>
-            <p className="text-xs text-zinc-400 mt-2 leading-relaxed">
+            <h2 className="text-base font-bold text-[var(--text)] tracking-tight">Super Admin Restricted</h2>
+            <p className="text-xs text-[var(--text-muted)] mt-2 leading-relaxed">
               {user
-                ? `You are logged in as ${user.email} (${user.role}). This master control website is restricted to Super Administrator accounts.`
+                ? `You are logged in as ${user.email} (${user.role}). This master control console is restricted to Super Administrator accounts.`
                 : 'Authentication required. Please sign in to the Super Admin Master Console.'}
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 pt-2">
             <button
               onClick={() => navigate('/admin/login')}
-              className="flex-1 py-2 px-3 bg-[#0E7490] hover:bg-[#155E75] text-white rounded-xl text-xs font-semibold shadow-xs transition-colors"
+              className="btn btn-primary btn-md flex-1 text-xs"
             >
               Sign In to Super Admin
             </button>
             <button
               onClick={() => navigate('/dashboard')}
-              className="py-2 px-3 border border-zinc-700 hover:bg-zinc-800 text-zinc-300 rounded-xl text-xs font-medium transition-colors"
+              className="btn btn-secondary btn-md text-xs"
             >
               Shop Portal
             </button>
@@ -70,116 +78,171 @@ export default function AdminLayout() {
     { to: '/admin/system', icon: Cpu, label: 'System Diagnostics' },
   ]
 
+  const SidebarContent = ({ onNavClick }) => (
+    <div className="flex flex-col h-full">
+      {/* Title Bar Chrome */}
+      <div className="h-14 px-4.5 flex items-center justify-between border-b border-black/[0.08] dark:border-white/[0.08] shrink-0">
+        <div className="flex items-center gap-3">
+          <MacTrafficLights size="sm" />
+          <div className="h-3.5 w-px bg-black/[0.1] dark:bg-white/[0.1] mx-0.5" />
+          <Link to="/admin" className="flex items-center gap-2">
+            <BrandMark size={20} />
+            <div className="leading-tight">
+              <span className="text-xs font-bold text-[var(--text)] tracking-tight block">SmartPrint</span>
+              <span className="text-[9px] font-bold text-[#007AFF] dark:text-[#0A84FF] uppercase tracking-wider block">
+                Master Console
+              </span>
+            </div>
+          </Link>
+        </div>
+      </div>
+
+      {/* Nav */}
+      <nav className="flex-1 px-3 py-3 space-y-1 overflow-y-auto">
+        <p className="px-2.5 pt-1 mb-1.5 text-[10px] font-bold text-[var(--text-muted)] uppercase tracking-wider">
+          Super Admin Operations
+        </p>
+        {navItems.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.end}
+            onClick={onNavClick}
+            className={({ isActive }) =>
+              clsx(
+                'group flex items-center gap-2.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all duration-120',
+                isActive
+                  ? 'bg-[#007AFF]/12 dark:bg-[#0A84FF]/20 text-[#007AFF] dark:text-[#0A84FF] font-semibold shadow-xs'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
+              )
+            }
+          >
+            <item.icon size={15} strokeWidth={1.8} className="shrink-0" />
+            <span className="truncate">{item.label}</span>
+          </NavLink>
+        ))}
+      </nav>
+
+      {/* Admin User Card & Links */}
+      <div className="p-3 border-t border-black/[0.08] dark:border-white/[0.08] space-y-2 shrink-0">
+        <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-xl bg-black/[0.03] dark:bg-white/[0.04] border border-black/[0.06] dark:border-white/[0.08]">
+          <div className="w-7 h-7 rounded-lg bg-[#007AFF]/15 text-[#007AFF] dark:text-[#0A84FF] flex items-center justify-center text-[10px] font-bold shrink-0">
+            ROOT
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-xs font-semibold text-[var(--text)] truncate">{user?.name || 'Super Admin'}</p>
+            <p className="text-[10px] text-[var(--text-muted)] truncate font-mono">{user?.email}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1.5 pt-1">
+          <Link
+            to="/dashboard"
+            className="flex-1 flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-black/[0.04] dark:hover:bg-white/[0.06] border border-black/[0.06] dark:border-white/[0.08] transition-colors"
+          >
+            <span>Shop App</span>
+            <ArrowUpRight size={12} />
+          </Link>
+          <button
+            onClick={handleLogout}
+            className="flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-500/10 transition-colors cursor-pointer"
+          >
+            <LogOut size={13} strokeWidth={1.75} />
+            <span>Exit</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+
   return (
-    <div className="min-h-screen bg-[var(--bg)] flex flex-col md:flex-row font-sans">
-      {/* ── Super Admin Master Sidebar ── */}
-      <aside
-        className="w-full md:w-64 shrink-0 flex flex-col"
-        style={{ background: '#09090B', borderRight: '1px solid #27272A' }}
-      >
-        {/* Logo & Platform Badge */}
-        <div className="px-5 py-5 border-b" style={{ borderColor: '#27272A' }}>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-[#0E7490] flex items-center justify-center shrink-0 shadow-md shadow-[#0E7490]/20">
-                <Printer size={15} className="text-white" strokeWidth={2} />
-              </div>
-              <div className="leading-tight">
-                <span className="block text-sm font-bold text-white tracking-tight">SmartPrint</span>
-                <span className="block text-[10px] text-amber-400 font-semibold uppercase tracking-widest">
-                  Master Console
-                </span>
-              </div>
-            </div>
-
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" title="System Online" />
-          </div>
-        </div>
-
-        {/* Navigation Items */}
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          <p className="px-3 mb-2 text-[10px] font-semibold text-zinc-500 uppercase tracking-widest">
-            Platform Operations
-          </p>
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) =>
-                `group relative flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-medium transition-all duration-150 ${
-                  isActive
-                    ? 'bg-[#0E7490]/20 text-[#22D3EE] font-semibold'
-                    : 'text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800/60'
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  {isActive && (
-                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-[#0E7490] rounded-r-md" />
-                  )}
-                  <item.icon size={15} strokeWidth={1.8} className="shrink-0" />
-                  <span>{item.label}</span>
-                </>
-              )}
-            </NavLink>
-          ))}
-        </nav>
-
-        {/* User Info & Switcher */}
-        <div className="px-3 py-3 border-t space-y-2" style={{ borderColor: '#27272A' }}>
-          <div className="flex items-center justify-between px-3 py-1.5 rounded-lg bg-zinc-900/60 border border-zinc-800/80">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="w-6 h-6 rounded-md bg-[#0E7490]/25 text-[#22D3EE] flex items-center justify-center text-[10px] font-bold">
-                ROOT
-              </div>
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold text-white truncate">{user?.name || 'Super Admin'}</p>
-                <p className="text-[9px] text-zinc-500 truncate font-mono">{user?.email}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1.5 pt-1">
-            <a
-              href="/dashboard"
-              target="_blank"
-              rel="noreferrer"
-              className="flex-1 flex items-center justify-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-zinc-400 hover:text-zinc-100 bg-zinc-900 hover:bg-zinc-800 transition-colors"
-            >
-              <span>Shop App</span>
-              <ArrowUpRight size={12} />
-            </a>
-            <button
-              onClick={handleLogout}
-              className="flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-red-400 hover:bg-red-500/10 transition-colors"
-            >
-              <LogOut size={13} strokeWidth={1.75} />
-              <span>Exit</span>
-            </button>
-          </div>
-        </div>
+    <div className="flex h-screen overflow-hidden bg-[var(--bg)] text-[var(--text)] transition-colors duration-150">
+      {/* ── Desktop macOS Sidebar ── */}
+      <aside className="hidden lg:flex lg:flex-col w-64 mac-vibrancy-sidebar h-full shrink-0 border-r border-black/[0.08] dark:border-white/[0.08] select-none">
+        <SidebarContent />
       </aside>
 
+      {/* ── Mobile Sidebar Drawer ── */}
+      <aside
+        className={clsx(
+          'fixed inset-y-0 left-0 z-50 w-64 bg-white/95 dark:bg-[#1E1E1E]/95 backdrop-blur-xl border-r border-black/[0.08] dark:border-white/[0.08] shadow-2xl transition-transform duration-200 ease-in-out lg:hidden flex flex-col',
+          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full pointer-events-none'
+        )}
+      >
+        <div className="flex items-center justify-between px-4 py-3.5 border-b border-black/[0.08] dark:border-white/[0.08]">
+          <div className="flex items-center gap-2">
+            <MacTrafficLights size="sm" onClose={() => setMobileMenuOpen(false)} />
+            <span className="text-xs font-bold text-[var(--text)] ml-1">Super Admin Console</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(false)}
+            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-black/[0.05] dark:hover:bg-white/[0.06] transition-colors cursor-pointer"
+            aria-label="Close sidebar"
+          >
+            <X size={16} strokeWidth={2} />
+          </button>
+        </div>
+        <SidebarContent onNavClick={() => setMobileMenuOpen(false)} />
+      </aside>
+
+      {/* Mobile Drawer Backdrop Overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-xs lg:hidden transition-opacity duration-200"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
       {/* ── Main Content Area ── */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden bg-[var(--bg)] transition-colors duration-150">
-        {/* Header */}
-        <header className="h-14 px-6 md:px-8 flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] shrink-0">
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-semibold text-[var(--text)] tracking-tight">
-              SmartPrint Central Command Console
+      <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+        {/* Top Header */}
+        <header className="h-14 mac-vibrancy-header flex items-center px-4 sm:px-6 gap-3 shrink-0 transition-colors duration-150 sticky top-0 z-20">
+          <button
+            onClick={() => setMobileMenuOpen(true)}
+            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors duration-150 lg:hidden"
+            aria-label="Open menu"
+          >
+            <Menu size={18} strokeWidth={1.75} />
+          </button>
+
+          <div className="flex items-center gap-2.5">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase bg-[#007AFF]/12 dark:bg-[#0A84FF]/20 text-[#007AFF] dark:text-[#0A84FF] border border-[#007AFF]/25 shadow-xs">
+              <ShieldCheck size={12} strokeWidth={2.2} />
+              <span>SUPER ADMIN</span>
             </span>
-            <span className="hidden sm:inline-block px-2 py-0.5 rounded-md text-[10px] font-mono bg-[var(--surface-hover)] border border-[var(--border)] text-[var(--text-muted)]">
-              Environment: AWS EC2 Production
+            <span className="hidden sm:inline-block text-xs font-semibold text-[var(--text-muted)]">
+              Central Command Console
             </span>
           </div>
+
+          <div className="flex-1" />
+
           <div className="flex items-center gap-2">
+            <span className="hidden md:inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[10px] font-mono bg-black/[0.04] dark:bg-white/[0.06] border border-black/[0.06] dark:border-white/[0.08] text-[var(--text-muted)]">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Production Node
+            </span>
+
             <ThemeToggle />
+
+            <div className="h-4 w-px bg-black/[0.08] dark:bg-white/[0.08] mx-0.5" />
+
+            <div className="flex items-center gap-2 px-2 py-1 rounded-lg">
+              <div className="w-6 h-6 rounded-md bg-[#007AFF]/15 border border-[#007AFF]/25 flex items-center justify-center shrink-0">
+                <span className="text-[11px] font-bold text-[#007AFF] dark:text-[#0A84FF]">
+                  {user?.name?.[0]?.toUpperCase() || 'A'}
+                </span>
+              </div>
+              <span className="hidden sm:block text-xs font-semibold text-[var(--text)] leading-none truncate max-w-[120px]">
+                {user?.name || 'Admin'}
+              </span>
+            </div>
           </div>
         </header>
 
-        <main className="flex-1 p-6 md:p-8 overflow-y-auto">
+        {/* Page Content */}
+        <main className="flex-1 overflow-y-auto px-4 py-6 sm:px-6 lg:px-8 page-enter">
           <Outlet />
         </main>
       </div>

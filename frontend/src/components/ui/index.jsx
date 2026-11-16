@@ -1,4 +1,6 @@
 import clsx from 'clsx'
+import { X } from 'lucide-react'
+import MacTrafficLights from './MacTrafficLights'
 
 // ── Button ────────────────────────────────────────────────
 export function Button({
@@ -586,6 +588,72 @@ export function TableCell({ children, className, ...props }) {
     <td className={clsx('px-4 py-3 text-sm tabular-nums', className)} {...props}>
       {children}
     </td>
+  )
+}
+
+// ── TableSkeleton ─────────────────────────────────────────
+export function TableSkeleton({ rows = 5, cols = 6, className }) {
+  return (
+    <div className={clsx('divide-y divide-border', className)}>
+      {Array.from({ length: rows }).map((_, r) => (
+        <div key={r} className="px-4 py-3.5 flex items-center gap-4">
+          {Array.from({ length: cols }).map((_, c) => (
+            <div
+              key={c}
+              className="h-4 bg-black/[0.04] dark:bg-white/[0.06] rounded animate-pulse"
+              style={{ width: `${c === 0 ? 30 : c === cols - 1 ? 20 : 15}%` }}
+            />
+          ))}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ── Modal (macOS Sheet Dialog) ───────────────────────────
+export function Modal({
+  isOpen,
+  onClose,
+  title,
+  subtitle,
+  children,
+  maxWidth = 'max-w-lg',
+  className,
+}) {
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 dark:bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+      <div
+        className={clsx(
+          'mac-sheet rounded-2xl w-full overflow-hidden animate-scaleIn max-h-[90vh] flex flex-col',
+          maxWidth,
+          className
+        )}
+      >
+        {title && (
+          <div className="px-5 py-3.5 border-b border-black/[0.08] dark:border-white/[0.08] flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-3 min-w-0">
+              <MacTrafficLights size="sm" onClose={onClose} />
+              <div className="h-3 w-px bg-black/[0.1] dark:bg-white/[0.1] mx-0.5" />
+              <div className="min-w-0">
+                <h3 className="font-semibold text-text text-sm truncate">{title}</h3>
+                {subtitle && <p className="text-[11px] text-text-muted truncate">{subtitle}</p>}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-1 text-text-muted hover:text-text rounded-lg transition-colors duration-150 cursor-pointer shrink-0"
+              aria-label="Close modal"
+            >
+              <X size={15} strokeWidth={2} />
+            </button>
+          </div>
+        )}
+        <div className="p-5 overflow-y-auto flex-1">{children}</div>
+      </div>
+    </div>
   )
 }
 

@@ -7,10 +7,27 @@ import {
   RefreshCw,
   Plus,
   Trash2,
-  X,
   ExternalLink,
+  Download,
 } from 'lucide-react'
 import api from '../../lib/api'
+import {
+  Card,
+  CardBody,
+  Badge,
+  Button,
+  Input,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  TableSkeleton,
+  EmptyState,
+  Modal,
+} from '../../components/ui'
+import { exportToCsv } from '../../lib/csvExport'
 import toast from 'react-hot-toast'
 
 export default function AdminShopsPage() {
@@ -89,7 +106,7 @@ export default function AdminShopsPage() {
     try {
       setActionLoading(true)
       await api.delete(`/admin/shops/${shop.id}`)
-      toast.success(`Shop "${shop.name}" deleted permanently`)
+      toast.success(`Shop "${shop.name}" permanently deleted`)
       await loadShops()
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to delete shop')
@@ -98,17 +115,19 @@ export default function AdminShopsPage() {
     }
   }
 
-  const handleUpdateStatus = async (shopId, newStatus) => {
-    const actionLabel = newStatus === 'ACTIVE' ? 'activate' : 'suspend'
-    if (!window.confirm(`Are you sure you want to ${actionLabel} this print shop?`)) return
+  const handleToggleStatus = async (shop) => {
+    const nextStatus = shop.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE'
+    const confirmMessage =
+      nextStatus === 'SUSPENDED'
+        ? `Are you sure you want to suspend "${shop.name}"? Customer storefront and QR portal ordering will be immediately blocked.`
+        : `Reactivate "${shop.name}"? Customer portal and printing will be restored immediately.`
+
+    if (!window.confirm(confirmMessage)) return
 
     try {
       setActionLoading(true)
-      await api.patch(`/admin/shops/${shopId}/status`, {
-        status: newStatus,
-        reason: `Super Admin marked as ${newStatus}`,
-      })
-      toast.success(`Shop status updated to ${newStatus}`)
+      await api.patch(`/admin/shops/${shop.id}/status`, { status: nextStatus })
+      toast.success(`Shop ${shop.name} is now ${nextStatus}`)
       await loadShops()
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to update shop status')
@@ -117,14 +136,11 @@ export default function AdminShopsPage() {
     }
   }
 
-  const handleUpdateTier = async (shopId, subscriptionTier) => {
+  const handleTierChange = async (shop, newTier) => {
     try {
       setActionLoading(true)
-      await api.patch(`/admin/shops/${shopId}/status`, {
-        subscriptionTier,
-        reason: `Subscription tier changed to ${subscriptionTier}`,
-      })
-      toast.success(`Subscription tier updated to ${subscriptionTier}`)
+      await api.patch(`/admin/shops/${shop.id}/tier`, { tier: newTier })
+      toast.success(`Shop ${shop.name} plan updated to ${newTier}`)
       await loadShops()
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to update tier')
@@ -133,40 +149,81 @@ export default function AdminShopsPage() {
     }
   }
 
+  const handleExportCsv = () => {
+    const columns = [
+      { label: 'Shop ID', key: 'id' },
+      { label: 'Shop Name', key: 'name' },
+      { label: 'Shop Code', key: 'shopCode' },
+      { label: 'Status', key: 'status' },
+      { label: 'Tier', key: 'tier' },
+      { label: 'Owner Email', accessor: (s) => s.owner?.email || '' },
+      { label: 'Owner Name', accessor: (s) => s.owner?.name || '' },
+      { label: 'Phone', key: 'phone' },
+      { label: 'Address', key: 'address' },
+      { label: 'Total Orders', accessor: (s) => s._count?.orders ?? 0 },
+      { label: 'Printers', accessor: (s) => s._count?.printers ?? 0 },
+      { label: 'Created At', accessor: (s) => new Date(s.createdAt).toISOString() },
+    ]
+
+    const success = exportToCsv(`smartprint_shops_${new Date().toISOString().slice(0, 10)}`, shops, columns)
+    if (success) {
+      toast.success(`Exported ${shops.length} shops to CSV`)
+    } else {
+      toast.error('No shop records to export')
+    }
+  }
+
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-xl font-bold text-[var(--text)] tracking-tight flex items-center gap-2">
-            <Store className="text-[#0E7490]" size={20} strokeWidth={2} />
-            Shop Management & Tenant Control
+          <h1 className="font-display text-2xl font-bold text-[var(--text)] tracking-tight flex items-center gap-2">
+            <Store className="text-[#007AFF] dark:text-[#0A84FF]" size={22} strokeWidth={2} />
+            <span>Shop Management & Multi-Tenant Control</span>
           </h1>
-          <p className="text-xs text-[var(--text-muted)] mt-0.5">
-            Create new tenant shops, configure subscriptions, suspend or activate storefronts, and delete tenant nodes.
+          <p className="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5">
+            Provision new tenant shops, manage subscriptions, moderate storefront availability, and review workload.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleExportCsv}
+            disabled={shops.length === 0}
+            className="text-xs"
+          >
+            <Download size={13} strokeWidth={1.75} />
+            <span>Export CSV</span>
+          </Button>
+
+          <Button
+            variant="primary"
+            size="sm"
             onClick={() => setShowCreateModal(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-[#0E7490] hover:bg-[#155E75] text-white text-xs font-semibold rounded-lg shadow-sm transition-colors duration-150"
+            className="text-xs"
           >
             <Plus size={14} strokeWidth={2} />
-            Create Shop
-          </button>
-          <button
+            <span>Create Shop</span>
+          </Button>
+
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={loadShops}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[var(--surface)] border border-[var(--border)] text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)] text-xs font-medium rounded-lg shadow-xs transition-colors duration-150"
+            loading={loading}
+            className="text-xs"
           >
             <RefreshCw size={13} strokeWidth={1.75} className={loading ? 'animate-spin' : ''} />
-            Refresh
-          </button>
+            <span>Refresh</span>
+          </Button>
         </div>
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-3 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <Card className="p-3 flex flex-col sm:flex-row items-center justify-between gap-3">
         <form onSubmit={(e) => { e.preventDefault(); loadShops(); }} className="relative w-full sm:w-80">
           <Search className="absolute left-3 top-2.5 text-[var(--text-muted)]" size={14} strokeWidth={1.75} />
           <input
@@ -174,237 +231,219 @@ export default function AdminShopsPage() {
             placeholder="Search by shop name, code, email..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="input pl-9 h-9 text-xs"
+            className="input pl-9 h-9 text-xs w-full"
           />
         </form>
 
-        <div className="flex items-center gap-1 w-full sm:w-auto">
+        <div className="flex items-center gap-1.5 w-full sm:w-auto">
           {['ALL', 'ACTIVE', 'SUSPENDED'].map((st) => (
             <button
               key={st}
               onClick={() => setStatusFilter(st)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-150 ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-150 cursor-pointer ${
                 statusFilter === st
-                  ? 'bg-[#0E7490] text-white shadow-xs'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)]'
+                  ? 'bg-[#007AFF] text-white shadow-xs font-semibold'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
               }`}
             >
               {st}
             </button>
           ))}
         </div>
-      </div>
+      </Card>
 
       {/* Shops Table */}
-      <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl overflow-hidden shadow-xs">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-[var(--surface-hover)] text-[var(--text-muted)] border-b border-[var(--border)] uppercase tracking-wider text-[11px] font-semibold sticky top-0">
+      <Card className="overflow-hidden">
+        {loading ? (
+          <TableSkeleton rows={6} cols={6} />
+        ) : shops.length === 0 ? (
+          <EmptyState
+            icon={Store}
+            title="No shops found"
+            description="No tenant shops match the current search or status filter."
+          />
+        ) : (
+          <Table>
+            <TableHeader>
               <tr>
-                <th className="py-2.5 px-4">Shop Details</th>
-                <th className="py-2.5 px-4">Shop Code</th>
-                <th className="py-2.5 px-4">Status</th>
-                <th className="py-2.5 px-4">Subscription Plan</th>
-                <th className="py-2.5 px-4">Workload Metrics</th>
-                <th className="py-2.5 px-4 text-right">Moderation Controls</th>
+                <TableHead>Shop Details</TableHead>
+                <TableHead>Code & Link</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Subscription Plan</TableHead>
+                <TableHead className="text-right">Workload Metrics</TableHead>
+                <TableHead className="text-right">Moderation Controls</TableHead>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--border)] text-[var(--text)]">
-              {shops.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-10 text-center text-[var(--text-muted)]">
-                    No shops match the search or status filter.
-                  </td>
-                </tr>
-              ) : (
-                shops.map((shop) => (
-                  <tr key={shop.id} className="hover:bg-[var(--surface-hover)] transition-colors duration-150 h-12">
-                    <td className="py-2.5 px-4">
-                      <div className="font-semibold text-xs text-[var(--text)] flex items-center gap-1.5">
-                        <span>{shop.name}</span>
-                        <a
-                          href={`/shops/${shop.shopCode}`}
-                          target="_blank"
-                          rel="noreferrer"
-                          title="Open Customer QR Upload Portal"
-                          className="text-[#0E7490] hover:text-[#155E75]"
-                        >
-                          <ExternalLink size={12} />
-                        </a>
+            </TableHeader>
+            <TableBody>
+              {shops.map((shop) => (
+                <TableRow key={shop.id}>
+                  <TableCell>
+                    <div>
+                      <div className="font-bold text-xs text-[var(--text)]">{shop.name}</div>
+                      <div className="text-[11px] text-[var(--text-muted)] truncate max-w-xs">{shop.address || 'No physical address'}</div>
+                      <div className="text-[10px] text-[var(--text-muted)] font-mono mt-0.5">
+                        Owner: {shop.owner?.name || shop.owner?.email || 'Unassigned'}
                       </div>
-                      <div className="text-[11px] text-[var(--text-muted)] mt-0.5">
-                        {shop.address || shop.phone || shop.email || 'No contact details'}
-                      </div>
-                    </td>
-                    <td className="py-2.5 px-4 font-mono font-medium text-xs text-[#0E7490]">{shop.shopCode}</td>
-                    <td className="py-2.5 px-4">
-                      <span
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium border ${
-                          shop.status === 'ACTIVE'
-                            ? 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800'
-                            : 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800'
-                        }`}
-                      >
-                        <span className={`w-1 h-1 rounded-full ${shop.status === 'ACTIVE' ? 'bg-green-500' : 'bg-red-500'}`} />
-                        {shop.status}
+                    </div>
+                  </TableCell>
+
+                  <TableCell>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-mono text-xs font-semibold text-[#007AFF] dark:text-[#0A84FF] px-1.5 py-0.5 rounded bg-[#007AFF]/10">
+                        {shop.shopCode}
                       </span>
-                    </td>
-                    <td className="py-2.5 px-4">
-                      <select
-                        value={shop.subscriptionTier || 'FREE'}
-                        onChange={(e) => handleUpdateTier(shop.id, e.target.value)}
-                        className="px-2 py-1 bg-[var(--surface-hover)] border border-[var(--border)] rounded-md text-xs font-medium text-[var(--text)] focus:outline-hidden"
+                      <a
+                        href={`/s/${shop.shopCode}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-[var(--text-muted)] hover:text-[var(--text)] transition-colors p-1"
+                        title="Open customer storefront"
                       >
-                        <option value="FREE">Free Tier</option>
-                        <option value="STARTER">Starter Plan</option>
-                        <option value="PRO">Pro Business</option>
-                        <option value="ENTERPRISE">Enterprise</option>
-                      </select>
-                    </td>
-                    <td className="py-2.5 px-4 text-[var(--text-muted)]">
-                      <div className="tabular-nums font-medium text-[var(--text)]">{shop._count?.orders || 0} Orders</div>
-                      <div className="text-[11px] text-[var(--text-muted)] tabular-nums">{shop._count?.printers || 0} Printers</div>
-                    </td>
-                    <td className="py-2.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-1.5">
-                        {shop.status === 'SUSPENDED' ? (
-                          <button
-                            onClick={() => handleUpdateStatus(shop.id, 'ACTIVE')}
-                            disabled={actionLoading}
-                            className="inline-flex items-center gap-1 px-2 py-1 bg-green-50 text-green-700 hover:bg-green-100 border border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800 rounded-lg text-xs font-medium transition-colors"
-                          >
-                            <CheckCircle2 size={12} strokeWidth={1.75} />
-                            Activate
-                          </button>
+                        <ExternalLink size={12} />
+                      </a>
+                    </div>
+                  </TableCell>
+
+                  <TableCell>
+                    <Badge variant={shop.status === 'ACTIVE' ? 'green' : 'red'} dot>
+                      {shop.status}
+                    </Badge>
+                  </TableCell>
+
+                  <TableCell>
+                    <select
+                      value={shop.tier || 'FREE'}
+                      onChange={(e) => handleTierChange(shop, e.target.value)}
+                      disabled={actionLoading}
+                      className="input py-1 px-2 text-xs rounded-lg h-7 font-medium w-auto"
+                    >
+                      <option value="FREE">FREE Tier</option>
+                      <option value="PRO">PRO Tier</option>
+                      <option value="ENTERPRISE">ENTERPRISE</option>
+                    </select>
+                  </TableCell>
+
+                  <TableCell className="text-right font-mono text-xs text-[var(--text-muted)]">
+                    <div>{shop._count?.orders ?? 0} Orders</div>
+                    <div className="text-[10px]">{shop._count?.printers ?? 0} Printers</div>
+                  </TableCell>
+
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1.5">
+                      <Button
+                        variant={shop.status === 'ACTIVE' ? 'secondary' : 'primary'}
+                        size="sm"
+                        disabled={actionLoading}
+                        onClick={() => handleToggleStatus(shop)}
+                        className="text-xs h-7 px-2"
+                      >
+                        {shop.status === 'ACTIVE' ? (
+                          <>
+                            <AlertTriangle size={12} className="text-amber-500" />
+                            <span>Suspend</span>
+                          </>
                         ) : (
-                          <button
-                            onClick={() => handleUpdateStatus(shop.id, 'SUSPENDED')}
-                            disabled={actionLoading}
-                            className="inline-flex items-center gap-1 px-2 py-1 bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800 rounded-lg text-xs font-medium transition-colors"
-                          >
-                            <AlertTriangle size={12} strokeWidth={1.75} />
-                            Suspend
-                          </button>
+                          <>
+                            <CheckCircle2 size={12} className="text-emerald-500" />
+                            <span>Reactivate</span>
+                          </>
                         )}
+                      </Button>
 
-                        <button
-                          onClick={() => handleDeleteShop(shop)}
-                          disabled={actionLoading}
-                          title="Permanently Delete Shop & All Data"
-                          className="p-1.5 rounded-lg border border-red-200 dark:border-red-900/40 text-red-600 hover:bg-red-500/15 transition-colors"
-                        >
-                          <Trash2 size={13} strokeWidth={1.75} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        disabled={actionLoading}
+                        onClick={() => handleDeleteShop(shop)}
+                        className="text-xs h-7 px-2"
+                        title="Permanently remove shop node"
+                      >
+                        <Trash2 size={12} />
+                        <span>Delete</span>
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </Card>
 
-      {/* ── CREATE SHOP MODAL ── */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-[var(--surface)] border border-[var(--border)] rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-scaleIn">
-            <div className="p-5 border-b border-[var(--border)] flex items-center justify-between">
-              <div>
-                <h3 className="text-base font-semibold text-[var(--text)]">Create Print Shop</h3>
-                <p className="text-xs text-[var(--text-muted)]">Initialize a new tenant node with default pricing & settings.</p>
-              </div>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="p-1.5 rounded-lg hover:bg-[var(--surface-hover)] text-[var(--text-muted)]"
-              >
-                <X size={16} />
-              </button>
-            </div>
+      {/* Create Shop Modal (using shared Modal component) */}
+      <Modal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title="Provision New Tenant Shop"
+        subtitle="Registers a new shop entity and optionally links it to an existing shop owner"
+      >
+        <form onSubmit={handleCreateShop} className="space-y-4">
+          <Input
+            label="Shop Name *"
+            placeholder="e.g. University Campus Print Hub"
+            value={createForm.name}
+            onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
+            required
+          />
 
-            <form onSubmit={handleCreateShop} className="p-5 space-y-4">
-              <div>
-                <label className="label text-xs">Shop Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={createForm.name}
-                  onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
-                  placeholder="e.g. Metro Quick Prints"
-                  className="input text-xs"
-                />
-              </div>
+          <Input
+            label="Shop Address"
+            placeholder="Room 102, Academic Block A"
+            value={createForm.address}
+            onChange={(e) => setCreateForm({ ...createForm, address: e.target.value })}
+          />
 
-              <div>
-                <label className="label text-xs">Shop Address / Location</label>
-                <input
-                  type="text"
-                  value={createForm.address}
-                  onChange={(e) => setCreateForm({ ...createForm, address: e.target.value })}
-                  placeholder="e.g. Ground Floor, Tech Park"
-                  className="input text-xs"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="label text-xs">Phone Number</label>
-                  <input
-                    type="tel"
-                    value={createForm.phone}
-                    onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })}
-                    placeholder="+91 9876543210"
-                    className="input text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="label text-xs">Shop Contact Email</label>
-                  <input
-                    type="email"
-                    value={createForm.email}
-                    onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
-                    placeholder="contact@shop.com"
-                    className="input text-xs"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="label text-xs">Assign Existing Owner (Optional)</label>
-                <select
-                  value={createForm.ownerId}
-                  onChange={(e) => setCreateForm({ ...createForm, ownerId: e.target.value })}
-                  className="input text-xs"
-                >
-                  <option value="">Assign to Me (Super Admin)</option>
-                  {owners.map((o) => (
-                    <option key={o.id} value={o.id}>
-                      {o.name || o.email} ({o.email})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex justify-end gap-2.5 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 border border-[var(--border)] rounded-lg text-xs font-medium text-[var(--text-muted)] hover:bg-[var(--surface-hover)]"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={actionLoading}
-                  className="px-4 py-2 bg-[#0E7490] hover:bg-[#155E75] text-white rounded-lg text-xs font-semibold shadow-xs"
-                >
-                  {actionLoading ? 'Creating Shop...' : 'Create Shop'}
-                </button>
-              </div>
-            </form>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Input
+              label="Contact Phone"
+              placeholder="+91 9876543210"
+              value={createForm.phone}
+              onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })}
+            />
+            <Input
+              label="Contact Email"
+              type="email"
+              placeholder="shop@campusprint.com"
+              value={createForm.email}
+              onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
+            />
           </div>
-        </div>
-      )}
+
+          <div className="space-y-1">
+            <label className="label">Assign Shop Owner</label>
+            <select
+              value={createForm.ownerId}
+              onChange={(e) => setCreateForm({ ...createForm, ownerId: e.target.value })}
+              className="input text-xs"
+            >
+              <option value="">-- Leave Unassigned (Can assign later) --</option>
+              {owners.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.name || o.email} ({o.email})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--border)]">
+            <Button
+              variant="secondary"
+              type="button"
+              onClick={() => setShowCreateModal(false)}
+              disabled={actionLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              type="submit"
+              loading={actionLoading}
+            >
+              Provision Shop
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }

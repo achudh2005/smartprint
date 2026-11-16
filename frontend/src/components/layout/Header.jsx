@@ -1,4 +1,4 @@
-import { Menu, Search } from 'lucide-react'
+import { Menu, Search, ShieldCheck } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { Link, useParams } from 'react-router-dom'
 import NotificationBell from './NotificationBell'
@@ -33,6 +33,17 @@ export default function Header({ onMenuClick }) {
 
       {/* Right actions */}
       <div className="flex items-center gap-2">
+        {user?.role === 'SUPER_ADMIN' && (
+          <Link
+            to="/admin"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold tracking-wide uppercase bg-[#007AFF]/12 dark:bg-[#0A84FF]/20 text-[#007AFF] dark:text-[#0A84FF] border border-[#007AFF]/25 shadow-xs hover:opacity-90 transition-opacity"
+            title="Active Super Admin Session — Click to open Master Console"
+          >
+            <ShieldCheck size={12} strokeWidth={2.2} />
+            <span>Super Admin</span>
+          </Link>
+        )}
+
         <ThemeToggle />
 
         <NotificationBell shopId={shopId || user?.shops?.[0]?.id} />
