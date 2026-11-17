@@ -37,8 +37,8 @@ function isChatWindowOpen(order) {
   }
 
   // 2. Check customer session expiry
-  if (order.customerSession) {
-    const session = order.customerSession;
+  const session = order.session || order.customerSession;
+  if (session) {
     const isSessionExpired = session.status !== 'ACTIVE' || (session.expiresAt && new Date(session.expiresAt) < new Date());
     if (isSessionExpired) {
       return {
@@ -97,7 +97,7 @@ async function getOrderChat({ orderId, orderNumber, isShop, userId, limit = 50, 
       shop: {
         select: { id: true, name: true, phone: true },
       },
-      customerSession: {
+      session: {
         select: { id: true, status: true, expiresAt: true },
       },
     },
@@ -180,7 +180,7 @@ async function postOrderMessage({ orderId, orderNumber, senderType, senderUserId
       shop: {
         select: { id: true, name: true, phone: true },
       },
-      customerSession: {
+      session: {
         select: { id: true, status: true, expiresAt: true },
       },
     },
