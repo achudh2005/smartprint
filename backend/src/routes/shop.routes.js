@@ -8,6 +8,7 @@ const path = require('path');
 const shopController = require('../controllers/shop.controller');
 const printerController = require('../controllers/printer.controller');
 const analyticsController = require('../controllers/analytics.controller');
+const chatController = require('../controllers/chat.controller');
 const { authenticate } = require('../middleware/auth.middleware');
 const { requireShopMembership, requireShopOwnerOrManager } = require('../middleware/auth.middleware');
 
@@ -115,6 +116,22 @@ router.get('/:shopId/orders/:orderId',
 router.patch('/:shopId/orders/:orderId/status',
   requireShopMembership,
   shopController.updateOrderStatus
+);
+
+// Order Two-Way Chat & Call Escalation
+router.get('/:shopId/orders/:orderId/chat',
+  requireShopMembership,
+  chatController.getShopOrderChat
+);
+
+router.post('/:shopId/orders/:orderId/chat',
+  requireShopMembership,
+  chatController.postShopOrderMessage
+);
+
+router.get('/:shopId/orders-unread-chat',
+  requireShopMembership,
+  chatController.getShopUnreadCounts
 );
 
 // Manual Printing endpoint (record print attempt)

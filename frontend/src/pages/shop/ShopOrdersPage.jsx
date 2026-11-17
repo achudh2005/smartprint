@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { User, ArrowUpDown, ArrowDown, ArrowUp, Clock, Filter, Sparkles, RefreshCw, ShoppingBag } from 'lucide-react';
+import { User, ArrowUpDown, ArrowDown, ArrowUp, Clock, Filter, Sparkles, RefreshCw, ShoppingBag, MessageSquare } from 'lucide-react';
 import api from '../../lib/api';
 import ShopNavTabs from '../../components/shop/ShopNavTabs';
 import { subscribeToShopEvents } from '../../lib/socket';
@@ -34,6 +34,16 @@ export default function ShopOrdersPage() {
   const [totalCount, setTotalCount] = useState(0);
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState('desc'); // 'desc' = Latest First
+  const [unreadChatCounts, setUnreadChatCounts] = useState({});
+
+  const fetchUnreadChatCounts = useCallback(async () => {
+    try {
+      const res = await api.get(`/shops/${shopId}/orders-unread-chat`);
+      if (res.data?.success) {
+        setUnreadChatCounts(res.data.data || {});
+      }
+    } catch (_) {}
+  }, [shopId]);
 
   // Client-side sort helper to keep list sorted at all times
   const sortOrdersList = useCallback((list, field, direction) => {
@@ -93,7 +103,8 @@ export default function ShopOrdersPage() {
 
   useEffect(() => {
     fetchOrders();
-  }, [fetchOrders]);
+    fetchUnreadChatCounts();
+  }, [fetchOrders, fetchUnreadChatCounts]);
 
   // Real-time updates via Socket.IO
   useEffect(() => {
@@ -113,7 +124,15 @@ export default function ShopOrdersPage() {
         setOrders((prev) =>
           prev.map((o) => (o.id === orderId ? { ...o, status } : o))
         );
-      }
+      },
+      onNewChatMessage: (payload) => {
+        if (payload?.orderId) {
+          setUnreadChatCounts((prev) => ({
+            ...prev,
+            [payload.orderId]: (prev[payload.orderId] || 0) + 1,
+          }));
+        }
+      },
     });
 
     return () => unsubscribe();
@@ -469,6 +488,15 @@ export default function ShopOrdersPage() {
                           >
                             {o.orderNumber}
                           </Link>
+                          {unreadChatCounts[o.id] > 0 && (
+                            <span
+                              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-[#007AFF]/15 text-[#007AFF] border border-[#007AFF]/25"
+                              title={`${unreadChatCounts[o.id]} unread customer message(s)`}
+                            >
+                              <MessageSquare size={10} strokeWidth={2.5} />
+                              {unreadChatCounts[o.id]}
+                            </span>
+                          )}
                           {isLatestRow && (
                             <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium bg-[var(--accent-tint)] text-[#0E7490] border border-[#0E7490]/20">
                               <Sparkles size={9} /> Latest

@@ -24,38 +24,66 @@ function initSocket(httpServer) {
   });
 
   // Authentication Middleware for WebSocket Connections
+  // Supports both Shop Owners (JWT) and Customers (sessionToken / orderNumber)
   io.use(async (socket, next) => {
     try {
       const token = socket.handshake.auth?.token || socket.handshake.query?.token;
-      if (!token) {
-        return next(new Error('Authentication error: Missing token'));
+      const sessionToken = socket.handshake.auth?.sessionToken || socket.handshake.query?.sessionToken;
+      const orderNumber = socket.handshake.auth?.orderNumber || socket.handshake.query?.orderNumber;
+
+      // 1. Shop Owner / Staff Authentication via JWT
+      if (token) {
+        try {
+          const jwtSecret = process.env.JWT_SECRET || 'smartprint_jwt_fallback_secret_production_guard_9281749102';
+          const decoded = jwt.verify(token, jwtSecret);
+          const user = await prisma.user.findUnique({
+            where: { id: decoded.id },
+            select: { id: true, email: true, name: true, role: true, status: true },
+          });
+
+          if (user && user.status === 'ACTIVE') {
+            socket.user = user;
+            socket.authType = 'SHOP_USER';
+            return next();
+          }
+        } catch (jwtErr) {
+          // If JWT failed but sessionToken/orderNumber exists, try customer fallback below
+          if (!sessionToken && !orderNumber) {
+            logger.warn(`Socket JWT auth failed: ${jwtErr.message}`);
+            return next(new Error('Authentication error: Invalid token'));
+          }
+        }
       }
 
-      const jwtSecret = process.env.JWT_SECRET || 'smartprint_jwt_fallback_secret_production_guard_9281749102';
-      const decoded = jwt.verify(token, jwtSecret);
-      const user = await prisma.user.findUnique({
-        where: { id: decoded.id },
-        select: { id: true, email: true, name: true, role: true, status: true },
-      });
-
-      if (!user || user.status !== 'ACTIVE') {
-        return next(new Error('Authentication error: Invalid or deactivated account'));
+      // 2. Customer Authentication via sessionToken or orderNumber
+      if (sessionToken || orderNumber) {
+        socket.customer = {
+          sessionToken: sessionToken ? String(sessionToken).trim() : null,
+          orderNumber: orderNumber ? String(orderNumber).trim().toUpperCase() : null,
+        };
+        socket.authType = 'CUSTOMER';
+        return next();
       }
 
-      socket.user = user;
-      next();
+      return next(new Error('Authentication error: Missing authentication token or customer session'));
     } catch (err) {
-      logger.warn(`Socket auth failed: ${err.message}`);
-      return next(new Error('Authentication error: Invalid token'));
+      logger.warn(`Socket auth error: ${err.message}`);
+      return next(new Error('Authentication error: ' + err.message));
     }
   });
 
   io.on('connection', (socket) => {
-    logger.info(`Socket connected: ${socket.id} (User: ${socket.user.email})`);
+    const ident = socket.user ? `User: ${socket.user.email}` : `Customer (Order/Session)`;
+    logger.info(`Socket connected: ${socket.id} (${ident})`);
 
     // Join shop-specific room after verifying ownership/staff membership
     socket.on('shop:join', async ({ shopId }, callback) => {
       try {
+        if (!socket.user) {
+          if (callback) callback({ success: false, message: 'Shop authentication required' });
+          return;
+        }
+
         const parsedShopId = parseInt(shopId, 10);
         if (isNaN(parsedShopId)) {
           if (callback) callback({ success: false, message: 'Invalid shopId' });
@@ -95,6 +123,32 @@ function initSocket(httpServer) {
       }
     });
 
+    // Customer / Order Room Join (for real-time order chat & status updates)
+    socket.on('order:join', async ({ orderId, orderNumber }, callback) => {
+      try {
+        const cleanOrderNumber = orderNumber ? String(orderNumber).trim().toUpperCase() : null;
+        const parsedOrderId = orderId ? parseInt(orderId, 10) : null;
+
+        if (parsedOrderId && !isNaN(parsedOrderId)) {
+          socket.join(`order_${parsedOrderId}`);
+        }
+        if (cleanOrderNumber) {
+          socket.join(`order_num_${cleanOrderNumber}`);
+        }
+
+        logger.info(`Socket ${socket.id} joined order room (id: ${parsedOrderId}, num: ${cleanOrderNumber})`);
+        if (callback) callback({ success: true });
+      } catch (err) {
+        logger.error(`Error in order:join: ${err.message}`);
+        if (callback) callback({ success: false, message: err.message });
+      }
+    });
+
+    socket.on('order:leave', ({ orderId, orderNumber }) => {
+      if (orderId) socket.leave(`order_${orderId}`);
+      if (orderNumber) socket.leave(`order_num_${String(orderNumber).trim().toUpperCase()}`);
+    });
+
     socket.on('disconnect', (reason) => {
       logger.info(`Socket disconnected: ${socket.id} (${reason})`);
     });
@@ -120,9 +174,24 @@ function emitToShop(shopId, event, data) {
   logger.debug(`Broadcasted [${event}] to room ${room}`);
 }
 
+/**
+ * Emit event to customer(s) watching a specific order
+ */
+function emitToOrder(orderId, orderNumber, event, data) {
+  if (!io) return;
+  if (orderId) {
+    io.to(`order_${orderId}`).emit(event, data);
+  }
+  if (orderNumber) {
+    io.to(`order_num_${String(orderNumber).trim().toUpperCase()}`).emit(event, data);
+  }
+  logger.debug(`Broadcasted [${event}] to order rooms (id: ${orderId}, num: ${orderNumber})`);
+}
+
 module.exports = {
   initSocket,
   getIO,
   getIo: getIO,
   emitToShop,
+  emitToOrder,
 };

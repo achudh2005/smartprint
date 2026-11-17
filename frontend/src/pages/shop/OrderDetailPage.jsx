@@ -7,6 +7,7 @@ import {
   PlusCircle, Flame, History, Phone, Lock, Edit3 } from 'lucide-react'
 import { PageHeader, Card, CardHeader, CardBody, Button, Spinner, Badge, Alert, MacTrafficLights } from '../../components/ui'
 import ShopNavTabs from '../../components/shop/ShopNavTabs'
+import OrderChatPanel from '../../components/shop/OrderChatPanel'
 import api from '../../lib/api'
 import { getSocket } from '../../lib/socket'
 import toast from 'react-hot-toast'
@@ -1043,6 +1044,13 @@ export default function OrderDetailPage() {
           })}
         </div>
       </div>
+
+      {/* ── Order Two-Way Chat & Call Escalation ── */}
+      <OrderChatPanel
+        shopId={shopId}
+        orderId={orderId}
+        orderNumber={order.orderNumber}
+      />
 
       {/* ── Expiry & Privacy Audit Logs ── */}
       {order.expiryLogs && order.expiryLogs.length > 0 && (

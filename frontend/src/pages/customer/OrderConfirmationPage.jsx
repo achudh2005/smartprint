@@ -10,6 +10,7 @@ import api from '../../lib/api'
 import { openRazorpayCheckout } from '../../lib/razorpay'
 import toast from 'react-hot-toast'
 import { OrderSuccessCheckmark } from '../../components/illustrations'
+import CustomerOrderChat from '../../components/customer/CustomerOrderChat'
 
 export default function OrderConfirmationPage() {
   const { orderNumber } = useParams()
@@ -332,6 +333,14 @@ export default function OrderConfirmationPage() {
             </div>
           </CardBody>
         </Card>
+
+        {/* Two-Way Order Chat with Shop Owner & Urgent Call Banner */}
+        <CustomerOrderChat
+          orderNumber={orderNumber}
+          shopName={order.shop?.name}
+          shopPhone={order.shop?.phone}
+          orderStatus={order.status}
+        />
 
         {/* Shop & Counter Details */}
         <Card>

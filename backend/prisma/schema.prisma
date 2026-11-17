@@ -38,6 +38,7 @@ model User {
   notifications   Notification[]
   refreshTokens   RefreshToken[]
   emailOtps       EmailOtp[]
+  orderChatMessages OrderChatMessage[]
 
   @@map("users")
 }
@@ -213,6 +214,7 @@ model CustomerSession {
   shop       Shop       @relation(fields: [shopId], references: [id], onDelete: Cascade)
   orders     Order[]
   expiryLogs ExpiryLog[]
+  pushSubscriptions CustomerPushSubscription[]
 
   @@index([shopId])
   @@index([sessionToken])
@@ -248,6 +250,7 @@ model Order {
   payments        Payment[]
   statusLogs      OrderStatusLog[]
   expiryLogs      ExpiryLog[]
+  chatMessages    OrderChatMessage[]
 
   @@index([shopId])
   @@index([sessionId])
@@ -682,4 +685,52 @@ model AuditLog {
   @@index([action])
   @@index([createdAt])
   @@map("audit_logs")
+}
+
+// ============================================================
+// ORDER CHAT (Scoped to Active Printing Window)
+// ============================================================
+model OrderChatMessage {
+  id           Int             @id @default(autoincrement())
+  orderId      Int             @map("order_id")
+  senderType   ChatSenderType  @map("sender_type")
+  senderUserId Int?            @map("sender_user_id")
+  body         String          @db.Text
+  type         ChatMessageType @default(TEXT)
+  urgent       Boolean         @default(false)
+  readAt       DateTime?       @map("read_at")
+  createdAt    DateTime        @default(now()) @map("created_at")
+
+  order        Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  senderUser   User?           @relation(fields: [senderUserId], references: [id], onDelete: SetNull)
+
+  @@index([orderId, createdAt])
+  @@map("order_chat_messages")
+}
+
+enum ChatSenderType {
+  SHOP
+  CUSTOMER
+}
+
+enum ChatMessageType {
+  TEXT
+  CALL_REQUEST
+}
+
+// ============================================================
+// CUSTOMER WEB PUSH SUBSCRIPTIONS
+// ============================================================
+model CustomerPushSubscription {
+  id                Int             @id @default(autoincrement())
+  customerSessionId Int             @map("customer_session_id")
+  endpoint          String          @unique @db.VarChar(512)
+  p256dh            String          @db.VarChar(255)
+  auth              String          @db.VarChar(255)
+  createdAt         DateTime        @default(now()) @map("created_at")
+
+  customerSession   CustomerSession @relation(fields: [customerSessionId], references: [id], onDelete: Cascade)
+
+  @@index([customerSessionId])
+  @@map("customer_push_subscriptions")
 }

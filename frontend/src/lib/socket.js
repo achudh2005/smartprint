@@ -132,10 +132,72 @@ export function disconnectShopSocket(shopId) {
 }
 
 /**
+ * Connect customer socket for real-time order chat & status updates
+ */
+export function connectCustomerOrderSocket({ orderId, orderNumber, sessionToken }, onNewMessage, onStatusChange) {
+  const s = getSocket()
+  // Include customer auth credentials
+  s.auth = {
+    ...s.auth,
+    orderNumber,
+    sessionToken: sessionToken || localStorage.getItem('smartprint_customer_session'),
+  }
+
+  if (!s.connected) {
+    s.connect()
+  }
+
+  s.emit('order:join', { orderId, orderNumber }, (response) => {
+    if (response?.success) {
+      console.log(`Customer joined real-time room for order ${orderNumber}`)
+    }
+  })
+
+  if (onNewMessage) {
+    s.off('chat:new-message')
+    s.on('chat:new-message', (data) => {
+      // If audio is available, chime
+      playNotificationSound()
+      onNewMessage(data)
+    })
+  }
+
+  if (onStatusChange) {
+    s.off('order:status_changed')
+    s.on('order:status_changed', onStatusChange)
+  }
+
+  return s
+}
+
+export function disconnectCustomerOrderSocket({ orderId, orderNumber }) {
+  if (socket) {
+    socket.emit('order:leave', { orderId, orderNumber })
+  }
+}
+
+/**
+ * Ergonomic subscriber for customer order room
+ */
+export function subscribeToCustomerOrder(orderData, { onNewMessage, onStatusChanged } = {}) {
+  const s = connectCustomerOrderSocket(orderData, onNewMessage, onStatusChanged)
+  return () => {
+    disconnectCustomerOrderSocket(orderData)
+  }
+}
+
+/**
  * Ergonomic subscriber with cleanup function
  */
-export function subscribeToShopEvents(shopId, { onNewOrder, onStatusChanged } = {}) {
+export function subscribeToShopEvents(shopId, { onNewOrder, onStatusChanged, onNewChatMessage } = {}) {
   const s = connectShopSocket(shopId, onNewOrder, onStatusChanged)
+  if (onNewChatMessage) {
+    s.off('chat:new-message')
+    s.on('chat:new-message', (data) => {
+      playNotificationSound()
+      onNewChatMessage(data)
+    })
+  }
   return () => {
     disconnectShopSocket(shopId)
   }

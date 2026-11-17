@@ -4,6 +4,7 @@ const os = require('os');
 const path = require('path');
 const rateLimit = require('express-rate-limit');
 const customerController = require('../controllers/customer.controller');
+const chatController = require('../controllers/chat.controller');
 
 const router = express.Router();
 
@@ -77,7 +78,14 @@ router.post('/sessions/:sessionToken/confirm', customerController.confirmOrder);
 // 7. Public order status lookup
 router.get('/orders/:orderNumber', customerController.getOrderStatus);
 
-// 8. Document secure preview
+// 8. Order Two-Way Chat & Escalation (matches both :orderNumber and :orderPublicId)
+router.get('/orders/:orderNumber/chat', chatController.getCustomerOrderChat);
+router.post('/orders/:orderNumber/chat', chatController.postCustomerOrderMessage);
+
+// 9. Customer Web Push Subscription Registration
+router.post('/orders/:orderNumber/push-subscribe', chatController.subscribePush);
+
+// 10. Document secure preview
 router.get('/files/:filePublicId/preview', customerController.previewFile);
 
 module.exports = router;
