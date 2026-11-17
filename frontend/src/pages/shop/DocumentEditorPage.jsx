@@ -40,6 +40,7 @@ export default function DocumentEditorPage() {
 
   // Document & File state
   const [loadingDoc, setLoadingDoc] = useState(true);
+  const [renderingPage, setRenderingPage] = useState(false);
   const [fileMeta, setFileMeta] = useState(null);
   const [rawPdfBytes, setRawPdfBytes] = useState(null);
   const [totalPages, setTotalPages] = useState(1);
@@ -188,6 +189,7 @@ export default function DocumentEditorPage() {
   const renderCurrentPage = useCallback(async () => {
     if (!rawPdfBytes || !pdfCanvasRef.current) return;
     try {
+      setRenderingPage(true);
       const renderResult = await renderPdfPage(rawPdfBytes, currentPage, pdfCanvasRef.current, zoom);
       if (renderResult) {
         setPageViewport(renderResult.viewport);
@@ -195,12 +197,34 @@ export default function DocumentEditorPage() {
       }
     } catch (err) {
       console.error('Page render error:', err);
+    } finally {
+      setRenderingPage(false);
     }
   }, [rawPdfBytes, currentPage, zoom]);
 
   useEffect(() => {
-    renderCurrentPage();
-  }, [renderCurrentPage]);
+    let cancelled = false;
+
+    const attemptRender = () => {
+      if (!rawPdfBytes || loadingDoc) return;
+      if (!pdfCanvasRef.current) {
+        // If ref is not yet attached to DOM, retry on next frame
+        requestAnimationFrame(() => {
+          if (!cancelled && pdfCanvasRef.current) {
+            renderCurrentPage();
+          }
+        });
+        return;
+      }
+      renderCurrentPage();
+    };
+
+    attemptRender();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [rawPdfBytes, loadingDoc, currentPage, zoom, renderCurrentPage]);
 
   // 3. Autosave to IndexedDB on edits
   useEffect(() => {
@@ -676,16 +700,6 @@ export default function DocumentEditorPage() {
     }
   };
 
-  if (loadingDoc) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-[var(--bg)] gap-3">
-        <Spinner size="lg" />
-        <p className="text-sm font-semibold text-[var(--text)]">Loading SmartPrint Document Editor...</p>
-        <p className="text-xs text-[var(--text-muted)]">Preparing canvas and text layer...</p>
-      </div>
-    );
-  }
-
   const currentPageAnnotations = annotationsByPage[currentPage] || [];
   const currentPageRedactions = redactionsByPage[currentPage] || [];
 
@@ -967,29 +981,42 @@ export default function DocumentEditorPage() {
 
         {/* Canvas & Document Viewport */}
         <main
-          className={`flex-1 overflow-auto relative ${
+          className={`flex-1 overflow-auto relative flex flex-col items-center ${
             canvasTheme === 'dark' ? 'bg-slate-900' : 'bg-slate-100 dark:bg-slate-950'
           }`}
         >
-          {loadingDoc && (
-            <div className="absolute inset-0 bg-white/60 dark:bg-slate-950/60 backdrop-blur-xs flex flex-col items-center justify-center z-30">
-              <Loader2 className="animate-spin text-[#0E7490] mb-2" size={36} />
-              <p className="text-sm font-medium text-[var(--text)]">Loading document...</p>
+          {(loadingDoc || renderingPage) && (
+            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs flex flex-col items-center justify-center z-30 transition-opacity">
+              <div className="bg-white dark:bg-slate-900 px-5 py-3.5 rounded-xl shadow-xl flex items-center gap-3 border border-black/[0.08] dark:border-white/[0.08]">
+                <Loader2 className="animate-spin text-[#007AFF] dark:text-[#0A84FF]" size={22} />
+                <p className="text-xs font-semibold text-[var(--text)]">
+                  {loadingDoc ? 'Loading document...' : 'Rendering page...'}
+                </p>
+              </div>
             </div>
           )}
 
-          <div className="min-w-full min-h-full p-4 sm:p-8 flex items-center justify-center w-fit h-fit">
+          <div className="m-auto p-4 sm:p-8 flex flex-col items-center justify-center">
             <div
               className="relative shadow-2xl rounded-sm transition-all bg-white shrink-0"
               style={{
-                width: pageViewport ? `${pageViewport.width}px` : undefined,
-                height: pageViewport ? `${pageViewport.height}px` : undefined,
+                width: pageViewport ? `${pageViewport.width}px` : 'auto',
+                height: pageViewport ? `${pageViewport.height}px` : 'auto',
+                minWidth: pageViewport ? `${pageViewport.width}px` : '320px',
+                minHeight: pageViewport ? `${pageViewport.height}px` : '460px',
                 transform: `rotate(${rotations[currentPage] || 0}deg)`,
                 transformOrigin: 'center center',
               }}
             >
               {/* Background PDF Render Canvas */}
-              <canvas ref={pdfCanvasRef} className="block shadow-md" />
+              <canvas
+                ref={pdfCanvasRef}
+                className="block shadow-md"
+                style={{
+                  width: pageViewport ? `${pageViewport.width}px` : 'auto',
+                  height: pageViewport ? `${pageViewport.height}px` : 'auto',
+                }}
+              />
 
             {/* Interactive Annotation & Marking Canvas Overlay */}
             <div

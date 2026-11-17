@@ -15,15 +15,16 @@ const TERMINAL_STATUSES = ['COMPLETED', 'REJECTED', 'CANCELLED', 'EXPIRED'];
 
 /**
  * Check if the chat thread is currently open for new messages
- * Active only while order is active AND CustomerSession is not expired.
- * Once order is terminal + 1 hr grace period, thread becomes read-only.
+ * Active while order is in active/printing state.
+ * Once order is terminal (COMPLETED/REJECTED/CANCELLED/EXPIRED) + 1 hr grace period,
+ * thread becomes read-only.
  */
 function isChatWindowOpen(order) {
   if (!order) {
-    return { isOpen: false, reason: 'ORDER_NOT_FOUND' };
+    return { isOpen: false, reason: 'ORDER_NOT_FOUND', message: 'Order not found.' };
   }
 
-  // 1. Check order status
+  // 1. Check order status: terminal states close after the 1-hour grace period
   if (TERMINAL_STATUSES.includes(order.status)) {
     const updatedAt = new Date(order.updatedAt || order.createdAt).getTime();
     const isPastGracePeriod = Date.now() - updatedAt > CHAT_GRACE_PERIOD_MS;
@@ -36,19 +37,7 @@ function isChatWindowOpen(order) {
     }
   }
 
-  // 2. Check customer session expiry
-  const session = order.session || order.customerSession;
-  if (session) {
-    const isSessionExpired = session.status !== 'ACTIVE' || (session.expiresAt && new Date(session.expiresAt) < new Date());
-    if (isSessionExpired) {
-      return {
-        isOpen: false,
-        reason: 'SESSION_EXPIRED',
-        message: 'The customer session has expired.',
-      };
-    }
-  }
-
+  // 2. Active orders are ALWAYS open for two-way communication throughout printing
   return { isOpen: true };
 }
 
