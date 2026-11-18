@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import {
-  MessageSquare, Send, PhoneCall, Bell, Check, Lock,
-  AlertCircle, Phone, ArrowUpRight, CheckCheck, Loader2
+  MessageSquare, Send, PhoneCall, Bell, BellRing, Check, Lock,
+  AlertCircle, Phone, ArrowUpRight, CheckCheck, Loader2, X
 } from 'lucide-react';
 import { Card, CardHeader, CardBody, Button, Badge } from '../ui';
 import api from '../../lib/api';
 import { subscribeToCustomerOrder, playNotificationSound } from '../../lib/socket';
-import { isPushSupported, subscribeToPushNotifications } from '../../lib/pushClient';
+import { isPushSupported, subscribeToPushNotifications, registerServiceWorker } from '../../lib/pushClient';
 import toast from 'react-hot-toast';
 
 export default function CustomerOrderChat({ orderNumber, shopName, shopPhone, orderStatus }) {
@@ -21,6 +21,8 @@ export default function CustomerOrderChat({ orderNumber, shopName, shopPhone, or
   const [pushEnabled, setPushEnabled] = useState(false);
   const [enablingPush, setEnablingPush] = useState(false);
   const [pushDismissed, setPushDismissed] = useState(false);
+  // Track if there's an unread call request (shown prominently)
+  const [urgentCallRequest, setUrgentCallRequest] = useState(null);
 
   const messagesEndRef = useRef(null);
 
@@ -33,9 +35,15 @@ export default function CustomerOrderChat({ orderNumber, shopName, shopPhone, or
     try {
       const { data } = await api.get(`/customer/orders/${orderNumber}/chat`);
       if (data?.data) {
-        setMessages(data.data.messages || []);
+        const msgs = data.data.messages || [];
+        setMessages(msgs);
         setIsChatOpen(Boolean(data.data.isChatOpen));
         setChatCloseMessage(data.data.chatCloseMessage);
+        // Find the most recent unread call request from shop
+        const latestCall = [...msgs].reverse().find(
+          m => m.type === 'CALL_REQUEST' && m.senderType === 'SHOP' && !m.readAt
+        );
+        if (latestCall) setUrgentCallRequest(latestCall);
       }
     } catch (err) {
       console.error('Failed to load customer chat:', err);
@@ -52,13 +60,23 @@ export default function CustomerOrderChat({ orderNumber, shopName, shopPhone, or
     scrollToBottom();
   }, [messages]);
 
-  // Check initial push permission
+  // Auto-register SW and silently resubscribe if permission already granted
   useEffect(() => {
-    if (typeof window !== 'undefined' && 'Notification' in window) {
-      if (Notification.permission === 'granted') {
-        setPushEnabled(true);
-      }
+    if (!orderNumber || !isPushSupported()) return;
+
+    const permission = typeof window !== 'undefined' && 'Notification' in window
+      ? Notification.permission
+      : 'default';
+
+    if (permission === 'granted') {
+      setPushEnabled(true);
+      // Silently re-register subscription so it stays alive (order-linked)
+      subscribeToPushNotifications(orderNumber, { silent: true }).catch(() => {});
+    } else {
+      // Still register the SW so it's ready when permission is granted
+      registerServiceWorker().catch(() => {});
     }
+
     const dismissed = localStorage.getItem(`smartprint_push_dismissed_${orderNumber}`);
     if (dismissed) setPushDismissed(true);
   }, [orderNumber]);
@@ -80,7 +98,12 @@ export default function CustomerOrderChat({ orderNumber, shopName, shopPhone, or
             if (payload.message.senderType === 'SHOP') {
               playNotificationSound();
               if (payload.message.type === 'CALL_REQUEST') {
-                toast.error('The shop has requested you to call them regarding your order!', { duration: 6000 });
+                // Show prominent sticky urgent banner
+                setUrgentCallRequest(payload.message);
+                toast.error(`📞 ${shopName || 'The shop'} is requesting you to call them urgently!`, {
+                  duration: 10000,
+                  id: 'call-request-toast',
+                });
               } else {
                 toast(`New message from ${shopName || 'the print shop'}`, { icon: '💬' });
               }
@@ -123,7 +146,7 @@ export default function CustomerOrderChat({ orderNumber, shopName, shopPhone, or
       setEnablingPush(true);
       await subscribeToPushNotifications(orderNumber);
       setPushEnabled(true);
-      toast.success('Phone notifications enabled! You will be alerted if the shop messages you.', { icon: '🔔' });
+      toast.success('Phone notifications enabled! You will be alerted even after closing this tab.', { icon: '🔔' });
     } catch (err) {
       console.warn('Push registration error:', err);
       toast.error(err.message || 'Could not enable push notifications.');
@@ -165,14 +188,19 @@ export default function CustomerOrderChat({ orderNumber, shopName, shopPhone, or
         </div>
       </CardHeader>
 
-      {/* Web Push Permission Banner (Honest Context Before Native Prompt) */}
+      {/* Web Push Permission Banner (Prominent Callout) */}
       {!pushEnabled && !pushDismissed && isPushSupported() && isChatOpen && (
-        <div className="bg-blue-500/10 border-b border-blue-500/20 px-4 py-2.5 flex items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2 min-w-0">
-            <Bell size={15} className="text-[#007AFF] shrink-0" />
-            <p className="text-[11px] text-[var(--text)] truncate">
-              Get notified on your phone bar if the shop has a question about your file.
-            </p>
+        <div className="bg-gradient-to-r from-blue-500/15 via-indigo-500/10 to-blue-500/15 border-b border-blue-500/25 px-4 py-3 flex items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-7 h-7 rounded-lg bg-[#007AFF]/15 text-[#007AFF] flex items-center justify-center shrink-0">
+              <BellRing size={16} className="animate-wiggle" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-[var(--text)]">Enable Phone Notifications</p>
+              <p className="text-[11px] text-[var(--text-muted)] truncate">
+                Get alerted on your phone notification bar if the shop has questions or urgently requests a call.
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             <Button
@@ -180,17 +208,55 @@ export default function CustomerOrderChat({ orderNumber, shopName, shopPhone, or
               size="sm"
               loading={enablingPush}
               onClick={handleEnablePush}
-              className="text-[11px] py-1 px-2.5 rounded-lg"
+              className="text-xs py-1.5 px-3 rounded-lg font-semibold shadow-xs"
             >
-              Notify Me
+              Allow Alerts
             </Button>
             <button
               type="button"
               onClick={handleDismissPushBanner}
-              className="text-[var(--text-muted)] hover:text-[var(--text)] px-1.5 py-1 text-xs"
+              className="text-[var(--text-muted)] hover:text-[var(--text)] p-1 text-xs"
               title="Dismiss"
             >
-              ✕
+              <X size={14} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Urgent Call Request Sticky Alert Banner */}
+      {urgentCallRequest && (
+        <div className="bg-gradient-to-r from-amber-500/25 via-rose-500/15 to-amber-500/25 border-b-2 border-amber-500/40 px-4 py-3 flex items-center justify-between gap-3 text-xs animate-pulse">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <PhoneCall size={16} strokeWidth={2.5} className="animate-bounce" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs font-bold text-amber-950 dark:text-amber-200 uppercase tracking-wide">
+                Urgent Call Requested by Shop
+              </p>
+              <p className="text-[11px] text-amber-900/90 dark:text-amber-100 truncate">
+                {urgentCallRequest.body || 'The shop needs to talk with you regarding your print file.'}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            {(urgentCallRequest.shopPhone || shopPhone) && (
+              <a
+                href={`tel:${urgentCallRequest.shopPhone || shopPhone}`}
+                className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 shadow-sm transition-all"
+              >
+                <Phone size={12} strokeWidth={2.2} />
+                <span>Call Shop: {urgentCallRequest.shopPhone || shopPhone}</span>
+              </a>
+            )}
+            <button
+              type="button"
+              onClick={() => setUrgentCallRequest(null)}
+              className="text-amber-900/60 dark:text-amber-300 hover:text-amber-900 p-1"
+              title="Acknowledge"
+            >
+              <X size={14} />
             </button>
           </div>
         </div>

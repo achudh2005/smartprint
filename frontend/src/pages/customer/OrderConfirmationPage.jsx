@@ -338,7 +338,7 @@ export default function OrderConfirmationPage() {
         <CustomerOrderChat
           orderNumber={orderNumber}
           shopName={order.shop?.name}
-          shopPhone={order.shop?.phone}
+          shopPhone={order.shop?.phone || order.shop?.contactPhone}
           orderStatus={order.status}
         />
 

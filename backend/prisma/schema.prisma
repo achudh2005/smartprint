@@ -251,6 +251,7 @@ model Order {
   statusLogs      OrderStatusLog[]
   expiryLogs      ExpiryLog[]
   chatMessages    OrderChatMessage[]
+  pushSubscriptions CustomerPushSubscription[]
 
   @@index([shopId])
   @@index([sessionId])
@@ -722,15 +723,18 @@ enum ChatMessageType {
 // CUSTOMER WEB PUSH SUBSCRIPTIONS
 // ============================================================
 model CustomerPushSubscription {
-  id                Int             @id @default(autoincrement())
-  customerSessionId Int             @map("customer_session_id")
-  endpoint          String          @unique @db.VarChar(512)
-  p256dh            String          @db.VarChar(255)
-  auth              String          @db.VarChar(255)
-  createdAt         DateTime        @default(now()) @map("created_at")
+  id                Int              @id @default(autoincrement())
+  customerSessionId Int?             @map("customer_session_id")
+  orderId           Int?             @map("order_id")
+  endpoint          String           @unique @db.VarChar(512)
+  p256dh            String           @db.VarChar(255)
+  auth              String           @db.VarChar(255)
+  createdAt         DateTime         @default(now()) @map("created_at")
 
-  customerSession   CustomerSession @relation(fields: [customerSessionId], references: [id], onDelete: Cascade)
+  customerSession   CustomerSession? @relation(fields: [customerSessionId], references: [id], onDelete: SetNull)
+  order             Order?           @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([customerSessionId])
+  @@index([orderId])
   @@map("customer_push_subscriptions")
 }

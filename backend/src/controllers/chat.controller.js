@@ -122,7 +122,8 @@ async function postCustomerOrderMessage(req, res, next) {
 
 /**
  * POST /api/v1/customer/orders/:orderPublicId/push-subscribe
- * Customer registers browser Web Push subscription for OS notification bar
+ * Customer registers browser Web Push subscription for OS notification bar.
+ * Subscription is now linked to orderId (primary) so it survives session expiry.
  */
 async function subscribePush(req, res, next) {
   try {
@@ -142,14 +143,19 @@ async function subscribePush(req, res, next) {
           { publicId: cleanNum },
         ],
       },
-      select: { sessionId: true },
+      select: { id: true, sessionId: true },
     });
 
-    if (!order || !order.sessionId) {
-      return sendError(res, 'Order or active session not found for notification subscription.', 404);
+    if (!order) {
+      return sendError(res, 'Order not found for notification subscription.', 404);
     }
 
-    const subscription = await pushService.saveSubscription(order.sessionId, { endpoint, keys });
+    // Save subscription linked to both orderId and sessionId for maximum reliability
+    const subscription = await pushService.saveSubscription(
+      order.sessionId,     // may be null if session was cleared — OK
+      { endpoint, keys },
+      order.id             // primary key — survives session expiry
+    );
     return sendSuccess(res, { id: subscription.id, createdAt: subscription.createdAt }, 'Notifications enabled successfully.');
   } catch (err) {
     next(err);

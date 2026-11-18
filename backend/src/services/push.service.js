@@ -18,10 +18,12 @@ try {
 }
 
 /**
- * Save or update customer push subscription for an active session
+ * Save or update customer push subscription for an order
+ * Now linked to orderId (primary) so subscriptions survive session expiry.
+ * SessionId still stored for backwards compatibility.
  */
-async function saveSubscription(sessionId, { endpoint, keys }) {
-  if (!sessionId || !endpoint || !keys?.p256dh || !keys?.auth) {
+async function saveSubscription(sessionId, { endpoint, keys }, orderId = null) {
+  if (!endpoint || !keys?.p256dh || !keys?.auth) {
     const err = new Error('Invalid push subscription payload');
     err.statusCode = 400;
     throw err;
@@ -31,36 +33,54 @@ async function saveSubscription(sessionId, { endpoint, keys }) {
   const cleanP256dh = String(keys.p256dh).trim();
   const cleanAuth = String(keys.auth).trim();
 
+  const updateData = {
+    p256dh: cleanP256dh,
+    auth: cleanAuth,
+  };
+  if (sessionId) updateData.customerSessionId = sessionId;
+  if (orderId) updateData.orderId = parseInt(orderId, 10);
+
+  const createData = {
+    endpoint: cleanEndpoint,
+    p256dh: cleanP256dh,
+    auth: cleanAuth,
+  };
+  if (sessionId) createData.customerSessionId = sessionId;
+  if (orderId) createData.orderId = parseInt(orderId, 10);
+
   const subscription = await prisma.customerPushSubscription.upsert({
     where: { endpoint: cleanEndpoint },
-    update: {
-      customerSessionId: sessionId,
-      p256dh: cleanP256dh,
-      auth: cleanAuth,
-    },
-    create: {
-      customerSessionId: sessionId,
-      endpoint: cleanEndpoint,
-      p256dh: cleanP256dh,
-      auth: cleanAuth,
-    },
+    update: updateData,
+    create: createData,
   });
 
-  logger.info(`[WebPush] Push subscription saved for session #${sessionId}`);
+  logger.info(`[WebPush] Push subscription saved for session #${sessionId}, order #${orderId}`);
   return subscription;
 }
 
 /**
- * Dispatch web-push notification to all customer subscriptions linked to an order
+ * Dispatch web-push notification to all customer subscriptions linked to an order.
+ * Looks up subscriptions by orderId (primary — survives session expiry),
+ * with a fallback union query on customerSessionId for legacy subscriptions.
  */
 async function sendOrderPushNotification(order, { title, body, type = 'TEXT', url = '' }) {
-  if (!order || !order.sessionId) return { sent: 0, failed: 0 };
+  if (!order) return { sent: 0, failed: 0 };
+
+  // Build OR clause to find by orderId OR sessionId (cover both old and new subscriptions)
+  const orConditions = [];
+  if (order.id) orConditions.push({ orderId: order.id });
+  if (order.sessionId) orConditions.push({ customerSessionId: order.sessionId });
+
+  if (orConditions.length === 0) return { sent: 0, failed: 0 };
 
   const subscriptions = await prisma.customerPushSubscription.findMany({
-    where: { customerSessionId: order.sessionId },
+    where: { OR: orConditions },
   });
 
-  if (subscriptions.length === 0) {
+  // Deduplicate by endpoint (in case a subscription has both FK columns set)
+  const uniqueSubs = Array.from(new Map(subscriptions.map(s => [s.endpoint, s])).values());
+
+  if (uniqueSubs.length === 0) {
     return { sent: 0, failed: 0 };
   }
 
@@ -70,6 +90,7 @@ async function sendOrderPushNotification(order, { title, body, type = 'TEXT', ur
     icon: '/favicon.ico',
     badge: '/favicon.ico',
     tag: `smartprint-order-${order.orderNumber}`,
+    renotify: true,
     data: {
       url: url || `/orders/${order.orderNumber}`,
       orderNumber: order.orderNumber,
@@ -86,7 +107,7 @@ async function sendOrderPushNotification(order, { title, body, type = 'TEXT', ur
   let sent = 0;
   let failed = 0;
 
-  for (const sub of subscriptions) {
+  for (const sub of uniqueSubs) {
     const pushSubscription = {
       endpoint: sub.endpoint,
       keys: {

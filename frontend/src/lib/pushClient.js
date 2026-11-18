@@ -1,6 +1,7 @@
 /**
- * Web Push Subscription Client Helper
- * Handles Service Worker registration, VAPID key conversion, and API registration
+ * Web Push Subscription Client Helper v2
+ * Handles Service Worker registration, VAPID key conversion, and API registration.
+ * Auto-resubscribes silently if Notification permission was already granted.
  */
 import api from './api';
 
@@ -37,41 +38,95 @@ export function isPushSupported() {
 }
 
 /**
- * Register Service Worker and subscribe to Web Push notifications
+ * Register the SmartPrint Service Worker (idempotent — safe to call on every page load)
  */
-export async function subscribeToPushNotifications(orderIdentifier) {
+export async function registerServiceWorker() {
+  if (!isPushSupported()) return null;
+  try {
+    const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    await navigator.serviceWorker.ready;
+    return registration;
+  } catch (err) {
+    console.warn('[SW] Service Worker registration failed:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Subscribe to Web Push notifications and register with the SmartPrint backend.
+ * If called with `silent=true`, does NOT request the native permission prompt —
+ * only subscribes if permission was already granted (safe to call on page load).
+ */
+export async function subscribeToPushNotifications(orderIdentifier, { silent = false } = {}) {
   if (!isPushSupported()) {
-    throw new Error('Web Push is not supported on this browser.');
+    if (!silent) throw new Error('Web Push is not supported on this browser.');
+    return null;
   }
 
-  // 1. Request notification permission
-  const permission = await Notification.requestPermission();
-  if (permission !== 'granted') {
-    throw new Error('Notification permission was not granted.');
+  // 1. Check / request notification permission
+  if (Notification.permission === 'denied') {
+    if (!silent) throw new Error('Notification permission was denied. Please enable it in browser settings.');
+    return null;
+  }
+
+  if (Notification.permission !== 'granted') {
+    if (silent) return null; // Don't show the native prompt silently
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      throw new Error('Notification permission was not granted.');
+    }
   }
 
   // 2. Register Service Worker
-  const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
-  await navigator.serviceWorker.ready;
+  const registration = await registerServiceWorker();
+  if (!registration) {
+    if (!silent) throw new Error('Could not register Service Worker.');
+    return null;
+  }
 
   // 3. Subscribe with VAPID applicationServerKey
   const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
-  let subscription = await registration.pushManager.getSubscription();
-
-  if (!subscription) {
-    subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey,
-    });
+  let subscription;
+  try {
+    subscription = await registration.pushManager.getSubscription();
+    if (!subscription) {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey,
+      });
+    }
+  } catch (err) {
+    if (!silent) throw new Error('Failed to subscribe to push: ' + err.message);
+    return null;
   }
 
   const subscriptionJson = subscription.toJSON();
 
   // 4. Send subscription to SmartPrint API
-  await api.post(`/customer/orders/${orderIdentifier}/push-subscribe`, {
-    endpoint: subscriptionJson.endpoint,
-    keys: subscriptionJson.keys,
-  });
+  try {
+    await api.post(`/customer/orders/${orderIdentifier}/push-subscribe`, {
+      endpoint: subscriptionJson.endpoint,
+      keys: subscriptionJson.keys,
+    });
+  } catch (err) {
+    if (!silent) throw err;
+    return null;
+  }
+
+  // 5. Listen for SW subscription rotation and re-register automatically
+  if (navigator.serviceWorker.controller) {
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if (event.data?.type === 'PUSH_SUBSCRIPTION_CHANGED') {
+        const newSub = event.data.subscription;
+        if (newSub?.endpoint && newSub?.keys) {
+          api.post(`/customer/orders/${orderIdentifier}/push-subscribe`, {
+            endpoint: newSub.endpoint,
+            keys: newSub.keys,
+          }).catch(() => {});
+        }
+      }
+    });
+  }
 
   return { success: true, subscription };
 }

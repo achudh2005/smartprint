@@ -1,17 +1,24 @@
 /**
- * SmartPrint Service Worker
- * Handles background Web Push notifications for customer order chat & call requests
+ * SmartPrint Service Worker v2
+ * Handles background Web Push notifications for customer order chat & urgent call requests.
+ * Shows OS-level notifications even when the browser tab is closed.
  */
 
+const SW_VERSION = 'v2.1.0';
+
 self.addEventListener('install', (event) => {
+  // Activate immediately without waiting for old SW to become idle
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
+  // Claim all open clients so this SW controls all tabs immediately
   event.waitUntil(self.clients.claim());
 });
 
-// 1. Push Event Listener: Receives push message and displays native OS notification
+// ─────────────────────────────────────────────────────────
+// 1. Push Event: Show OS notification in the phone bar
+// ─────────────────────────────────────────────────────────
 self.addEventListener('push', (event) => {
   if (!event.data) return;
 
@@ -25,44 +32,100 @@ self.addEventListener('push', (event) => {
     };
   }
 
-  const title = payload.title || 'SmartPrint Update';
+  const isCallRequest = payload.data?.type === 'CALL_REQUEST';
+  const orderNumber = payload.data?.orderNumber || '';
+
+  const title = isCallRequest
+    ? `📞 ${payload.title || 'Print Shop'} Needs to Call You!`
+    : (payload.title || 'SmartPrint Update');
+
   const options = {
     body: payload.body || 'You have an update on your order.',
-    icon: payload.icon || '/favicon.ico',
-    badge: payload.badge || '/favicon.ico',
-    tag: payload.tag || 'smartprint-order-notification',
+    icon: '/favicon.ico',
+    badge: '/favicon.ico',
+    // Use a persistent tag so the notification is unique per order
+    tag: `smartprint-${isCallRequest ? 'call' : 'chat'}-${orderNumber}`,
+    // Always renotify — replace old notification with new alert
     renotify: true,
+    // Keep notification on screen until tapped for CALL_REQUEST
+    requireInteraction: isCallRequest,
+    // Vibration pattern: urgent triple-buzz for call, single for message
+    vibrate: isCallRequest ? [300, 100, 300, 100, 300, 100, 500] : [200, 100, 200],
     data: payload.data || {},
-    vibrate: [200, 100, 200],
-    requireInteraction: payload.data?.type === 'CALL_REQUEST',
+    // Action buttons shown in the notification shade (Android Chrome / Edge)
+    actions: isCallRequest
+      ? [
+          { action: 'open_order', title: '👁 View Order' },
+          { action: 'dismiss',    title: '✕ Dismiss' },
+        ]
+      : [
+          { action: 'open_order', title: '💬 Open Chat' },
+          { action: 'dismiss',    title: '✕ Later' },
+        ],
+    // High-priority channel hint for Android (Chrome >= 90)
+    ...(isCallRequest ? { priority: 'high' } : {}),
   };
 
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
-// 2. Notification Click Listener: Focuses or opens the relevant Order Confirmation page
+// ─────────────────────────────────────────────────────────
+// 2. Notification Click: Focus or open the order page
+// ─────────────────────────────────────────────────────────
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
-  const targetUrl = event.notification?.data?.url || '/';
+  // Don't navigate on 'dismiss' action
+  if (event.action === 'dismiss') return;
+
+  const orderNumber = event.notification?.data?.orderNumber;
+  const targetUrl = event.notification?.data?.url || (orderNumber ? `/orders/${orderNumber}` : '/');
+  const fullUrl = new URL(targetUrl, self.location.origin).href;
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // If a tab is already open with the order page, focus it
+      // 1. If a tab is already on the order page, focus it
       for (const client of clientList) {
-        if (client.url.includes(targetUrl) && 'focus' in client) {
+        if (client.url === fullUrl && 'focus' in client) {
           return client.focus();
         }
       }
-      // If another SmartPrint tab is open, navigate it
-      if (clientList.length > 0 && 'navigate' in clientList[0]) {
-        clientList[0].focus();
-        return clientList[0].navigate(targetUrl);
+
+      // 2. If any SmartPrint tab is open, navigate it to the order
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && 'navigate' in client) {
+          client.focus();
+          return client.navigate(fullUrl);
+        }
       }
-      // Otherwise open a new window/tab
+
+      // 3. No tab open — open a new one
       if (self.clients.openWindow) {
-        return self.clients.openWindow(targetUrl);
+        return self.clients.openWindow(fullUrl);
       }
     })
+  );
+});
+
+// ─────────────────────────────────────────────────────────
+// 3. Push Subscription Change: Re-subscribe automatically
+// ─────────────────────────────────────────────────────────
+self.addEventListener('pushsubscriptionchange', (event) => {
+  // If the browser forces a subscription rotation, re-subscribe automatically
+  event.waitUntil(
+    self.registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: event.oldSubscription?.options?.applicationServerKey,
+    }).then((newSubscription) => {
+      // Post message to open clients so they can re-register on the backend
+      return self.clients.matchAll({ type: 'window' }).then((clients) => {
+        for (const client of clients) {
+          client.postMessage({
+            type: 'PUSH_SUBSCRIPTION_CHANGED',
+            subscription: newSubscription.toJSON(),
+          });
+        }
+      });
+    }).catch(() => {})
   );
 });
