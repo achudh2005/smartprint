@@ -10,7 +10,7 @@ const { sendOrderPushNotification } = require('./push.service');
 
 // Constants
 const CHAT_GRACE_PERIOD_MS = 60 * 60 * 1000; // 1 hour grace period after terminal state
-const CALL_REQUEST_COOLDOWN_MS = 2 * 60 * 1000; // 2 minutes cooldown between call requests
+const CALL_REQUEST_COOLDOWN_MS = 30 * 1000; // 30 seconds cooldown between call requests
 const TERMINAL_STATUSES = ['COMPLETED', 'REJECTED', 'CANCELLED', 'EXPIRED'];
 
 /**
@@ -133,12 +133,26 @@ async function getOrderChat({ orderId, orderNumber, isShop, userId, limit = 50, 
 
   const formatted = messages.map((m) => formatChatMessage(m, order.shop?.phone));
 
+  // Compute remaining cooldown for CALL_REQUEST
+  const latestCallRequest = messages
+    .slice()
+    .reverse()
+    .find((m) => m.type === 'CALL_REQUEST');
+  let callCooldownRemaining = 0;
+  if (latestCallRequest) {
+    const elapsed = Date.now() - new Date(latestCallRequest.createdAt).getTime();
+    if (elapsed < CALL_REQUEST_COOLDOWN_MS) {
+      callCooldownRemaining = Math.ceil((CALL_REQUEST_COOLDOWN_MS - elapsed) / 1000);
+    }
+  }
+
   return {
     orderId: order.id,
     orderNumber: order.orderNumber,
     isChatOpen: windowStatus.isOpen,
     chatCloseReason: windowStatus.reason || null,
     chatCloseMessage: windowStatus.message || null,
+    callCooldownRemaining,
     messages: formatted,
     totalCount,
     page: parseInt(page, 10) || 1,

@@ -101,9 +101,20 @@ export default function CustomerOrderChat({ orderNumber, shopName, shopPhone, or
                 // Show prominent sticky urgent banner
                 setUrgentCallRequest(payload.message);
                 toast.error(`📞 ${shopName || 'The shop'} is requesting you to call them urgently!`, {
-                  duration: 10000,
+                  duration: 12000,
                   id: 'call-request-toast',
                 });
+                // Also trigger native OS/browser notification if backgrounded
+                if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+                  try {
+                    new Notification(`📞 Call Requested by ${shopName || 'Print Shop'}!`, {
+                      body: payload.message.body || 'Please call the print shop urgently regarding your order.',
+                      icon: '/favicon.ico',
+                      tag: `smartprint-call-${orderNumber}`,
+                      requireInteraction: true,
+                    });
+                  } catch (_) {}
+                }
               } else {
                 toast(`New message from ${shopName || 'the print shop'}`, { icon: '💬' });
               }

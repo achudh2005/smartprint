@@ -37,6 +37,9 @@ export default function OrderChatPanel({ shopId, orderId, orderNumber }) {
         setMessages(data.data.messages || []);
         setIsChatOpen(Boolean(data.data.isChatOpen));
         setChatCloseMessage(data.data.chatCloseMessage);
+        if (typeof data.data.callCooldownRemaining === 'number') {
+          setCooldownRemaining(data.data.callCooldownRemaining);
+        }
       }
     } catch (err) {
       console.error('Failed to load chat:', err);
@@ -124,24 +127,29 @@ export default function OrderChatPanel({ shopId, orderId, orderNumber }) {
   const handleSendCallRequest = async () => {
     if (sendingCallRequest || cooldownRemaining > 0 || !isChatOpen) return;
 
+    // Use current text input as call reason if provided, or clear default prompt
+    const reasonText = textInput.trim() || 'Urgent: Please call the print shop regarding your order instructions.';
+
     try {
       setSendingCallRequest(true);
       const { data } = await api.post(`/shops/${shopId}/orders/${orderId}/chat`, {
-        body: callReason.trim() || 'Please call the shop regarding your print file instructions.',
+        body: reasonText,
         type: 'CALL_REQUEST',
         urgent: true,
       });
 
       if (data?.data) {
-        setMessages((prev) => [...prev, data.data]);
-        toast.success('Call request dispatched to customer phone & order page!', { icon: '📞' });
-        setIsCallModalOpen(false);
-        setCallReason('');
-        setCooldownRemaining(120); // 2 minute server rate limit cooldown
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === data.data.id)) return prev;
+          return [...prev, data.data];
+        });
+        setTextInput('');
+        toast.success('Urgent Call Request sent to customer phone!', { icon: '📞', duration: 5000 });
+        setCooldownRemaining(30); // 30s rate limit cooldown
       }
     } catch (err) {
       if (err.response?.status === 429) {
-        setCooldownRemaining(120);
+        setCooldownRemaining(30);
       }
       toast.error(err.response?.data?.message || 'Failed to send call request.');
     } finally {
@@ -182,12 +190,13 @@ export default function OrderChatPanel({ shopId, orderId, orderNumber }) {
             <Button
               variant="secondary"
               size="sm"
-              disabled={cooldownRemaining > 0}
-              onClick={() => setIsCallModalOpen(true)}
-              className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20 hover:bg-amber-500/20 text-xs flex items-center gap-1.5"
-              title="Request the customer to call your shop for urgent questions"
+              loading={sendingCallRequest}
+              disabled={cooldownRemaining > 0 || sendingCallRequest}
+              onClick={handleSendCallRequest}
+              className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/25 hover:bg-amber-500/20 active:scale-95 text-xs flex items-center gap-1.5 transition-all shadow-xs"
+              title="Click to immediately dispatch an urgent Call Request to customer's phone notification bar"
             >
-              <PhoneCall size={13} strokeWidth={2} />
+              <PhoneCall size={13} strokeWidth={2.2} />
               <span>{cooldownRemaining > 0 ? `Wait ${cooldownRemaining}s` : 'Request Call'}</span>
             </Button>
           )}
@@ -331,59 +340,6 @@ export default function OrderChatPanel({ shopId, orderId, orderNumber }) {
           </div>
         )}
       </div>
-
-      {/* "Request a Call" Modal */}
-      {isCallModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-[var(--surface-card)] border border-[var(--border)] rounded-2xl w-full max-w-md p-5 shadow-2xl animate-scaleIn space-y-4">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
-                <PhoneCall size={20} strokeWidth={2.2} />
-              </div>
-              <div>
-                <h3 className="font-semibold text-sm text-[var(--text)]">Request Customer to Call</h3>
-                <p className="text-xs text-[var(--text-muted)] mt-0.5">
-                  Sends an urgent high-priority notification to the customer with your shop phone number and a one-tap dialing button.
-                </p>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-[var(--text)] mb-1">
-                Reason for Call (Optional)
-              </label>
-              <input
-                type="text"
-                value={callReason}
-                onChange={(e) => setCallReason(e.target.value)}
-                placeholder="e.g. Blurry photo / Missing page 3"
-                maxLength={120}
-                className="w-full bg-[var(--surface-hover)] border border-[var(--border)] rounded-xl p-2.5 text-xs text-[var(--text)] outline-hidden focus:border-[#007AFF] transition-all"
-              />
-            </div>
-
-            <div className="flex items-center justify-end gap-2 pt-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setIsCallModalOpen(false)}
-                disabled={sendingCallRequest}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                loading={sendingCallRequest}
-                onClick={handleSendCallRequest}
-                className="bg-amber-600 hover:bg-amber-700 text-white border-transparent"
-              >
-                Send Urgent Request
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </Card>
   );
 }
