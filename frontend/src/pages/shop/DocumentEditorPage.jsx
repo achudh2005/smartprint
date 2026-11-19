@@ -11,7 +11,8 @@ import toast from 'react-hot-toast';
 
 import {
   loadPdfDocument, renderPdfPage, renderPdfThumbnail, detectFormFields, bakeFinalPdf,
-  insertBlankPageInPdf, duplicatePageInPdf, deletePageInPdf, reorderPagesInPdf, mergePdfBytes
+  insertBlankPageInPdf, duplicatePageInPdf, deletePageInPdf, reorderPagesInPdf, mergePdfBytes,
+  getPdfPageDimensions
 } from '../../components/editor/pdfEngine';
 import {
   saveEditSession, getEditSession, clearEditSession
@@ -112,8 +113,31 @@ export default function DocumentEditorPage() {
   // Canvas Refs
   const pdfCanvasRef = useRef(null);
   const overlayCanvasRef = useRef(null);
+  const viewportRef = useRef(null);
   const isInteractingRef = useRef(false);
   const interactionStartRef = useRef({ x: 0, y: 0 });
+
+  // Dynamic Fit Width / Fit Page handlers
+  const handleFitWidth = useCallback(async () => {
+    if (!rawPdfBytes || !viewportRef.current) return;
+    const dims = await getPdfPageDimensions(rawPdfBytes, currentPage);
+    if (!dims) return;
+    const availW = Math.max(200, viewportRef.current.clientWidth - 80);
+    const scale = Math.max(0.2, Math.min(3.0, availW / dims.width));
+    setZoom(Number(scale.toFixed(2)));
+    toast('Fitted to viewport width', { icon: '↔️', duration: 1500 });
+  }, [rawPdfBytes, currentPage]);
+
+  const handleFitPage = useCallback(async () => {
+    if (!rawPdfBytes || !viewportRef.current) return;
+    const dims = await getPdfPageDimensions(rawPdfBytes, currentPage);
+    if (!dims) return;
+    const availW = Math.max(200, viewportRef.current.clientWidth - 80);
+    const availH = Math.max(200, viewportRef.current.clientHeight - 80);
+    const scale = Math.max(0.2, Math.min(3.0, Math.min(availW / dims.width, availH / dims.height)));
+    setZoom(Number(scale.toFixed(2)));
+    toast('Fitted entire page to view', { icon: '↕️', duration: 1500 });
+  }, [rawPdfBytes, currentPage]);
 
   // 1. Load File Data & Raw Bytes
   useEffect(() => {
@@ -148,6 +172,17 @@ export default function DocumentEditorPage() {
 
         setRawPdfBytes(docResult.bytes);
         setTotalPages(docResult.pageCount);
+
+        // Intelligent initial zoom: for tall receipts or massive blueprints, auto-fit to screen
+        try {
+          const dims = await getPdfPageDimensions(docResult.bytes, 1);
+          if (dims && (dims.height > 1000 || dims.width > 1200)) {
+            const availH = window.innerHeight - 200;
+            const availW = window.innerWidth - 300;
+            const autoScale = Math.max(0.2, Math.min(1.0, Math.min(availW / dims.width, availH / dims.height)));
+            setZoom(Number(autoScale.toFixed(2)));
+          }
+        } catch (_) {}
 
         // Detect AcroForms
         const fields = await detectFormFields(docResult.bytes);
@@ -859,6 +894,8 @@ export default function DocumentEditorPage() {
           <ViewMenu
             zoom={zoom}
             onZoomChange={setZoom}
+            onFitWidth={handleFitWidth}
+            onFitPage={handleFitPage}
             canvasTheme={canvasTheme}
             onCanvasThemeToggle={() => setCanvasTheme((prev) => (prev === 'light' ? 'dark' : 'light'))}
             showSearch={showSearch}
@@ -981,7 +1018,8 @@ export default function DocumentEditorPage() {
 
         {/* Canvas & Document Viewport */}
         <main
-          className={`flex-1 overflow-auto relative flex flex-col items-center ${
+          ref={viewportRef}
+          className={`flex-1 overflow-auto relative ${
             canvasTheme === 'dark' ? 'bg-slate-900' : 'bg-slate-100 dark:bg-slate-950'
           }`}
         >
@@ -996,7 +1034,7 @@ export default function DocumentEditorPage() {
             </div>
           )}
 
-          <div className="m-auto p-4 sm:p-8 flex flex-col items-center justify-center">
+          <div className="w-max min-w-full h-max min-h-full flex items-center justify-center p-4 sm:p-8">
             <div
               className="relative shadow-2xl rounded-sm transition-all bg-white shrink-0"
               style={{

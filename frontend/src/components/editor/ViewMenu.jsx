@@ -3,6 +3,8 @@ import { ZoomIn, ZoomOut, Maximize2, Minimize2, Search, Sun, Moon, LayoutGrid } 
 export default function ViewMenu({
   zoom,
   onZoomChange,
+  onFitWidth,
+  onFitPage,
   canvasTheme,
   onCanvasThemeToggle,
   showSearch,
@@ -16,7 +18,7 @@ export default function ViewMenu({
       <div className="mac-segmented-track p-0.5">
         <button
           type="button"
-          onClick={() => onZoomChange(Math.max(0.5, zoom - 0.15))}
+          onClick={() => onZoomChange(Math.max(0.2, Number((zoom - 0.15).toFixed(2))))}
           className="p-1 rounded text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
           title="Zoom Out"
         >
@@ -27,7 +29,7 @@ export default function ViewMenu({
         </span>
         <button
           type="button"
-          onClick={() => onZoomChange(Math.min(3.0, zoom + 0.15))}
+          onClick={() => onZoomChange(Math.min(3.0, Number((zoom + 0.15).toFixed(2))))}
           className="p-1 rounded text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
           title="Zoom In"
         >
@@ -41,15 +43,25 @@ export default function ViewMenu({
           type="button"
           onClick={() => onZoomChange(1.0)}
           className="mac-button-secondary px-2.5 py-1 text-xs flex items-center gap-1"
+          title="100% Actual Size"
         >
           <Maximize2 size={11} strokeWidth={2} /> 100%
         </button>
         <button
           type="button"
-          onClick={() => onZoomChange(1.25)}
+          onClick={onFitWidth || (() => onZoomChange(1.0))}
           className="mac-button-secondary px-2.5 py-1 text-xs flex items-center gap-1"
+          title="Fit to Width"
         >
           <Minimize2 size={11} strokeWidth={2} /> Fit Width
+        </button>
+        <button
+          type="button"
+          onClick={onFitPage || (() => onZoomChange(1.0))}
+          className="mac-button-secondary px-2.5 py-1 text-xs flex items-center gap-1"
+          title="Fit Entire Page"
+        >
+          <Maximize2 size={11} strokeWidth={2} /> Fit Page
         </button>
       </div>
 

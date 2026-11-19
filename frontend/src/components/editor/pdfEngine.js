@@ -62,7 +62,18 @@ let cachedPdfDoc = null;
 let cachedPdfBytes = null;
 let inFlightDocPromise = null;
 let currentRenderTask = null;
-let thumbnailRenderQueue = Promise.resolve();
+let pdfRenderMutex = Promise.resolve();
+
+/**
+ * Serialize all PDF.js page.render() operations into a single execution queue
+ * to eliminate "Cannot use the same canvas during multiple render() operations" and
+ * "An action was performed on the page which is already being rendered" collisions.
+ */
+export function runSerializedPdfRender(taskFn) {
+  const resultPromise = pdfRenderMutex.catch(() => {}).then(taskFn);
+  pdfRenderMutex = resultPromise.catch(() => {});
+  return resultPromise;
+}
 
 export async function getPdfJsDocument(pdfBytes) {
   if (cachedPdfDoc && cachedPdfBytes === pdfBytes) {
@@ -165,130 +176,143 @@ export async function loadPdfDocument(arrayBuffer, mimeType = 'application/pdf')
 }
 
 /**
- * Render a single page via pdf.js onto a target canvas and extract its text items
+ * Render a single page via pdf.js onto a target canvas and extract its text items.
+ * Wrapped in runSerializedPdfRender to guarantee zero concurrent collisions with thumbnail renders.
  */
 export async function renderPdfPage(pdfBytes, pageNumber, canvas, scale = 1.0) {
   if (!canvas || !pdfBytes) return null;
 
-  // Cancel in-flight render to avoid "Cannot use the same canvas during multiple render() operations"
-  if (currentRenderTask) {
-    try {
-      await currentRenderTask.cancel();
-    } catch (_) {}
-    currentRenderTask = null;
-  }
+  return runSerializedPdfRender(async () => {
+    if (!canvas) return null;
 
-  const pdf = await getPdfJsDocument(pdfBytes);
-  const safePageNum = Math.min(Math.max(1, pageNumber), pdf.numPages);
-  const page = await pdf.getPage(safePageNum);
-
-  const viewport = page.getViewport({ scale });
-  canvas.width = Math.floor(viewport.width);
-  canvas.height = Math.floor(viewport.height);
-
-  const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  const renderContext = {
-    canvasContext: ctx,
-    viewport: viewport,
-  };
-
-  const renderTask = page.render(renderContext);
-  currentRenderTask = renderTask;
-
-  try {
-    await renderTask.promise;
-  } catch (err) {
-    if (err?.name === 'RenderingCancelledException') {
-      return null;
-    }
-    console.error('[pdfEngine] Page render error:', err);
-    throw err;
-  } finally {
-    if (currentRenderTask === renderTask) {
+    // Cancel in-flight render to avoid "Cannot use the same canvas during multiple render() operations"
+    if (currentRenderTask) {
+      try {
+        await currentRenderTask.cancel();
+      } catch (_) {}
       currentRenderTask = null;
     }
-  }
 
-  // Extract text layer with bounding boxes for click-to-edit, markup snapping, and search
-  const textContent = await page.getTextContent();
-  const textItems = [];
+    const pdf = await getPdfJsDocument(pdfBytes);
+    const safePageNum = Math.min(Math.max(1, pageNumber), pdf.numPages);
+    const page = await pdf.getPage(safePageNum);
 
-  for (const item of textContent.items) {
-    if (!item.str || !item.str.trim()) continue;
-    const tx = pdfjsLib.Util.transform(viewport.transform, item.transform);
-    const fontHeight = Math.sqrt((tx[2] * tx[2]) + (tx[3] * tx[3]));
-    const width = item.width * scale;
-    const height = (item.height ? item.height * scale : fontHeight) || fontHeight;
-    const x = tx[4];
-    const y = tx[5] - height;
+    const viewport = page.getViewport({ scale });
+    canvas.width = Math.floor(viewport.width);
+    canvas.height = Math.floor(viewport.height);
 
-    textItems.push({
-      str: item.str,
-      x: Math.max(0, x),
-      y: Math.max(0, y),
-      width: Math.max(8, width),
-      height: Math.max(8, height),
-      fontSize: fontHeight,
-      fontName: item.fontName,
-      dir: item.dir,
-    });
-  }
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  return {
-    viewport,
-    textItems,
-    originalWidth: viewport.width / scale,
-    originalHeight: viewport.height / scale,
-  };
+    const renderContext = {
+      canvasContext: ctx,
+      viewport: viewport,
+    };
+
+    const renderTask = page.render(renderContext);
+    currentRenderTask = renderTask;
+
+    try {
+      await renderTask.promise;
+    } catch (err) {
+      if (err?.name === 'RenderingCancelledException') {
+        return null;
+      }
+      console.error('[pdfEngine] Page render error:', err);
+      throw err;
+    } finally {
+      if (currentRenderTask === renderTask) {
+        currentRenderTask = null;
+      }
+    }
+
+    // Extract text layer with bounding boxes for click-to-edit, markup snapping, and search
+    const textContent = await page.getTextContent();
+    const textItems = [];
+
+    for (const item of textContent.items) {
+      if (!item.str || !item.str.trim()) continue;
+      const tx = pdfjsLib.Util.transform(viewport.transform, item.transform);
+      const fontHeight = Math.sqrt((tx[2] * tx[2]) + (tx[3] * tx[3]));
+      const width = item.width * scale;
+      const height = (item.height ? item.height * scale : fontHeight) || fontHeight;
+      const x = tx[4];
+      const y = tx[5] - height;
+
+      textItems.push({
+        str: item.str,
+        x: Math.max(0, x),
+        y: Math.max(0, y),
+        width: Math.max(8, width),
+        height: Math.max(8, height),
+        fontSize: fontHeight,
+        fontName: item.fontName,
+        dir: item.dir,
+      });
+    }
+
+    return {
+      viewport,
+      textItems,
+      originalWidth: viewport.width / scale,
+      originalHeight: viewport.height / scale,
+    };
+  });
 }
 
 /**
- * Render a small thumbnail of a PDF page onto a thumbnail canvas
- * Uses a sequential promise queue to avoid concurrency bottlenecks on the PDF.js worker.
+ * Render a small thumbnail of a PDF page onto a thumbnail canvas.
+ * Wrapped in runSerializedPdfRender queue.
  */
 export async function renderPdfThumbnail(pdfBytes, pageNumber, canvas) {
   if (!canvas || !pdfBytes) return false;
 
-  return new Promise((resolve) => {
-    thumbnailRenderQueue = thumbnailRenderQueue
-      .catch(() => {})
-      .then(async () => {
-        try {
-          if (!canvas) {
-            resolve(false);
-            return;
-          }
-          const pdf = await getPdfJsDocument(pdfBytes);
-          if (pageNumber > pdf.numPages || pageNumber < 1) {
-            resolve(false);
-            return;
-          }
-          const page = await pdf.getPage(pageNumber);
-          const unscaled = page.getViewport({ scale: 1.0 });
-          const targetW = 96;
-          const scale = targetW / unscaled.width;
-          const viewport = page.getViewport({ scale });
+  return runSerializedPdfRender(async () => {
+    try {
+      if (!canvas) return false;
+      const pdf = await getPdfJsDocument(pdfBytes);
+      if (pageNumber > pdf.numPages || pageNumber < 1) return false;
 
-          canvas.width = Math.floor(viewport.width);
-          canvas.height = Math.floor(viewport.height);
+      const page = await pdf.getPage(pageNumber);
+      const unscaled = page.getViewport({ scale: 1.0 });
+      const targetW = 96;
+      const scale = targetW / unscaled.width;
+      const viewport = page.getViewport({ scale });
 
-          const ctx = canvas.getContext('2d');
-          if (!ctx) {
-            resolve(false);
-            return;
-          }
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
+      canvas.width = Math.floor(viewport.width);
+      canvas.height = Math.floor(viewport.height);
 
-          await page.render({ canvasContext: ctx, viewport }).promise;
-          resolve(true);
-        } catch (err) {
-          console.warn(`Thumbnail render failed for page ${pageNumber}:`, err);
-          resolve(false);
-        }
-      });
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return false;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      await page.render({ canvasContext: ctx, viewport }).promise;
+      return true;
+    } catch (err) {
+      console.warn(`Thumbnail render failed for page ${pageNumber}:`, err);
+      return false;
+    }
   });
+}
+
+/**
+ * Get unscaled dimensions of a page without rendering
+ */
+export async function getPdfPageDimensions(pdfBytes, pageNumber = 1) {
+  try {
+    const pdf = await getPdfJsDocument(pdfBytes);
+    const safePageNum = Math.min(Math.max(1, pageNumber), pdf.numPages);
+    const page = await pdf.getPage(safePageNum);
+    const unscaled = page.getViewport({ scale: 1.0 });
+    return {
+      width: unscaled.width,
+      height: unscaled.height,
+      pageCount: pdf.numPages,
+    };
+  } catch (err) {
+    console.warn('[pdfEngine] Failed to get page dimensions:', err);
+    return null;
+  }
 }
 
 /**

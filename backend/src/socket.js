@@ -34,8 +34,13 @@ function initSocket(httpServer) {
       // 1. Shop Owner / Staff Authentication via JWT
       if (token) {
         try {
-          const jwtSecret = process.env.JWT_SECRET || 'smartprint_jwt_fallback_secret_production_guard_9281749102';
-          const decoded = jwt.verify(token, jwtSecret);
+          const jwtSecret = process.env.JWT_SECRET;
+          if (!jwtSecret && process.env.NODE_ENV === 'production') {
+            logger.error('CRITICAL: JWT_SECRET environment variable is missing in production.');
+            return next(new Error('Authentication configuration error'));
+          }
+          const secret = jwtSecret || 'smartprint_jwt_dev_secret_local_only';
+          const decoded = jwt.verify(token, secret);
           const user = await prisma.user.findUnique({
             where: { id: decoded.id },
             select: { id: true, email: true, name: true, role: true, status: true },
@@ -128,6 +133,15 @@ function initSocket(httpServer) {
       try {
         const cleanOrderNumber = orderNumber ? String(orderNumber).trim().toUpperCase() : null;
         const parsedOrderId = orderId ? parseInt(orderId, 10) : null;
+
+        // Verify customer authorization: prevent clients from joining other customers' order rooms
+        if (socket.authType === 'CUSTOMER') {
+          if (socket.customer?.orderNumber && cleanOrderNumber && socket.customer.orderNumber !== cleanOrderNumber) {
+            logger.warn(`Unauthorized order:join attempt: customer ${socket.customer.orderNumber} tried to join ${cleanOrderNumber}`);
+            if (callback) callback({ success: false, message: 'Unauthorized for this order' });
+            return;
+          }
+        }
 
         if (parsedOrderId && !isNaN(parsedOrderId)) {
           socket.join(`order_${parsedOrderId}`);

@@ -2,6 +2,13 @@
 // SmartPrint Backend – Entry Point
 // ============================================================
 require('dotenv').config();
+
+// Polyfill BigInt serialization for Prisma to prevent unhandled JSON.stringify crashes
+if (typeof BigInt.prototype.toJSON === 'undefined') {
+  BigInt.prototype.toJSON = function () {
+    return this.toString();
+  };
+}
 const http = require('http');
 const app = require('./app');
 const logger = require('./utils/logger');
