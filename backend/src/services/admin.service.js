@@ -128,6 +128,9 @@ async function getPlatformOverview(adminUser) {
     }),
   ]);
 
+  const subscriptionService = require('./subscription.service');
+  const subscriptionKPIs = await subscriptionService.getSubscriptionPlatformKPIs();
+
   let totalPlatformRevenue = 0;
   totalRevenueData.forEach((p) => {
     totalPlatformRevenue += Number(p.amount);
@@ -220,7 +223,9 @@ async function getPlatformOverview(adminUser) {
         activeBytes: totalActiveBytes.toString(),
         purgedBytes: totalPurgedBytes.toString(),
       },
+      subscription: subscriptionKPIs,
     },
+    subscriptionKPIs,
     suspiciousTargets,
     recentShops,
     recentAudits,
@@ -346,7 +351,7 @@ async function createShopOwner(adminUser, { ownerName, ownerEmail, shopName, sho
 /**
  * List all shops on platform with pagination, filters & sorting
  */
-async function listAllShops(adminUser, { page = 1, limit = 50, status, search, tier, sortBy, sortOrder = 'desc', dateFrom, dateTo } = {}) {
+async function listAllShops(adminUser, { page = 1, limit = 50, status, search, tier, subscriptionStatus, sortBy, sortOrder = 'desc', dateFrom, dateTo } = {}) {
   await assertSuperAdmin(adminUser);
 
   const where = {};
@@ -385,6 +390,7 @@ async function listAllShops(adminUser, { page = 1, limit = 50, status, search, t
       include: {
         _count: { select: { orders: true, printers: true, shopUsers: true } },
         shopSettings: true,
+        subscription: true,
         shopUsers: {
           where: { role: 'OWNER' },
           include: {
@@ -399,11 +405,38 @@ async function listAllShops(adminUser, { page = 1, limit = 50, status, search, t
     prisma.shop.count({ where }),
   ]);
 
-  const shops = shopsRaw.map((s) => ({
-    ...s,
-    tier: s.subscriptionTier,
-    owner: s.shopUsers?.[0]?.user || null,
-  }));
+  const { computeSubscriptionDetails } = require('./subscription.service');
+
+  let shops = shopsRaw.map((s) => {
+    const sub = s.subscription || {
+      shopId: s.id,
+      status: 'TRIAL',
+      trialEndsAt: new Date(new Date(s.createdAt).getTime() + 30 * 24 * 60 * 60 * 1000),
+      bonusDays: 0,
+    };
+    const subCalc = computeSubscriptionDetails(sub);
+
+    return {
+      ...s,
+      tier: s.subscriptionTier,
+      owner: s.shopUsers?.[0]?.user || null,
+      subscription: {
+        ...(s.subscription || {}),
+        status: subCalc.status,
+        daysRemaining: subCalc.daysRemaining,
+        isActive: subCalc.isActive,
+        isTrial: subCalc.isTrial,
+        effectiveExpiryDate: subCalc.effectiveExpiryDate,
+        bonusDays: sub.bonusDays || 0,
+        suspendedReason: sub.suspendedReason || null,
+        plan: sub.plan || (subCalc.isTrial ? 'TRIAL' : 'MONTHLY'),
+      },
+    };
+  });
+
+  if (subscriptionStatus && subscriptionStatus !== 'ALL') {
+    shops = shops.filter((s) => s.subscription?.status === subscriptionStatus);
+  }
 
   return {
     shops,

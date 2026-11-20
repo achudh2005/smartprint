@@ -63,4 +63,15 @@ router.get('/payments', adminController.getPayments);
 // Platform Security & Audit Logs
 router.get('/audit-logs', adminController.getAuditLogs);
 
+// Shop Subscription & Trial Management (Super Admin)
+router.get('/subscription-kpis', adminController.getSubscriptionKPIs);
+router.get('/shops/:shopId/subscription', adminController.getShopSubscription);
+router.post('/shops/:shopId/subscription/extend-trial', adminController.extendTrial);
+router.post('/shops/:shopId/subscription/grant-days', adminController.grantFreeDays);
+router.post('/shops/:shopId/subscription/force-activate', adminController.forceActivateSubscription);
+router.post('/shops/:shopId/subscription/suspend', adminController.suspendSubscription);
+router.post('/shops/:shopId/subscription/reactivate', adminController.reactivateSubscription);
+router.post('/shops/:shopId/subscription/cancel', adminController.cancelSubscription);
+router.post('/subscriptions/run-maintenance-now', adminController.runSubscriptionMaintenance);
+
 module.exports = router;

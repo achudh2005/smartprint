@@ -4,6 +4,7 @@
  * active session monitoring & revocation, orders, printers, payments, telemetry, and audit logs.
  */
 const adminService = require('../services/admin.service');
+const subscriptionService = require('../services/subscription.service');
 const { sendSuccess, sendCreated } = require('../utils/response');
 
 const adminLogin = async (req, res, next) => {
@@ -275,6 +276,92 @@ const broadcastMessage = async (req, res, next) => {
   }
 };
 
+const getSubscriptionKPIs = async (req, res, next) => {
+  try {
+    const data = await subscriptionService.getSubscriptionPlatformKPIs();
+    return sendSuccess(res, data);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const getShopSubscription = async (req, res, next) => {
+  try {
+    const data = await subscriptionService.getShopSubscriptionOverview(req.params.shopId);
+    return sendSuccess(res, data);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const extendTrial = async (req, res, next) => {
+  try {
+    const { days } = req.body;
+    const data = await subscriptionService.adminExtendTrial(req.user.id, req.params.shopId, days);
+    return sendSuccess(res, data, `Trial extended by ${days} days.`);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const grantFreeDays = async (req, res, next) => {
+  try {
+    const { days, reason } = req.body;
+    const data = await subscriptionService.adminGrantFreeDays(req.user.id, req.params.shopId, days, reason);
+    return sendSuccess(res, data, `Granted ${days} free days to shop.`);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const forceActivateSubscription = async (req, res, next) => {
+  try {
+    const { expiryDate, reason } = req.body;
+    const data = await subscriptionService.adminForceActivate(req.user.id, req.params.shopId, { expiryDate, reason });
+    return sendSuccess(res, data, 'Shop subscription force-activated.');
+  } catch (err) {
+    next(err);
+  }
+};
+
+const suspendSubscription = async (req, res, next) => {
+  try {
+    const { reason } = req.body;
+    const data = await subscriptionService.adminSuspendShop(req.user.id, req.params.shopId, reason);
+    return sendSuccess(res, data, 'Shop subscription suspended.');
+  } catch (err) {
+    next(err);
+  }
+};
+
+const reactivateSubscription = async (req, res, next) => {
+  try {
+    const data = await subscriptionService.adminReactivateShop(req.user.id, req.params.shopId);
+    return sendSuccess(res, data, 'Shop subscription reactivated.');
+  } catch (err) {
+    next(err);
+  }
+};
+
+const cancelSubscription = async (req, res, next) => {
+  try {
+    const { reason } = req.body;
+    const data = await subscriptionService.adminCancelSubscription(req.user.id, req.params.shopId, reason);
+    return sendSuccess(res, data, 'Shop subscription cancelled.');
+  } catch (err) {
+    next(err);
+  }
+};
+
+const runSubscriptionMaintenance = async (req, res, next) => {
+  try {
+    const result = await subscriptionService.runDailySubscriptionMaintenance();
+    return sendSuccess(res, result, 'Daily subscription maintenance executed successfully.');
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   adminLogin,
   getOverview,
@@ -304,4 +391,13 @@ module.exports = {
   getPayments,
   getSystemHealth,
   getAuditLogs,
+  getSubscriptionKPIs,
+  getShopSubscription,
+  extendTrial,
+  grantFreeDays,
+  forceActivateSubscription,
+  suspendSubscription,
+  reactivateSubscription,
+  cancelSubscription,
+  runSubscriptionMaintenance,
 };
