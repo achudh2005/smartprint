@@ -12,6 +12,9 @@ import {
   TrendingUp,
   Activity,
   CheckCircle2,
+  CreditCard,
+  Clock,
+  Sparkles,
 } from 'lucide-react'
 import api from '../../lib/api'
 import { StatCard, Card, CardHeader, CardBody, Badge, Button, TableSkeleton } from '../../components/ui'
@@ -53,6 +56,7 @@ export default function AdminOverviewPage() {
   }
 
   const kpis = data?.kpis || {}
+  const subKpis = data?.subscriptionKPIs || kpis.subscription || {}
   const suspiciousTargets = data?.suspiciousTargets || []
   const recentShops = data?.recentShops || []
   const recentAudits = data?.recentAudits || []
@@ -160,6 +164,64 @@ export default function AdminOverviewPage() {
           changeType={kpis.failedLoginsHour > 0 ? 'negative' : 'positive'}
           description={kpis.failedLoginsHour === 0 ? 'No brute-force activity' : 'Auth failures in past hour'}
         />
+      </div>
+
+      {/* Subscription & Recurring Revenue (MRR) Telemetry */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <CreditCard size={17} className="text-[#007AFF] dark:text-[#0A84FF]" />
+            <h2 className="text-xs sm:text-sm font-bold text-[var(--text)] uppercase tracking-wider">
+              Tenant Subscriptions & Monthly Recurring Revenue (MRR)
+            </h2>
+          </div>
+          <Link
+            to="/admin/shops"
+            className="text-xs font-semibold text-[#007AFF] dark:text-[#0A84FF] hover:underline flex items-center gap-1"
+          >
+            <span>Manage All Shops</span>
+            <ArrowRight size={12} />
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
+          <StatCard
+            label="Shops on Trial"
+            value={loading ? '...' : (subKpis.trialCount ?? 0)}
+            icon={Sparkles}
+            description="Active 1-month trials"
+          />
+
+          <StatCard
+            label="Active Paying Shops"
+            value={loading ? '...' : (subKpis.activeCount ?? 0)}
+            icon={CheckCircle2}
+            description="Paid monthly licenses"
+          />
+
+          <StatCard
+            label="Past Due (Grace)"
+            value={loading ? '...' : (subKpis.pastDueCount ?? 0)}
+            icon={Clock}
+            change={subKpis.pastDueCount > 0 ? 'Follow-up' : 'Nominal'}
+            changeType={subKpis.pastDueCount > 0 ? 'negative' : 'positive'}
+            description="3-day grace period"
+          />
+
+          <StatCard
+            label="Expired / Lapsed"
+            value={loading ? '...' : (subKpis.expiredCount ?? 0)}
+            icon={AlertTriangle}
+            description="Storefront & portal paused"
+          />
+
+          <StatCard
+            label="Estimated MRR"
+            value={loading ? '...' : `₹${(subKpis.estimatedMRR || 0).toLocaleString('en-IN')}`}
+            icon={TrendingUp}
+            description="Active × ₹499/mo license"
+          />
+        </div>
       </div>
 
       {/* Secondary Metrics */}

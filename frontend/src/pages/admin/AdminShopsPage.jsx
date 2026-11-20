@@ -9,7 +9,9 @@ import {
   Trash2,
   ExternalLink,
   Download,
+  CreditCard,
 } from 'lucide-react'
+import AdminSubscriptionModal from '../../components/admin/AdminSubscriptionModal'
 import api from '../../lib/api'
 import {
   Card,
@@ -36,6 +38,8 @@ export default function AdminShopsPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('ALL')
+  const [subscriptionFilter, setSubscriptionFilter] = useState('ALL')
+  const [selectedSubscriptionShop, setSelectedSubscriptionShop] = useState(null)
   const [actionLoading, setActionLoading] = useState(false)
 
   // Create Shop Modal
@@ -56,6 +60,7 @@ export default function AdminShopsPage() {
           params: {
             search: search || undefined,
             status: statusFilter !== 'ALL' ? statusFilter : undefined,
+            subscriptionStatus: subscriptionFilter !== 'ALL' ? subscriptionFilter : undefined,
           },
         }),
         api.get('/admin/users', { params: { role: 'OWNER' } }).catch(() => ({ data: { data: { users: [] } } })),
@@ -72,7 +77,7 @@ export default function AdminShopsPage() {
 
   useEffect(() => {
     loadShops()
-  }, [statusFilter])
+  }, [statusFilter, subscriptionFilter])
 
   const handleCreateShop = async (e) => {
     e.preventDefault()
@@ -223,30 +228,53 @@ export default function AdminShopsPage() {
       </div>
 
       {/* Filter and Search Bar */}
-      <Card className="p-3 flex flex-col sm:flex-row items-center justify-between gap-3">
-        <form onSubmit={(e) => { e.preventDefault(); loadShops(); }} className="relative w-full sm:w-80">
-          <Search className="absolute left-3 top-2.5 text-[var(--text-muted)]" size={14} strokeWidth={1.75} />
-          <input
-            type="text"
-            placeholder="Search by shop name, code, email..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="input pl-9 h-9 text-xs w-full"
-          />
-        </form>
+      <Card className="p-3 flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          <form onSubmit={(e) => { e.preventDefault(); loadShops(); }} className="relative w-full sm:w-80">
+            <Search className="absolute left-3 top-2.5 text-[var(--text-muted)]" size={14} strokeWidth={1.75} />
+            <input
+              type="text"
+              placeholder="Search by shop name, code, email..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="input pl-9 h-9 text-xs w-full"
+            />
+          </form>
 
-        <div className="flex items-center gap-1.5 w-full sm:w-auto">
-          {['ALL', 'ACTIVE', 'SUSPENDED'].map((st) => (
+          <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
+            <span className="text-[11px] text-[var(--text-muted)] font-bold uppercase mr-1">Shop:</span>
+            {['ALL', 'ACTIVE', 'SUSPENDED'].map((st) => (
+              <button
+                key={st}
+                onClick={() => setStatusFilter(st)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-150 cursor-pointer ${
+                  statusFilter === st
+                    ? 'bg-black/10 dark:bg-white/15 text-[var(--text)] shadow-xs font-bold'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
+                }`}
+              >
+                {st}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Subscription Status Filters */}
+        <div className="flex flex-wrap items-center gap-1.5 pt-2 border-t border-[var(--border)]">
+          <span className="text-[11px] text-[var(--text-muted)] font-bold uppercase mr-1 flex items-center gap-1">
+            <CreditCard size={12} /> Subscription:
+          </span>
+          {['ALL', 'TRIAL', 'ACTIVE', 'PAST_DUE', 'SUSPENDED', 'EXPIRED'].map((subSt) => (
             <button
-              key={st}
-              onClick={() => setStatusFilter(st)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors duration-150 cursor-pointer ${
-                statusFilter === st
-                  ? 'bg-[#007AFF] text-white shadow-xs font-semibold'
+              key={subSt}
+              onClick={() => setSubscriptionFilter(subSt)}
+              className={`px-2.5 py-1 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
+                subscriptionFilter === subSt
+                  ? 'bg-[#007AFF] text-white font-bold shadow-xs'
                   : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-black/[0.04] dark:hover:bg-white/[0.06]'
               }`}
             >
-              {st}
+              {subSt}
             </button>
           ))}
         </div>
@@ -268,10 +296,11 @@ export default function AdminShopsPage() {
               <tr>
                 <TableHead>Shop Details</TableHead>
                 <TableHead>Code & Link</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Subscription Plan</TableHead>
-                <TableHead className="text-right">Workload Metrics</TableHead>
-                <TableHead className="text-right">Moderation Controls</TableHead>
+                <TableHead>Store Status</TableHead>
+                <TableHead>Subscription</TableHead>
+                <TableHead>Days Remaining</TableHead>
+                <TableHead className="text-right">Metrics</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </tr>
             </TableHeader>
             <TableBody>
@@ -311,16 +340,39 @@ export default function AdminShopsPage() {
                   </TableCell>
 
                   <TableCell>
-                    <select
-                      value={shop.tier || 'FREE'}
-                      onChange={(e) => handleTierChange(shop, e.target.value)}
-                      disabled={actionLoading}
-                      className="input py-1 px-2 text-xs rounded-lg h-7 font-medium w-auto"
-                    >
-                      <option value="FREE">FREE Tier</option>
-                      <option value="PRO">PRO Tier</option>
-                      <option value="ENTERPRISE">ENTERPRISE</option>
-                    </select>
+                    <div className="flex flex-col gap-1">
+                      <Badge
+                        variant={
+                          shop.subscription?.status === 'ACTIVE' ? 'success'
+                          : shop.subscription?.status === 'TRIAL' ? 'info'
+                          : shop.subscription?.status === 'PAST_DUE' ? 'warning'
+                          : 'danger'
+                        }
+                        className="text-[10px] font-bold w-fit"
+                      >
+                        {shop.subscription?.status === 'TRIAL' ? 'TRIAL' : (shop.subscription?.status || 'TRIAL')}
+                      </Badge>
+                      {shop.subscription?.bonusDays > 0 && (
+                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                          +{shop.subscription.bonusDays}d bonus
+                        </span>
+                      )}
+                    </div>
+                  </TableCell>
+
+                  <TableCell>
+                    <div className="font-bold text-xs text-[var(--text)]">
+                      {shop.subscription?.daysRemaining > 0 ? (
+                        <span>{shop.subscription.daysRemaining}d left</span>
+                      ) : (
+                        <span className="text-rose-600 dark:text-rose-400 font-bold">Expired</span>
+                      )}
+                    </div>
+                    {shop.subscription?.effectiveExpiryDate && (
+                      <div className="text-[10px] text-[var(--text-muted)]">
+                        {new Date(shop.subscription.effectiveExpiryDate).toLocaleDateString()}
+                      </div>
+                    )}
                   </TableCell>
 
                   <TableCell className="text-right font-mono text-xs text-[var(--text-muted)]">
@@ -330,6 +382,17 @@ export default function AdminShopsPage() {
 
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1.5">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setSelectedSubscriptionShop(shop)}
+                        className="text-xs h-7 px-2.5 flex items-center gap-1 bg-[#007AFF]/10 text-[#007AFF] hover:bg-[#007AFF]/20 border-[#007AFF]/25 font-semibold"
+                        title="Manage subscription trial, days, force activation, or suspension"
+                      >
+                        <CreditCard size={12} strokeWidth={2} />
+                        <span>Manage Plan</span>
+                      </Button>
+
                       <Button
                         variant={shop.status === 'ACTIVE' ? 'secondary' : 'primary'}
                         size="sm"
@@ -444,6 +507,16 @@ export default function AdminShopsPage() {
           </div>
         </form>
       </Modal>
+
+      {/* Subscription Management Modal */}
+      {selectedSubscriptionShop && (
+        <AdminSubscriptionModal
+          shop={selectedSubscriptionShop}
+          isOpen={Boolean(selectedSubscriptionShop)}
+          onClose={() => setSelectedSubscriptionShop(null)}
+          onUpdated={loadShops}
+        />
+      )}
     </div>
   )
 }
