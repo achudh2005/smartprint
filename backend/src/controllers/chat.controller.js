@@ -40,7 +40,8 @@ async function postShopOrderMessage(req, res, next) {
     const orderId = parseInt(req.params.orderId, 10);
     const { body, type = 'TEXT', urgent = false } = req.body;
 
-    if (type !== 'CALL_REQUEST' && (!body || !String(body).trim())) {
+    const cleanBody = String(body || '').trim().slice(0, 2000);
+    if (type !== 'CALL_REQUEST' && !cleanBody) {
       return sendError(res, 'Message body cannot be empty.', 400);
     }
 
@@ -48,7 +49,7 @@ async function postShopOrderMessage(req, res, next) {
       orderId,
       senderType: 'SHOP',
       senderUserId: req.user.id,
-      body,
+      body: cleanBody,
       type,
       urgent,
     });
@@ -102,14 +103,15 @@ async function postCustomerOrderMessage(req, res, next) {
     const orderIdentifier = req.params.orderPublicId || req.params.orderNumber;
     const { body } = req.body;
 
-    if (!body || !String(body).trim()) {
+    const cleanBody = String(body || '').trim().slice(0, 2000);
+    if (!cleanBody) {
       return sendError(res, 'Message body cannot be empty.', 400);
     }
 
     const message = await chatService.postOrderMessage({
       orderNumber: orderIdentifier,
       senderType: 'CUSTOMER',
-      body,
+      body: cleanBody,
       type: 'TEXT',
       urgent: false,
     });

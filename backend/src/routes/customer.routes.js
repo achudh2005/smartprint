@@ -44,6 +44,25 @@ const sessionLimiter = rateLimit({
   message: { success: false, message: 'Too many requests. Please wait a moment.' },
 });
 
+// Rate limiter for order chat & notifications
+const chatLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000,
+  max: 45, // max 45 chat requests per 5 minutes per IP
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => process.env.NODE_ENV !== 'production' || isLocalOrLanIp(req.ip),
+  message: { success: false, message: 'Too many chat messages. Please slow down.' },
+});
+
+const pushLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => process.env.NODE_ENV !== 'production' || isLocalOrLanIp(req.ip),
+  message: { success: false, message: 'Too many push notification subscription requests.' },
+});
+
 // Multer temporary upload handler
 const upload = multer({
   dest: path.join(os.tmpdir(), 'smartprint_uploads'),
@@ -79,11 +98,11 @@ router.post('/sessions/:sessionToken/confirm', customerController.confirmOrder);
 router.get('/orders/:orderNumber', customerController.getOrderStatus);
 
 // 8. Order Two-Way Chat & Escalation (matches both :orderNumber and :orderPublicId)
-router.get('/orders/:orderNumber/chat', chatController.getCustomerOrderChat);
-router.post('/orders/:orderNumber/chat', chatController.postCustomerOrderMessage);
+router.get('/orders/:orderNumber/chat', chatLimiter, chatController.getCustomerOrderChat);
+router.post('/orders/:orderNumber/chat', chatLimiter, chatController.postCustomerOrderMessage);
 
 // 9. Customer Web Push Subscription Registration
-router.post('/orders/:orderNumber/push-subscribe', chatController.subscribePush);
+router.post('/orders/:orderNumber/push-subscribe', pushLimiter, chatController.subscribePush);
 
 // 10. Document secure preview
 router.get('/files/:filePublicId/preview', customerController.previewFile);
