@@ -21,6 +21,7 @@ export default function ShopNavTabs({ shopId }) {
     { to: `/shops/${shopId}/qr`,        icon: QrCode,          label: 'QR Code' },
     { to: `/shops/${shopId}/pricing`,   icon: DollarSign,      label: 'Pricing & Services' },
     { to: `/shops/${shopId}/settings`,  icon: Settings,        label: 'Settings' },
+    { to: `/shops/${shopId}/billing`,   icon: CreditCard,      label: 'Billing & Plan' },
   ]
 
   return (

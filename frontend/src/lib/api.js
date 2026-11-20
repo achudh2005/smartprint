@@ -73,6 +73,14 @@ api.interceptors.response.use(
       }
     }
 
+    // ── Handle 402 / SUBSCRIPTION_REQUIRED: automatically redirect to billing page ──
+    if (error.response?.status === 402 || error.response?.data?.code === 'SUBSCRIPTION_REQUIRED') {
+      const shopId = error.response?.data?.data?.shopId;
+      if (shopId && !window.location.pathname.includes('/billing')) {
+        window.location.href = `/shops/${shopId}/billing`;
+      }
+    }
+
     return Promise.reject(error)
   }
 )

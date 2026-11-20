@@ -26,6 +26,7 @@ import OrderDetailPage from './pages/shop/OrderDetailPage'
 const DocumentEditorPage = lazy(() => import('./pages/shop/DocumentEditorPage'))
 import ShopPrintersPage from './pages/shop/ShopPrintersPage'
 import ShopAnalyticsPage from './pages/shop/ShopAnalyticsPage'
+import ShopBillingPage from './pages/shop/ShopBillingPage'
 
 // Super Admin Pages
 import AdminLoginPage from './pages/admin/AdminLoginPage'
@@ -101,6 +102,7 @@ export default function App() {
             <Route path="/shops/:shopId/dashboard" element={<ShopDashboardPage />} />
             <Route path="/shops/:shopId/setup" element={<ShopSetupPage />} />
             <Route path="/shops/:shopId/settings" element={<ShopSettingsPage />} />
+            <Route path="/shops/:shopId/billing" element={<ShopBillingPage />} />
             <Route path="/shops/:shopId/qr" element={<ShopQRPage />} />
             <Route path="/shops/:shopId/pricing" element={<ShopPricingPage />} />
             <Route path="/shops/:shopId/payments" element={<ShopPaymentsPage />} />
