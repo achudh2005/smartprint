@@ -511,9 +511,9 @@ async function adminExtendTrial(adminUserId, shopId, daysToAdd) {
       userId: adminUserId,
       shopId: numericShopId,
       action: 'SUBSCRIPTION_EXTEND_TRIAL',
-      entity: 'ShopSubscription',
-      entityId: sub.id,
-      details: { addedDays: days, previousBonusDays: currentBonus, newBonusDays: newBonus },
+      resource: 'ShopSubscription',
+      resourceId: String(sub.id),
+      newData: { addedDays: days, previousBonusDays: currentBonus, newBonusDays: newBonus },
     },
   });
 
@@ -557,9 +557,9 @@ async function adminGrantFreeDays(adminUserId, shopId, daysToGrant, reason) {
       userId: adminUserId,
       shopId: numericShopId,
       action: 'SUBSCRIPTION_GRANT_DAYS',
-      entity: 'ShopSubscription',
-      entityId: sub.id,
-      details: { grantedDays: days, reason: reason || 'Admin promotional grant', newPeriodEnd },
+      resource: 'ShopSubscription',
+      resourceId: String(sub.id),
+      newData: { grantedDays: days, reason: reason || 'Admin promotional grant', newPeriodEnd },
     },
   });
 
@@ -619,9 +619,9 @@ async function adminForceActivate(adminUserId, shopId, { expiryDate, reason }) {
       userId: adminUserId,
       shopId: numericShopId,
       action: 'SUBSCRIPTION_FORCE_ACTIVATE',
-      entity: 'ShopSubscription',
-      entityId: sub.id,
-      details: { reason: reason || 'Manual offline activation', newPeriodEnd },
+      resource: 'ShopSubscription',
+      resourceId: String(sub.id),
+      newData: { reason: reason || 'Manual offline activation', newPeriodEnd },
     },
   });
 
@@ -656,9 +656,9 @@ async function adminSuspendShop(adminUserId, shopId, reason) {
       userId: adminUserId,
       shopId: numericShopId,
       action: 'SUBSCRIPTION_SUSPEND',
-      entity: 'ShopSubscription',
-      entityId: sub.id,
-      details: { reason: reason.trim() },
+      resource: 'ShopSubscription',
+      resourceId: String(sub.id),
+      newData: { reason: reason.trim() },
     },
   });
 
@@ -712,9 +712,9 @@ async function adminReactivateShop(adminUserId, shopId) {
       userId: adminUserId,
       shopId: numericShopId,
       action: 'SUBSCRIPTION_REACTIVATE',
-      entity: 'ShopSubscription',
-      entityId: sub.id,
-      details: { restoredStatus },
+      resource: 'ShopSubscription',
+      resourceId: String(sub.id),
+      newData: { restoredStatus },
     },
   });
 
@@ -742,9 +742,9 @@ async function adminCancelSubscription(adminUserId, shopId, reason) {
       userId: adminUserId,
       shopId: numericShopId,
       action: 'SUBSCRIPTION_CANCEL',
-      entity: 'ShopSubscription',
-      entityId: sub.id,
-      details: { reason: reason || 'Cancelled by admin' },
+      resource: 'ShopSubscription',
+      resourceId: String(sub.id),
+      newData: { reason: reason || 'Cancelled by admin' },
     },
   });
 
