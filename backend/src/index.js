@@ -27,9 +27,11 @@ async function start() {
     initSocket(server);
     logger.info('⚡ Real-time Socket.IO engine initialized');
 
-    // Initialize scheduled queues (finance reports, file expiry)
+    // Initialize scheduled queues (finance reports, file expiry, subscription audit)
     require('./queues/report.queue');
     logger.info('📊 Finance reports scheduled queue initialized');
+    require('./queues/subscription.queue');
+    logger.info('💳 Daily subscription maintenance queue initialized');
 
     server.listen(PORT, '0.0.0.0', () => {
       logger.info(`🚀 SmartPrint API running on http://0.0.0.0:${PORT}`);

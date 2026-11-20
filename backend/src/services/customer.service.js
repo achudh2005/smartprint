@@ -23,6 +23,7 @@ async function getShopByCode(shopCode) {
       ],
     },
     include: {
+      subscription: true,
       shopSettings: true,
       additionalServices: {
         where: { isActive: true },
@@ -38,6 +39,17 @@ async function getShopByCode(shopCode) {
   if (!shop || shop.status !== 'ACTIVE') {
     const err = new Error('Shop not found or currently inactive.');
     err.statusCode = 404;
+    throw err;
+  }
+
+  // Verify shop subscription is active (trial, paid, or grace)
+  const { getOrCreateShopSubscription, computeSubscriptionDetails } = require('./subscription.service');
+  const sub = shop.subscription || await getOrCreateShopSubscription(shop.id);
+  const subCalc = computeSubscriptionDetails(sub);
+  if (!subCalc.isActive) {
+    const err = new Error("This shop's service is temporarily unavailable.");
+    err.statusCode = 403;
+    err.code = 'SHOP_SUBSCRIPTION_INACTIVE';
     throw err;
   }
 
@@ -93,12 +105,22 @@ async function getOrCreateSession(shopCode, existingToken = null) {
         { shopCode: rawCode },
       ],
     },
-    include: { shopSettings: true },
+    include: { shopSettings: true, subscription: true },
   });
 
   if (!shop || shop.status !== 'ACTIVE') {
     const err = new Error('Shop not found or currently inactive.');
     err.statusCode = 404;
+    throw err;
+  }
+
+  // Verify shop subscription is active
+  const sub = shop.subscription || await getOrCreateShopSubscription(shop.id);
+  const subCalc = computeSubscriptionDetails(sub);
+  if (!subCalc.isActive) {
+    const err = new Error("This shop's service is temporarily unavailable.");
+    err.statusCode = 403;
+    err.code = 'SHOP_SUBSCRIPTION_INACTIVE';
     throw err;
   }
 
