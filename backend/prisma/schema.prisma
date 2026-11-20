@@ -126,6 +126,8 @@ model Shop {
   printers          Printer[]
   notifications     Notification[]
   auditLogs         AuditLog[]
+  subscription      ShopSubscription?
+  subscriptionPayments SubscriptionPayment[]
 
   @@map("shops")
 }
@@ -738,3 +740,62 @@ model CustomerPushSubscription {
   @@index([orderId])
   @@map("customer_push_subscriptions")
 }
+
+// ============================================================
+// SHOP SUBSCRIPTIONS & BILLING (Super Admin Managed)
+// ============================================================
+model ShopSubscription {
+  id               Int                @id @default(autoincrement())
+  shopId           Int                @unique @map("shop_id")
+  status           SubscriptionStatus @default(TRIAL)
+  plan             String?            @db.VarChar(32) // e.g. "MONTHLY", null during trial
+  trialStartedAt   DateTime           @default(now()) @map("trial_started_at")
+  trialEndsAt      DateTime           @map("trial_ends_at")
+  currentPeriodEnd DateTime?          @map("current_period_end") // paid period end
+  bonusDays        Int                @default(0) @map("bonus_days") // admin-granted extra days
+  suspendedAt      DateTime?          @map("suspended_at")
+  suspendedReason  String?            @db.VarChar(255) @map("suspended_reason")
+  cancelledAt      DateTime?          @map("cancelled_at")
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+
+  shop             Shop               @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@map("shop_subscriptions")
+}
+
+enum SubscriptionStatus {
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  SUSPENDED
+  EXPIRED
+  CANCELLED
+}
+
+model SubscriptionPayment {
+  id                Int                       @id @default(autoincrement())
+  shopId            Int                       @map("shop_id")
+  razorpayOrderId   String                    @unique @map("razorpay_order_id") @db.VarChar(64)
+  razorpayPaymentId String?                   @map("razorpay_payment_id") @db.VarChar(64)
+  amount            Decimal                   @db.Decimal(10, 2)
+  currency          String                    @default("INR") @db.VarChar(8)
+  status            SubscriptionPaymentStatus @default(CREATED)
+  periodStart       DateTime                  @map("period_start")
+  periodEnd         DateTime                  @map("period_end")
+  createdAt         DateTime                  @default(now()) @map("created_at")
+  updatedAt         DateTime                  @updatedAt @map("updated_at")
+
+  shop              Shop                      @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  @@index([shopId])
+  @@index([razorpayOrderId])
+  @@map("subscription_payments")
+}
+
+enum SubscriptionPaymentStatus {
+  CREATED
+  PAID
+  FAILED
+}
+

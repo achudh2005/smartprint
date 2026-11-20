@@ -59,6 +59,20 @@ async function createShop({ name, address, phone, email, logoUrl }, userId) {
       },
     });
 
+    // Automatically provision 30-day free trial subscription for every new shop
+    const trialStartedAt = new Date();
+    const trialEndsAt = new Date(trialStartedAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+    await tx.shopSubscription.create({
+      data: {
+        shopId: newShop.id,
+        status: 'TRIAL',
+        plan: null,
+        trialStartedAt,
+        trialEndsAt,
+        bonusDays: 0,
+      },
+    });
+
     // Create default standard pricing rules so customer uploads and price calculation work immediately
     const defaultPricingRules = [
       { name: 'B&W A4 Simplex', colorMode: 'BLACK_WHITE', paperSize: 'A4', duplexMode: 'SIMPLEX', pricePerPage: 1.50 },
