@@ -9,8 +9,10 @@ const shopController = require('../controllers/shop.controller');
 const printerController = require('../controllers/printer.controller');
 const analyticsController = require('../controllers/analytics.controller');
 const chatController = require('../controllers/chat.controller');
+const subscriptionController = require('../controllers/subscription.controller');
 const { authenticate } = require('../middleware/auth.middleware');
 const { requireShopMembership, requireShopOwnerOrManager } = require('../middleware/auth.middleware');
+const { requireActiveSubscription } = require('../middleware/subscription.middleware');
 
 const upload = multer({
   dest: path.join(os.tmpdir(), 'smartprint_logos'),
@@ -36,6 +38,33 @@ router.get('/:shopId',
   requireShopMembership,
   shopController.getShop
 );
+
+// ── Shop Subscription & Billing Routes (Accessible even when expired/suspended) ──
+router.get('/:shopId/subscription',
+  requireShopMembership,
+  subscriptionController.getSubscription
+);
+
+router.post('/:shopId/subscription/create-order',
+  requireShopMembership,
+  requireShopOwnerOrManager,
+  subscriptionController.createSubscriptionOrder
+);
+
+router.post('/:shopId/subscription/verify-payment',
+  requireShopMembership,
+  requireShopOwnerOrManager,
+  subscriptionController.verifySubscriptionPayment
+);
+
+router.post('/:shopId/subscription/cancel',
+  requireShopMembership,
+  requireShopOwnerOrManager,
+  subscriptionController.cancelSubscription
+);
+
+// ── Enforce Active Subscription on all subsequent operational shop routes ──
+router.use('/:shopId', requireActiveSubscription);
 
 // PUT /api/v1/shops/:shopId – Update shop details
 router.put('/:shopId',
