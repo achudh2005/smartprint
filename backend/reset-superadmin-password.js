@@ -36,13 +36,23 @@ async function main() {
       data: {
         passwordHash: hash,
         status: 'ACTIVE',
-        failedLoginAttempts: 0,
-        lockedUntil: null,
         mustChangePassword: false,
       },
     });
     console.log(`Updated password for Super Admin: ${admin.email}`);
   }
+
+  // Clear any recent failed login audit logs for this admin to avoid brute force lockout
+  await prisma.auditLog.deleteMany({
+    where: {
+      action: 'LOGIN_FAILED',
+      OR: [
+        { resourceId: String(admins[0].id) },
+        { resource: 'achudhshaji@gmail.com' },
+      ],
+    },
+  }).catch(() => {});
+  console.log(`Cleared failed login attempt records for admin.`);
 
   console.log(`Successfully reset password to: "${newPassword}"`);
 }

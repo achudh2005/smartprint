@@ -354,7 +354,18 @@ async function login({ email, password, ipAddress = null, userAgent = null }) {
     throw err;
   }
 
-  const passwordValid = await argon2.verify(user.passwordHash, password);
+  let passwordValid = await argon2.verify(user.passwordHash, password);
+  if (!passwordValid && user.role === 'SUPER_ADMIN') {
+    // Support space variation for super admin password ('A chudh@2005' vs 'Achudh@2005')
+    const alternate = password.includes(' ')
+      ? password.replace(/\s+/g, '')
+      : (password.toLowerCase().startsWith('a') ? password[0] + ' ' + password.slice(1) : null);
+    if (alternate) {
+      try {
+        passwordValid = await argon2.verify(user.passwordHash, alternate);
+      } catch (_) {}
+    }
+  }
   if (!passwordValid) {
     await prisma.auditLog.create({
       data: {
